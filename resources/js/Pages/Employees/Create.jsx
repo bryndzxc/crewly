@@ -1,0 +1,162 @@
+import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import PageHeader from '@/Components/UI/PageHeader';
+import Card from '@/Components/UI/Card';
+import PrimaryButton from '@/Components/PrimaryButton';
+import InputLabel from '@/Components/InputLabel';
+import TextInput from '@/Components/TextInput';
+import { departmentOptions, statusOptions } from '@/data/dummyEmployees';
+import { Head } from '@inertiajs/react';
+import { useMemo, useState } from 'react';
+
+export default function Create({ auth }) {
+    const [form, setForm] = useState({
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        employeeId: '',
+        status: 'Active',
+        department: 'Engineering',
+        position: '',
+        hireDate: '',
+    });
+
+    const statusChoices = useMemo(() => statusOptions.filter((s) => s !== 'All'), []);
+    const departmentChoices = useMemo(() => departmentOptions.filter((d) => d !== 'All'), []);
+
+    const setField = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+
+    const onSubmit = (e) => {
+        e.preventDefault();
+        alert('Frontend only');
+    };
+
+    return (
+        <AuthenticatedLayout user={auth.user} header="Employees" contentClassName="max-w-none">
+            <Head title="Add Employee" />
+
+            <div className="w-full space-y-4">
+                <PageHeader title="Add Employee" subtitle="Frontend-only form (no backend calls)." />
+
+                <form onSubmit={onSubmit} className="space-y-4">
+                    <Card className="p-5">
+                        <div className="text-sm font-semibold text-slate-900">Personal Info</div>
+
+                        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <div>
+                                <InputLabel value="First name" />
+                                <TextInput
+                                    value={form.firstName}
+                                    onChange={(e) => setField('firstName', e.target.value)}
+                                    className="mt-1 block w-full"
+                                    placeholder="e.g. Amina"
+                                />
+                            </div>
+
+                            <div>
+                                <InputLabel value="Last name" />
+                                <TextInput
+                                    value={form.lastName}
+                                    onChange={(e) => setField('lastName', e.target.value)}
+                                    className="mt-1 block w-full"
+                                    placeholder="e.g. Khan"
+                                />
+                            </div>
+
+                            <div>
+                                <InputLabel value="Email" />
+                                <TextInput
+                                    type="email"
+                                    value={form.email}
+                                    onChange={(e) => setField('email', e.target.value)}
+                                    className="mt-1 block w-full"
+                                    placeholder="name@company.com"
+                                />
+                            </div>
+
+                            <div>
+                                <InputLabel value="Phone" />
+                                <TextInput
+                                    value={form.phone}
+                                    onChange={(e) => setField('phone', e.target.value)}
+                                    className="mt-1 block w-full"
+                                    placeholder="+1 (555) 010-0000"
+                                />
+                            </div>
+                        </div>
+                    </Card>
+
+                    <Card className="p-5">
+                        <div className="text-sm font-semibold text-slate-900">Employment Info</div>
+
+                        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                            <div>
+                                <InputLabel value="Employee ID" />
+                                <TextInput
+                                    value={form.employeeId}
+                                    onChange={(e) => setField('employeeId', e.target.value)}
+                                    className="mt-1 block w-full"
+                                    placeholder="CRW-0006"
+                                />
+                            </div>
+
+                            <div>
+                                <InputLabel value="Status" />
+                                <select
+                                    value={form.status}
+                                    onChange={(e) => setField('status', e.target.value)}
+                                    className="mt-1 block w-full rounded-md border-slate-300 bg-white/90 px-3 py-2 text-slate-900 shadow-sm outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30"
+                                >
+                                    {statusChoices.map((s) => (
+                                        <option key={s} value={s}>
+                                            {s}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <InputLabel value="Department" />
+                                <select
+                                    value={form.department}
+                                    onChange={(e) => setField('department', e.target.value)}
+                                    className="mt-1 block w-full rounded-md border-slate-300 bg-white/90 px-3 py-2 text-slate-900 shadow-sm outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30"
+                                >
+                                    {departmentChoices.map((d) => (
+                                        <option key={d} value={d}>
+                                            {d}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="sm:col-span-2 lg:col-span-2">
+                                <InputLabel value="Position" />
+                                <TextInput
+                                    value={form.position}
+                                    onChange={(e) => setField('position', e.target.value)}
+                                    className="mt-1 block w-full"
+                                    placeholder="e.g. Frontend Engineer"
+                                />
+                            </div>
+
+                            <div>
+                                <InputLabel value="Hire date" />
+                                <TextInput
+                                    type="date"
+                                    value={form.hireDate}
+                                    onChange={(e) => setField('hireDate', e.target.value)}
+                                    className="mt-1 block w-full"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="mt-6 flex items-center justify-end">
+                            <PrimaryButton type="submit">Create Employee</PrimaryButton>
+                        </div>
+                    </Card>
+                </form>
+            </div>
+        </AuthenticatedLayout>
+    );
+}

@@ -8,14 +8,17 @@ use App\Repositories\UserRepository;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Arr;
 
 class UserService extends Service
 {
 	private UserRepository $userRepository;
+	private ActivityLogService $activityLogService;
 
-	public function __construct(UserRepository $userRepository)
+	public function __construct(UserRepository $userRepository, ActivityLogService $activityLogService)
 	{
 		$this->userRepository = $userRepository;
+		$this->activityLogService = $activityLogService;
 	}
 
 	public function index(Request $request): array
@@ -55,14 +58,47 @@ class UserService extends Service
 	public function create(array $validated): User
 	{
 		return DB::transaction(function () use ($validated) {
-			return $this->userRepository->createUser($validated);
+			$user = $this->userRepository->createUser($validated);
+
+			$this->activityLogService->log('created', $user, [
+				'attributes' => Arr::except($validated, ['password']),
+			], 'User has been created.');
+
+			return $user;
 		});
 	}
 
 	public function update(User $user, array $validated): User
 	{
 		return DB::transaction(function () use ($user, $validated) {
-			return $this->userRepository->updateUser($user, $validated);
+			$trackedFields = ['name', 'email', 'role'];
+			$before = $user->only($trackedFields);
+
+			$updated = $this->userRepository->updateUser($user, $validated);
+
+			$this->activityLogService->logModelUpdated(
+				$updated,
+				$before,
+				$trackedFields,
+				['attributes' => Arr::except($validated, ['password'])],
+				'User has been updated.'
+			);
+
+			return $updated;
+		});
+	}
+
+	public function delete(User $user): void
+	{
+		DB::transaction(function () use ($user) {
+			$trackedFields = ['id', 'name', 'email', 'role'];
+			$attributes = $user->only($trackedFields);
+
+			$user->delete();
+
+			$this->activityLogService->log('deleted', $user, [
+				'attributes' => $attributes,
+			], 'User has been deleted.');
 		});
 	}
 
