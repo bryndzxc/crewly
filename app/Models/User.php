@@ -1,0 +1,81 @@
+<?php
+
+namespace App\Models;
+
+// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Traits\Pagination;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
+
+class User extends Authenticatable
+{
+    use HasApiTokens, HasFactory, Notifiable;
+    use Pagination;
+    use SoftDeletes;
+
+    public const ROLE_ADMIN = 'admin';
+    public const ROLE_HR = 'hr';
+    public const ROLE_MANAGER = 'manager';
+
+    protected array $searchable_fields = [
+        'name',
+        'email',
+        'role',
+    ];
+
+    public function role(): string
+    {
+        return $this->getAttribute('role') ?? self::ROLE_ADMIN;
+    }
+
+    public function hasRole(string $role): bool
+    {
+        return $this->role() === $role;
+    }
+
+    public function isDeveloper(): bool
+    {
+        if (!config('app.developer_bypass', false)) {
+            return false;
+        }
+
+        $email = strtolower(trim((string) $this->getAttribute('email')));
+        $allowed = (array) config('app.developer_emails', []);
+
+        return $email !== '' && in_array($email, $allowed, true);
+    }
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<int, string>
+     */
+    protected $fillable = [
+        'name',
+        'email',
+        'role',
+        'password',
+    ];
+
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * @var array<int, string>
+     */
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+    ];
+}

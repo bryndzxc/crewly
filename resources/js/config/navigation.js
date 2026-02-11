@@ -1,0 +1,57 @@
+export const navigation = [
+    {
+        type: 'link',
+        label: 'Dashboard',
+        routeName: 'dashboard',
+        iconKey: 'dashboard',
+        activePatterns: ['/dashboard'],
+        ability: null,
+        roles: null,
+    },
+    {
+        type: 'link',
+        label: 'Employees',
+        routeName: 'employees.index',
+        iconKey: 'employees',
+        activePatterns: ['/employees'],
+        ability: 'accessEmployees',
+        roles: null,
+    },
+    {
+        type: 'link',
+        label: 'Recruitment',
+        routeName: 'recruitment.index',
+        iconKey: 'recruitment',
+        activePatterns: ['/recruitment'],
+        ability: 'accessRecruitment',
+        roles: null,
+    },
+    {
+        type: 'group',
+        label: 'Account Management',
+        iconKey: 'account',
+        children: [
+            {
+                label: 'User',
+                routeName: 'users.index',
+                iconKey: 'users',
+                activePatterns: ['/users'],
+                ability: 'manageUsers',
+            },
+            {
+                label: 'Role',
+                routeName: 'roles.index',
+                iconKey: 'roles',
+                activePatterns: ['/roles'],
+                ability: 'manageRoles',
+            },
+            {
+                label: 'Modules & Permissions',
+                routeName: 'permissions.index',
+                iconKey: 'lock',
+                activePatterns: ['/permissions'],
+                ability: 'manageRoles',
+            },
+        ],
+    },
+];
