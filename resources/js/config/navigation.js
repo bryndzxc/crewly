@@ -19,6 +19,15 @@ export const navigation = [
     },
     {
         type: 'link',
+        label: 'Departments',
+        routeName: 'departments.index',
+        iconKey: 'employees',
+        activePatterns: ['/departments'],
+        ability: 'accessEmployees',
+        roles: null,
+    },
+    {
+        type: 'link',
         label: 'Recruitment',
         routeName: 'recruitment.index',
         iconKey: 'recruitment',
