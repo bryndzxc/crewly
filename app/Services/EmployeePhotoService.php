@@ -14,6 +14,28 @@ class EmployeePhotoService extends Service
     {
     }
 
+    public function deletePhoto(Employee $employee): void
+    {
+        $disk = (string) config('crewly.documents.disk', config('filesystems.default'));
+
+        $oldPath = (string) ($employee->getAttribute('photo_path') ?? '');
+        if ($oldPath !== '') {
+            Storage::disk($disk)->delete($oldPath);
+        }
+
+        $employee->forceFill([
+            'photo_path' => null,
+            'photo_original_name' => null,
+            'photo_mime_type' => null,
+            'photo_size' => null,
+            'photo_is_encrypted' => false,
+            'photo_encryption_algo' => null,
+            'photo_encryption_iv' => null,
+            'photo_encryption_tag' => null,
+            'photo_key_version' => null,
+        ])->save();
+    }
+
     public function setPhoto(Employee $employee, UploadedFile $file): void
     {
         $disk = (string) config('crewly.documents.disk', config('filesystems.default'));

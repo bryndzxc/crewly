@@ -19,3 +19,4 @@ Route::group([], base_path('routes/modules/core.php'));
 Route::group([], base_path('routes/modules/employees.php'));
 Route::group([], base_path('routes/modules/recruitment.php'));
 Route::group([], base_path('routes/modules/account.php'));
+Route::group([], base_path('routes/modules/leaves.php'));

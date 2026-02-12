@@ -3,6 +3,17 @@
 return [
     'documents' => [
         'disk' => env('CREWLY_DOCUMENTS_DISK', env('FILESYSTEM_DISK', 'local')),
+        'expiring_soon_days' => (int) env('CREWLY_DOCS_EXPIRING_SOON_DAYS', 30),
+    ],
+
+    'employees' => [
+        // Comma-separated list of statuses that should be considered for
+        // probation/regularization tracking.
+        // Crewly currently ships with enum statuses like "Active"; if you add
+        // "Probation" later, set: CREWLY_PROBATION_STATUSES="Probation,Active".
+        'probation_statuses' => array_values(array_filter(
+            array_map('trim', explode(',', (string) env('CREWLY_PROBATION_STATUSES', 'Active')))
+        )),
     ],
 
     'scan' => [

@@ -13,9 +13,9 @@ const employmentTypeChoices = ['Full-Time', 'Part-Time', 'Contractor', 'Intern']
 
 export default function Edit({ auth, employee, departments = [], inModal = false, onCancel, onSuccess }) {
     const [successMessage, setSuccessMessage] = useState('');
-    const [photoPreviewUrl, setPhotoPreviewUrl] = useState('');
 
     const pageErrors = usePage().props?.errors ?? {};
+    const flash = usePage().props?.flash;
     const { data, setData, patch, processing, errors: formErrors } = useForm({
         department_id: employee?.department_id ?? (departments?.[0]?.department_id ?? ''),
         employee_code: employee?.employee_code ?? '',
@@ -23,8 +23,6 @@ export default function Edit({ auth, employee, departments = [], inModal = false
         middle_name: employee?.middle_name ?? '',
         last_name: employee?.last_name ?? '',
         suffix: employee?.suffix ?? '',
-        photo: null,
-        photo_present: 0,
         email: employee?.email ?? '',
         mobile_number: employee?.mobile_number ?? '',
         status: employee?.status ?? 'Active',
@@ -36,28 +34,13 @@ export default function Edit({ auth, employee, departments = [], inModal = false
     });
 
     const errors = Object.keys(formErrors ?? {}).length > 0 ? formErrors : pageErrors;
-
-    useEffect(() => {
-        const file = data.photo;
-        if (!file) {
-            setPhotoPreviewUrl('');
-            return;
-        }
-
-        const url = URL.createObjectURL(file);
-        setPhotoPreviewUrl(url);
-
-        return () => {
-            URL.revokeObjectURL(url);
-        };
-    }, [data.photo]);
+    const errorMessages = Object.values(errors ?? {}).filter(Boolean);
 
     const submit = (e) => {
         e.preventDefault();
         patch(route('employees.update', employee.employee_id), {
             preserveScroll: true,
             preserveState: inModal,
-            forceFormData: true,
             onSuccess: () => {
                 if (inModal) {
                     setSuccessMessage('Employee updated successfully.');
@@ -76,35 +59,33 @@ export default function Edit({ auth, employee, departments = [], inModal = false
         <div className={inModal ? '' : 'w-full'}>
             <div className={inModal ? '' : 'bg-white border border-gray-200 rounded-lg p-6'}>
                 <form onSubmit={submit} className="space-y-5">
+                    {!inModal && !!flash?.success && (
+                        <div className="rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
+                            {flash.success}
+                        </div>
+                    )}
+                    {!inModal && !!flash?.error && (
+                        <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800">
+                            {flash.error}
+                        </div>
+                    )}
+
+                    {errorMessages.length > 0 && (
+                        <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800">
+                            <div className="font-medium">Update failed</div>
+                            <ul className="mt-1 list-disc pl-5">
+                                {errorMessages.slice(0, 6).map((msg, idx) => (
+                                    <li key={idx}>{msg}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+
                     {inModal && !!successMessage && (
                         <div className="rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
                             {successMessage}
                         </div>
                     )}
-
-                    <div>
-                        <InputLabel htmlFor="photo" value="Photo (optional)" />
-                        <input
-                            id="photo"
-                            name="photo"
-                            type="file"
-                            accept="image/jpeg,image/png"
-                            className="mt-1 block w-full text-sm text-gray-900"
-                            onChange={(e) => {
-                                const file = e.target.files?.[0] ?? null;
-                                setData('photo', file);
-                                setData('photo_present', file ? 1 : 0);
-                            }}
-                        />
-                        {!!photoPreviewUrl && (
-                            <img
-                                src={photoPreviewUrl}
-                                alt="Selected photo preview"
-                                className="mt-3 h-20 w-20 rounded-md object-cover border border-gray-200"
-                            />
-                        )}
-                        <InputError message={errors.photo} className="mt-2" />
-                    </div>
 
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div>

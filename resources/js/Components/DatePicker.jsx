@@ -14,8 +14,10 @@ function toISODate(date) {
 
 function parseISODate(value) {
     if (!value || typeof value !== 'string') return null;
+    const match = value.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (!match) return null;
     // Force midnight to avoid timezone shifts.
-    const dt = new Date(`${value}T00:00:00`);
+    const dt = new Date(`${match[1]}T00:00:00`);
     if (Number.isNaN(dt.getTime())) return null;
     return dt;
 }
@@ -65,7 +67,7 @@ export default function DatePicker({ id, name, value, onChange, placeholder = 'd
         return cells;
     }, [viewMonth]);
 
-    const displayValue = value ? value : '';
+    const displayValue = typeof value === 'string' ? (value.match(/^(\d{4}-\d{2}-\d{2})/)?.[1] ?? value) : '';
 
     return (
         <Popover className="relative">

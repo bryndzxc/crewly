@@ -2,8 +2,8 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import DatePicker from '@/Components/DatePicker';
-import { Head, Link, router, useForm } from '@inertiajs/react';
-import { useMemo, useState } from 'react';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
+import { useMemo, useRef, useState } from 'react';
 
 function fullName(employee) {
     const parts = [employee?.first_name, employee?.middle_name, employee?.last_name, employee?.suffix]
@@ -14,12 +14,14 @@ function fullName(employee) {
 }
 
 export default function Show({ auth, employee, departments = [], documents = [], can = {} }) {
+    const flash = usePage().props?.flash;
     const departmentName = useMemo(() => {
         const found = (departments ?? []).find((d) => Number(d.department_id) === Number(employee?.department_id));
         return found?.name ?? employee?.department_id;
     }, [departments, employee?.department_id]);
 
     const [activeTab, setActiveTab] = useState('details');
+    const photoInputRef = useRef(null);
 
     const uploadForm = useForm({
         type: '',
@@ -65,6 +67,17 @@ export default function Show({ auth, employee, departments = [], documents = [],
             <Head title={employee ? `Employee - ${fullName(employee)}` : 'Employee'} />
 
             <div className="w-full space-y-4">
+                {!!flash?.success && (
+                    <div className="rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
+                        {flash.success}
+                    </div>
+                )}
+                {!!flash?.error && (
+                    <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800">
+                        {flash.error}
+                    </div>
+                )}
+
                 <div className="bg-white border border-gray-200 rounded-lg p-5 sm:p-6">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex items-center gap-4 min-w-0">
@@ -98,9 +111,52 @@ export default function Show({ auth, employee, departments = [], documents = [],
                         </div>
 
                         <div className="flex items-center gap-3">
+                            <input
+                                ref={photoInputRef}
+                                type="file"
+                                accept="image/jpeg,image/png"
+                                className="hidden"
+                                onChange={(e) => {
+                                    const file = e.target.files?.[0] ?? null;
+                                    if (!file) return;
+
+                                    router.post(
+                                        route('employees.photo.update', employee.employee_id),
+                                        { photo: file },
+                                        {
+                                            forceFormData: true,
+                                            preserveScroll: true,
+                                            onFinish: () => {
+                                                // allow re-uploading same file
+                                                if (photoInputRef.current) photoInputRef.current.value = '';
+                                            },
+                                        }
+                                    );
+                                }}
+                            />
+
                             <Link href={route('employees.index')}>
                                 <SecondaryButton type="button">Back</SecondaryButton>
                             </Link>
+
+                            {employee?.employee_id && (
+                                <SecondaryButton
+                                    type="button"
+                                    onClick={() => photoInputRef.current?.click()}
+                                >
+                                    Upload Photo
+                                </SecondaryButton>
+                            )}
+
+                            {!!employee?.photo_url && employee?.employee_id && (
+                                <SecondaryButton
+                                    type="button"
+                                    onClick={() => router.delete(route('employees.photo.destroy', employee.employee_id), { preserveScroll: true })}
+                                >
+                                    Delete Photo
+                                </SecondaryButton>
+                            )}
+
                             {employee?.employee_id && (
                                 <Link href={route('employees.edit', employee.employee_id)}>
                                     <PrimaryButton type="button">Edit</PrimaryButton>

@@ -1,9 +1,9 @@
 import React from 'react';
 import Card from '@/Components/UI/Card';
 
-export default function StatCard({ title, value, caption, icon }) {
+export default function StatCard({ title, value, caption, icon, className = '' }) {
     return (
-        <Card className="p-5">
+        <Card className={'p-5 ' + className}>
             <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
                     <div className="text-sm font-medium text-slate-600">{title}</div>

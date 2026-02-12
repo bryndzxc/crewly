@@ -48,15 +48,7 @@ class EmployeeController extends Controller
      */
     public function store(EmployeeRequest $request): RedirectResponse
     {
-        Log::info('Employees store hit.', [
-            'user_id' => optional($request->user())->id,
-            'has_inertia_header' => (bool) $request->header('X-Inertia'),
-            'content_type' => (string) $request->header('Content-Type', ''),
-            'accept' => (string) $request->header('Accept', ''),
-            'has_photo_file' => (bool) $request->file('photo'),
-            'photo_present' => $request->input('photo_present'),
-        ]);
-
+        
         $validated = $request->validated();
 
         $this->employeeService->create($validated);
@@ -104,24 +96,27 @@ class EmployeeController extends Controller
      */
     public function edit(Employee $employee): Response
     {
+        $payload = $employee->only([
+            'employee_id',
+            'department_id',
+            'employee_code',
+            'first_name',
+            'middle_name',
+            'last_name',
+            'suffix',
+            'email',
+            'mobile_number',
+            'status',
+            'position_title',
+            'employment_type',
+            'notes',
+        ]);
+
+        $payload['date_hired'] = $employee->date_hired?->format('Y-m-d');
+        $payload['regularization_date'] = $employee->regularization_date?->format('Y-m-d');
+
         return Inertia::render('Employees/Edit', [
-            'employee' => $employee->only([
-                'employee_id',
-                'department_id',
-                'employee_code',
-                'first_name',
-                'middle_name',
-                'last_name',
-                'suffix',
-                'email',
-                'mobile_number',
-                'status',
-                'position_title',
-                'date_hired',
-                'regularization_date',
-                'employment_type',
-                'notes',
-            ]),
+            'employee' => $payload,
             'departments' => Department::query()
                 ->orderBy('name')
                 ->get(['department_id', 'name', 'code']),

@@ -3,7 +3,10 @@
 namespace App\Repositories;
 
 use App\Models\Employee;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Carbon;
 
 class EmployeeRepository extends BaseRepository
 {
@@ -101,5 +104,43 @@ class EmployeeRepository extends BaseRepository
         ])->save();
 
         $employee->delete();
+    }
+
+    public function paginateProbationEndingSoon(
+        Carbon $today,
+        Carbon $end,
+        array $allowedStatuses,
+        string $search,
+        int $perPage = 15,
+    ): LengthAwarePaginator {
+        return Employee::query()
+            ->from('employees')
+            ->leftJoin('departments', 'employees.department_id', '=', 'departments.department_id')
+            ->select([
+                'employees.employee_id',
+                'employees.employee_code',
+                'employees.department_id',
+                'employees.first_name',
+                'employees.middle_name',
+                'employees.last_name',
+                'employees.suffix',
+                'employees.status',
+                'employees.regularization_date',
+                'departments.name as department_name',
+            ])
+            ->whereNotNull('employees.regularization_date')
+            ->whereBetween('employees.regularization_date', [$today->toDateString(), $end->toDateString()])
+            ->when(count($allowedStatuses) > 0, fn (Builder $q) => $q->whereIn('employees.status', $allowedStatuses))
+            ->when($search !== '', function (Builder $q) use ($search) {
+                $q->where(function (Builder $sub) use ($search) {
+                    $sub->where('departments.name', 'like', '%' . $search . '%')
+                        ->orWhere(function (Builder $empQ) use ($search) {
+                            $empQ->searchable($search);
+                        });
+                });
+            })
+            ->orderBy('employees.regularization_date', 'asc')
+            ->paginate($perPage)
+            ->withQueryString();
     }
 }

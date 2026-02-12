@@ -87,15 +87,7 @@ class EmployeeService extends Service
         try {
             $this->employeePhotoService->setPhoto($employee, $photo);
         } catch (\Throwable $e) {
-            Log::warning('Employee photo upload failed on create.', [
-                'employee_id' => (int) $employee->employee_id,
-                'user_id' => Auth::id(),
-                'original_name' => method_exists($photo, 'getClientOriginalName') ? $photo->getClientOriginalName() : null,
-                'mime_type' => method_exists($photo, 'getClientMimeType') ? $photo->getClientMimeType() : null,
-                'size' => method_exists($photo, 'getSize') ? $photo->getSize() : null,
-                'exception' => get_class($e),
-                'message' => $e->getMessage(),
-            ]);
+        
             session()->flash('error', 'Employee created, but the photo upload failed.');
         }
     }
@@ -175,15 +167,7 @@ class EmployeeService extends Service
             $this->employeePhotoService->setPhoto($employee, $photo);
             session()->flash('success', 'Employee updated successfully (photo updated).');
         } catch (\Throwable $e) {
-            Log::warning('Employee photo upload failed on update.', [
-                'employee_id' => (int) $employee->employee_id,
-                'user_id' => Auth::id(),
-                'original_name' => method_exists($photo, 'getClientOriginalName') ? $photo->getClientOriginalName() : null,
-                'mime_type' => method_exists($photo, 'getClientMimeType') ? $photo->getClientMimeType() : null,
-                'size' => method_exists($photo, 'getSize') ? $photo->getSize() : null,
-                'exception' => get_class($e),
-                'message' => $e->getMessage(),
-            ]);
+
             session()->flash('error', 'Employee updated, but the photo upload failed.');
         }
     }
@@ -318,6 +302,9 @@ class EmployeeService extends Service
             'employment_type',
             'notes',
         ]);
+
+        $base['date_hired'] = $employee->date_hired?->format('Y-m-d');
+        $base['regularization_date'] = $employee->regularization_date?->format('Y-m-d');
 
         return array_merge($base, $data);
     }

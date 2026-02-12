@@ -49,6 +49,10 @@ class HandleInertiaRequests extends Middleware
                 'employeeDocumentsDownload' => $user ? Gate::forUser($user)->check('employees-documents-download') : false,
                 'employeeDocumentsUpload' => $user ? Gate::forUser($user)->check('employees-documents-upload') : false,
                 'employeeDocumentsDelete' => $user ? Gate::forUser($user)->check('employees-documents-delete') : false,
+                'accessLeaves' => $user ? Gate::forUser($user)->check('access-leaves') : false,
+                'manageLeaveTypes' => $user ? Gate::forUser($user)->check('manage-leave-types') : false,
+                'createLeaveRequests' => $user ? Gate::forUser($user)->check('create-leave-requests') : false,
+                'approveLeaveRequests' => $user ? Gate::forUser($user)->check('approve-leave-requests') : false,
             ],
         ];
     }

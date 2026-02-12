@@ -10,6 +10,18 @@ class EmployeeRequest extends FormRequest
 {
     protected function prepareForValidation(): void
     {
+        if ($this->exists('date_hired')) {
+            $this->merge([
+                'date_hired' => $this->normalizeDateInput($this->input('date_hired')),
+            ]);
+        }
+
+        if ($this->exists('regularization_date')) {
+            $this->merge([
+                'regularization_date' => $this->normalizeDateInput($this->input('regularization_date')),
+            ]);
+        }
+
         if ($this->has('email')) {
             $this->merge([
                 'email_hash' => $this->hashEmail((string) $this->input('email')),
@@ -46,7 +58,7 @@ class EmployeeRequest extends FormRequest
      */
     public function rules(): array
     {
-        $isCreate = $this->isMethod('post');
+        $isCreate = $this->routeIs('employees.store');
         $employeeId = $this->resolveEmployeeId();
 
         $required = $isCreate ? ['required'] : ['sometimes', 'required'];
@@ -129,10 +141,12 @@ class EmployeeRequest extends FormRequest
                 'max:255',
             ],
             'date_hired' => [
+                ...$optional,
                 'nullable',
                 'date',
             ],
             'regularization_date' => [
+                ...$optional,
                 'nullable',
                 'date',
             ],
@@ -336,5 +350,27 @@ class EmployeeRequest extends FormRequest
         $v = preg_replace('/[^\p{L}\p{N}\s\-\']+/u', '', $v) ?? '';
         $v = trim($v);
         return $v;
+    }
+
+    private function normalizeDateInput(mixed $value): mixed
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        if (!is_string($value)) {
+            return $value;
+        }
+
+        $trimmed = trim($value);
+        if ($trimmed === '') {
+            return null;
+        }
+
+        if (preg_match('/^(\d{4}-\d{2}-\d{2})/', $trimmed, $m)) {
+            return $m[1];
+        }
+
+        return $trimmed;
     }
 }

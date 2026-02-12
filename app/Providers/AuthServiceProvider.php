@@ -14,7 +14,8 @@ class AuthServiceProvider extends ServiceProvider
      * @var array<class-string, class-string>
      */
     protected $policies = [
-        // 'App\Models\Model' => 'App\Policies\ModelPolicy',
+        \App\Models\LeaveType::class => \App\Policies\LeaveTypePolicy::class,
+        \App\Models\LeaveRequest::class => \App\Policies\LeaveRequestPolicy::class,
     ];
 
     /**
@@ -56,6 +57,28 @@ class AuthServiceProvider extends ServiceProvider
         Gate::define('employees-documents-delete', fn (User $user) => in_array($user->role(), [
             User::ROLE_ADMIN,
             User::ROLE_HR,
+        ], true));
+
+        Gate::define('access-leaves', fn (User $user) => in_array($user->role(), [
+            User::ROLE_ADMIN,
+            User::ROLE_HR,
+            User::ROLE_MANAGER,
+        ], true));
+
+        Gate::define('manage-leave-types', fn (User $user) => in_array($user->role(), [
+            User::ROLE_ADMIN,
+            User::ROLE_HR,
+        ], true));
+
+        Gate::define('create-leave-requests', fn (User $user) => in_array($user->role(), [
+            User::ROLE_ADMIN,
+            User::ROLE_HR,
+        ], true));
+
+        Gate::define('approve-leave-requests', fn (User $user) => in_array($user->role(), [
+            User::ROLE_ADMIN,
+            User::ROLE_HR,
+            User::ROLE_MANAGER,
         ], true));
     }
 }
