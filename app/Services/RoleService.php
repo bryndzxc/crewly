@@ -6,7 +6,6 @@ use App\Models\Role;
 use App\Repositories\RoleRepository;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Arr;
 
 class RoleService extends Service
 {
@@ -47,7 +46,7 @@ class RoleService extends Service
             $role = $this->roleRepository->createRole($validated);
 
             $this->activityLogService->log('created', $role, [
-                'attributes' => Arr::only($validated, ['key', 'name']),
+                'attributes' => $validated,
             ], 'Role has been created.');
 
             return $role;
@@ -66,7 +65,7 @@ class RoleService extends Service
                 $updated,
                 $before,
                 $trackedFields,
-                ['attributes' => Arr::only($validated, ['key', 'name'])],
+                ['attributes' => $validated],
                 'Role has been updated.'
             );
 
@@ -77,7 +76,7 @@ class RoleService extends Service
     public function delete(Role $role): void
     {
         DB::transaction(function () use ($role) {
-            $attributes = $role->only(['id', 'key', 'name']);
+            $attributes = $role->getAttributes();
             $this->roleRepository->deleteRole($role);
 
             $this->activityLogService->log('deleted', $role, [

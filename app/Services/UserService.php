@@ -91,8 +91,7 @@ class UserService extends Service
 	public function delete(User $user): void
 	{
 		DB::transaction(function () use ($user) {
-			$trackedFields = ['id', 'name', 'email', 'role'];
-			$attributes = $user->only($trackedFields);
+			$attributes = Arr::except($user->getAttributes(), ['password', 'remember_token']);
 
 			$user->delete();
 

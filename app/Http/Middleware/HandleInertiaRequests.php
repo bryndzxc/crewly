@@ -46,6 +46,9 @@ class HandleInertiaRequests extends Middleware
                 'manageRoles' => $user ? Gate::forUser($user)->check('manage-roles') : false,
                 'accessEmployees' => $user ? Gate::forUser($user)->check('access-employees') : false,
                 'accessRecruitment' => $user ? Gate::forUser($user)->check('access-recruitment') : false,
+                'employeeDocumentsDownload' => $user ? Gate::forUser($user)->check('employees-documents-download') : false,
+                'employeeDocumentsUpload' => $user ? Gate::forUser($user)->check('employees-documents-upload') : false,
+                'employeeDocumentsDelete' => $user ? Gate::forUser($user)->check('employees-documents-delete') : false,
             ],
         ];
     }

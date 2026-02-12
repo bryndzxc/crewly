@@ -41,5 +41,21 @@ class AuthServiceProvider extends ServiceProvider
             User::ROLE_ADMIN,
             User::ROLE_HR,
         ], true));
+
+        Gate::define('employees-documents-download', fn (User $user) => in_array($user->role(), [
+            User::ROLE_ADMIN,
+            User::ROLE_HR,
+            User::ROLE_MANAGER,
+        ], true));
+
+        Gate::define('employees-documents-upload', fn (User $user) => in_array($user->role(), [
+            User::ROLE_ADMIN,
+            User::ROLE_HR,
+        ], true));
+
+        Gate::define('employees-documents-delete', fn (User $user) => in_array($user->role(), [
+            User::ROLE_ADMIN,
+            User::ROLE_HR,
+        ], true));
     }
 }

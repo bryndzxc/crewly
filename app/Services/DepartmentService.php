@@ -10,10 +10,12 @@ use Illuminate\Support\Facades\DB;
 class DepartmentService extends Service
 {
     private DepartmentRepository $departmentRepository;
+    private ActivityLogService $activityLogService;
 
-    public function __construct(DepartmentRepository $departmentRepository)
+    public function __construct(DepartmentRepository $departmentRepository, ActivityLogService $activityLogService)
     {
         $this->departmentRepository = $departmentRepository;
+        $this->activityLogService = $activityLogService;
     }
 
     public function index(Request $request): array
@@ -40,21 +42,46 @@ class DepartmentService extends Service
     public function create(array $validated): Department
     {
         return DB::transaction(function () use ($validated) {
-            return $this->departmentRepository->createDepartment($validated);
+            $department = $this->departmentRepository->createDepartment($validated);
+
+            $this->activityLogService->log('created', $department, [
+                'attributes' => $validated,
+            ], 'Department has been created.');
+
+            return $department;
         });
     }
 
     public function update(Department $department, array $validated): Department
     {
         return DB::transaction(function () use ($department, $validated) {
-            return $this->departmentRepository->updateDepartment($department, $validated);
+            $trackedFields = ['name', 'code'];
+            $before = $department->only($trackedFields);
+
+            $updated = $this->departmentRepository->updateDepartment($department, $validated);
+
+            $this->activityLogService->logModelUpdated(
+                $updated,
+                $before,
+                $trackedFields,
+                ['attributes' => $validated],
+                'Department has been updated.'
+            );
+
+            return $updated;
         });
     }
 
     public function delete(Department $department): void
     {
         DB::transaction(function () use ($department) {
+            $attributes = $department->getAttributes();
+
             $this->departmentRepository->deleteDepartment($department);
+
+            $this->activityLogService->log('deleted', $department, [
+                'attributes' => $attributes,
+            ], 'Department has been deleted.');
         });
     }
 }

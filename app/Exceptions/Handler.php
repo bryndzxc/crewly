@@ -3,6 +3,8 @@
 namespace App\Exceptions;
 
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Illuminate\Http\Exceptions\PostTooLargeException;
+use Illuminate\Http\Request;
 use Throwable;
 
 class Handler extends ExceptionHandler
@@ -43,6 +45,19 @@ class Handler extends ExceptionHandler
     {
         $this->reportable(function (Throwable $e) {
             //
+        });
+
+        $this->renderable(function (PostTooLargeException $e, Request $request) {
+            // When combined uploads (e.g., documents + photo) exceed PHP's post_max_size,
+            // the request may fail before validation and appear as a generic redirect.
+            // Surface a helpful message instead.
+            $message = 'Upload too large. Please reduce file sizes or increase PHP post_max_size and upload_max_filesize.';
+
+            if ($request->header('X-Inertia')) {
+                return back()->with('error', $message)->setStatusCode(303);
+            }
+
+            return response($message, 413);
         });
     }
 }

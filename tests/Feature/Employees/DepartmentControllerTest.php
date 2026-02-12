@@ -59,6 +59,16 @@ class DepartmentControllerTest extends TestCase
             'code' => $payload['code'],
             'deleted_at' => null,
         ]);
+
+        $createdDepartment = Department::query()->where('code', $payload['code'])->firstOrFail();
+
+        $this->assertDatabaseHas('activity_logs', [
+            'actor_id' => auth()->id(),
+            'action' => 'created',
+            'subject_type' => Department::class,
+            'subject_id' => $createdDepartment->department_id,
+            'description' => 'Department has been created.',
+        ]);
     }
 
     public function testEdit(): void
@@ -97,6 +107,14 @@ class DepartmentControllerTest extends TestCase
             'code' => $payload['code'],
             'deleted_at' => null,
         ]);
+
+        $this->assertDatabaseHas('activity_logs', [
+            'actor_id' => auth()->id(),
+            'action' => 'updated',
+            'subject_type' => Department::class,
+            'subject_id' => $department->department_id,
+            'description' => 'Department has been updated.',
+        ]);
     }
 
     public function testDestroy(): void
@@ -114,6 +132,14 @@ class DepartmentControllerTest extends TestCase
 
         $this->assertSoftDeleted('departments', [
             'department_id' => $department->department_id,
+        ]);
+
+        $this->assertDatabaseHas('activity_logs', [
+            'actor_id' => auth()->id(),
+            'action' => 'deleted',
+            'subject_type' => Department::class,
+            'subject_id' => $department->department_id,
+            'description' => 'Department has been deleted.',
         ]);
     }
 }

@@ -32,8 +32,17 @@ class DepartmentController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'code' => ['required', 'string', 'max:50', 'regex:/^[A-Za-z0-9_\-]+$/', Rule::unique('departments', 'code')->whereNull('deleted_at')],
+            'name' => [
+                'required', 
+                'string', 
+                'max:255'
+            ],
+            'code' => [
+                'required', 
+                'string', 
+                'max:50', 
+                'regex:/^[A-Za-z0-9_\-]+$/', Rule::unique('departments', 'code')->whereNull('deleted_at')
+            ],
         ]);
 
         $this->departmentService->create($validated);
@@ -51,8 +60,18 @@ class DepartmentController extends Controller
     public function update(Request $request, Department $department): RedirectResponse
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'code' => ['required', 'string', 'max:50', 'regex:/^[A-Za-z0-9_\-]+$/', Rule::unique('departments', 'code')->ignore($department->department_id, 'department_id')->whereNull('deleted_at')],
+            'name' => [
+                'required', 
+                'string', 
+                'max:255'
+            ],
+            'code' => [
+                'required', 
+                'string', 
+                'max:50', 
+                'regex:/^[A-Za-z0-9_\-]+$/', 
+                Rule::unique('departments', 'code')->ignore($department->department_id, 'department_id')->whereNull('deleted_at')
+            ],
         ]);
 
         $this->departmentService->update($department, $validated);

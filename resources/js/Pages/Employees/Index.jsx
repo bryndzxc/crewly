@@ -1,203 +1,286 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import Modal from '@/Components/Modal';
+import DangerButton from '@/Components/DangerButton';
 import PrimaryButton from '@/Components/PrimaryButton';
+import SecondaryButton from '@/Components/SecondaryButton';
 import TextInput from '@/Components/TextInput';
-import PageHeader from '@/Components/UI/PageHeader';
-import DataTable from '@/Components/UI/DataTable';
-import Badge, { toneFromStatus } from '@/Components/UI/Badge';
-import Pagination from '@/Components/UI/Pagination';
-import { dummyEmployees, departmentOptions, statusOptions } from '@/data/dummyEmployees';
-import { Head, Link } from '@inertiajs/react';
-import { useMemo, useState } from 'react';
+import Table from '@/Components/Table';
+import { Head, Link, router, usePage } from '@inertiajs/react';
+import { useEffect, useMemo, useState } from 'react';
 
-function initials(name) {
-    const parts = String(name || '')
-        .trim()
-        .split(/\s+/)
+function fullName(employee) {
+    const parts = [employee?.first_name, employee?.middle_name, employee?.last_name, employee?.suffix]
+        .map((v) => String(v || '').trim())
         .filter(Boolean);
-    if (parts.length === 0) return 'U';
-    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-    return (parts[0].slice(0, 1) + parts[parts.length - 1].slice(0, 1)).toUpperCase();
+
+    return parts.join(' ');
 }
 
-function FilterChip({ active, children, onClick }) {
-    return (
-        <button
-            type="button"
-            onClick={onClick}
-            className={
-                'inline-flex items-center rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ring-inset transition focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:ring-offset-2 ' +
-                (active
-                    ? 'bg-amber-50 text-amber-800 ring-amber-200'
-                    : 'bg-white text-slate-700 ring-slate-200 hover:bg-slate-50')
-            }
-        >
-            {children}
-        </button>
-    );
-}
+export default function Index({ auth, employees, departments = [], filters = {} }) {
+    const [query, setQuery] = useState(filters.q ?? '');
+    const [perPage, setPerPage] = useState(filters.per_page ?? 10);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [deletingEmployee, setDeletingEmployee] = useState(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [deletePhase, setDeletePhase] = useState('confirm');
+    const [isLoading, setIsLoading] = useState(false);
 
-export default function Index({ auth }) {
-    const [query, setQuery] = useState('');
-    const [status, setStatus] = useState('All');
-    const [department, setDepartment] = useState('All');
-    const [page, setPage] = useState(1);
+    const flash = usePage().props.flash;
 
-    const pageSize = 6;
-    const pages = 5;
+    const employeeItems = employees?.data ?? [];
 
-    const filtered = useMemo(() => {
-        const q = String(query || '').trim().toLowerCase();
-        return dummyEmployees.filter((e) => {
-            const matchesQuery =
-                q === '' ||
-                e.fullName.toLowerCase().includes(q) ||
-                e.email.toLowerCase().includes(q) ||
-                e.employeeId.toLowerCase().includes(q);
-
-            const matchesStatus = status === 'All' ? true : e.status === status;
-            const matchesDept = department === 'All' ? true : e.department === department;
-            return matchesQuery && matchesStatus && matchesDept;
+    const departmentNameById = useMemo(() => {
+        const map = new Map();
+        (departments ?? []).forEach((d) => {
+            if (d?.department_id != null) map.set(Number(d.department_id), d.name);
         });
-    }, [query, status, department]);
+        return map;
+    }, [departments]);
 
-    const paged = useMemo(() => {
-        const start = (page - 1) * pageSize;
-        return filtered.slice(start, start + pageSize);
-    }, [filtered, page]);
+    useEffect(() => {
+        const parsePathname = (url) => {
+            try {
+                return new URL(url, window.location.origin).pathname;
+            } catch {
+                return String(url || '');
+            }
+        };
+
+        const unsubscribeStart = router.on('start', (event) => {
+            const visit = event?.detail?.visit;
+            const pathname = parsePathname(visit?.url);
+            if (pathname.startsWith('/employees')) setIsLoading(true);
+        });
+
+        const unsubscribeFinish = router.on('finish', (event) => {
+            const visit = event?.detail?.visit;
+            const pathname = parsePathname(visit?.url);
+            if (pathname.startsWith('/employees')) setIsLoading(false);
+        });
+
+        return () => {
+            if (typeof unsubscribeStart === 'function') unsubscribeStart();
+            if (typeof unsubscribeFinish === 'function') unsubscribeFinish();
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!isDeleteModalOpen) return;
+        if (deletePhase !== 'success') return;
+
+        const timer = setTimeout(() => {
+            closeDeleteModal();
+        }, 900);
+
+        return () => clearTimeout(timer);
+    }, [isDeleteModalOpen, deletePhase]);
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            router.get(
+                route('employees.index'),
+                { q: query, per_page: perPage, page: 1 },
+                {
+                    preserveState: true,
+                    preserveScroll: true,
+                    replace: true,
+                }
+            );
+        }, 300);
+
+        return () => clearTimeout(handler);
+    }, [query]);
+
+    const onPerPageChange = (nextPerPage) => {
+        setPerPage(nextPerPage);
+        router.get(
+            route('employees.index'),
+            { q: query, per_page: nextPerPage, page: 1 },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            }
+        );
+    };
+
+    const onDelete = (employee) => {
+        setDeletingEmployee(employee);
+        setDeletePhase('confirm');
+        setIsDeleteModalOpen(true);
+    };
+
+    const closeDeleteModal = () => {
+        if (isDeleting) return;
+        setIsDeleteModalOpen(false);
+        setDeletingEmployee(null);
+        setDeletePhase('confirm');
+    };
+
+    const confirmDelete = () => {
+        if (!deletingEmployee?.employee_id) return;
+
+        router.delete(route('employees.destroy', deletingEmployee.employee_id), {
+            preserveScroll: true,
+            preserveState: true,
+            onStart: () => setIsDeleting(true),
+            onFinish: () => setIsDeleting(false),
+            onSuccess: () => setDeletePhase('success'),
+        });
+    };
+
+    const emptyState = useMemo(() => {
+        if (employeeItems.length === 0 && (query ?? '') !== '') return 'No employees match your search.';
+        if (employeeItems.length === 0) return 'No employees yet.';
+        return null;
+    }, [employeeItems.length, query]);
 
     return (
         <AuthenticatedLayout user={auth.user} header="Employees" contentClassName="max-w-none">
             <Head title="Employees" />
 
             <div className="w-full space-y-4">
-                <PageHeader
-                    title="Employees"
-                    subtitle="Frontend-only UI with dummy data."
-                    actions={
-                        <Link href="/employees/create">
-                            <PrimaryButton type="button">Add Employee</PrimaryButton>
-                        </Link>
-                    }
-                />
+                {!!flash?.success && (
+                    <div className="rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
+                        {flash.success}
+                    </div>
+                )}
+                {!!flash?.error && (
+                    <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800">
+                        {flash.error}
+                    </div>
+                )}
 
-                <div className="rounded-2xl border border-slate-200/70 bg-white/80 backdrop-blur shadow-lg shadow-slate-900/5 p-4">
-                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="text-sm text-slate-600"></div>
+
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                         <TextInput
                             value={query}
-                            onChange={(e) => {
-                                setQuery(e.target.value);
-                                setPage(1);
-                            }}
-                            placeholder="Search employees…"
-                            className="w-full lg:max-w-md"
+                            onChange={(e) => setQuery(e.target.value)}
+                            placeholder="Search by employee code or name…"
+                            className="w-full sm:w-72"
                             aria-label="Search employees"
                         />
-
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
-                            <div className="flex flex-wrap items-center gap-2">
-                                <span className="text-xs font-semibold text-slate-600">Status</span>
-                                {statusOptions.map((opt) => (
-                                    <FilterChip
-                                        key={opt}
-                                        active={status === opt}
-                                        onClick={() => {
-                                            setStatus(opt);
-                                            setPage(1);
-                                        }}
-                                    >
-                                        {opt}
-                                    </FilterChip>
-                                ))}
-                            </div>
-
-                            <div className="flex flex-wrap items-center gap-2">
-                                <span className="text-xs font-semibold text-slate-600">Department</span>
-                                {departmentOptions.map((opt) => (
-                                    <FilterChip
-                                        key={opt}
-                                        active={department === opt}
-                                        onClick={() => {
-                                            setDepartment(opt);
-                                            setPage(1);
-                                        }}
-                                    >
-                                        {opt}
-                                    </FilterChip>
-                                ))}
-                            </div>
-                        </div>
+                        <Link href={route('employees.create')} className="shrink-0">
+                            <PrimaryButton type="button">Create Employee</PrimaryButton>
+                        </Link>
                     </div>
                 </div>
 
-                <DataTable
-                    rows={paged}
-                    rowKey={(e) => e.id}
-                    emptyState={query ? 'No employees match your search.' : 'No employees yet.'}
+                <Table
+                    loading={isLoading}
+                    loadingText="Loading employees…"
                     columns={[
-                        {
-                            key: 'employee',
-                            header: 'Employee',
-                            cell: (e) => (
+                        { key: 'employee_code', label: 'Employee Code' },
+                        { key: 'name', label: 'Name' },
+                        { key: 'email', label: 'Email' },
+                        { key: 'department', label: 'Department' },
+                        { key: 'status', label: 'Status' },
+                        { key: 'action', label: 'Action', align: 'right' },
+                    ]}
+                    items={employeeItems}
+                    rowKey={(employee) => employee.employee_id}
+                    emptyState={emptyState}
+                    pagination={{
+                        meta: employees?.meta ?? employees,
+                        links: employees?.links ?? employees?.meta?.links ?? [],
+                        perPage,
+                        onPerPageChange,
+                    }}
+                    renderRow={(employee) => (
+                        <tr>
+                            <td className="px-4 py-3 text-sm font-medium text-slate-900">
+                                {employee.employee_code}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-slate-700">
                                 <div className="flex items-center gap-3">
-                                    <div className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-amber-800 ring-1 ring-amber-200">
-                                        <span className="text-xs font-semibold">{initials(e.fullName)}</span>
-                                    </div>
+                                    {employee?.photo_url ? (
+                                        <img
+                                            src={employee.photo_url}
+                                            alt="Employee photo"
+                                            className="h-10 w-10 rounded-full border border-gray-200 object-cover"
+                                            loading="lazy"
+                                        />
+                                    ) : (
+                                        <div className="h-10 w-10 rounded-full border border-gray-200 bg-gray-50 flex items-center justify-center text-xs font-semibold text-gray-600">
+                                            {(String(employee?.first_name || '').trim().charAt(0) || 'E').toUpperCase()}
+                                        </div>
+                                    )}
                                     <div className="min-w-0">
-                                        <div className="truncate font-semibold text-slate-900">{e.fullName}</div>
-                                        <div className="truncate text-xs text-slate-500">{e.email}</div>
+                                        <div className="truncate">{fullName(employee)}</div>
                                     </div>
                                 </div>
-                            ),
-                        },
-                        {
-                            key: 'department',
-                            header: 'Department',
-                            cell: (e) => <span className="font-medium text-slate-800">{e.department}</span>,
-                        },
-                        {
-                            key: 'position',
-                            header: 'Position',
-                            cell: (e) => e.position,
-                        },
-                        {
-                            key: 'status',
-                            header: 'Status',
-                            cell: (e) => <Badge tone={toneFromStatus(e.status)}>{e.status}</Badge>,
-                        },
-                        {
-                            key: 'hireDate',
-                            header: 'Hire Date',
-                            cell: (e) => e.hireDate,
-                        },
-                        {
-                            key: 'actions',
-                            header: 'Actions',
-                            align: 'right',
-                            cellClassName: 'px-4 py-3 text-right',
-                            cell: (e) => (
+                            </td>
+                            <td className="px-4 py-3 text-sm text-slate-700">{employee.email}</td>
+                            <td className="px-4 py-3 text-sm text-slate-700">
+                                {departmentNameById.get(Number(employee.department_id)) ?? employee.department_id}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-slate-700">{employee.status ?? '-'}</td>
+                            <td className="px-4 py-3 text-right text-sm">
                                 <div className="flex items-center justify-end gap-3">
                                     <Link
-                                        href={`/employees/${e.id}`}
-                                        className="font-semibold text-amber-700 hover:text-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:ring-offset-2 rounded"
+                                        href={route('employees.show', employee.employee_id)}
+                                        className="shrink-0"
                                     >
-                                        View
+                                        <SecondaryButton type="button">View</SecondaryButton>
                                     </Link>
                                     <Link
-                                        href={`/employees/${e.id}/edit`}
-                                        className="font-semibold text-slate-700 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:ring-offset-2 rounded"
+                                        href={route('employees.edit', employee.employee_id)}
+                                        className="shrink-0"
                                     >
-                                        Edit
+                                        <SecondaryButton type="button">Edit</SecondaryButton>
                                     </Link>
+                                    <button
+                                        type="button"
+                                        onClick={() => onDelete(employee)}
+                                        className="font-medium text-red-600 hover:text-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:ring-offset-2 rounded"
+                                    >
+                                        Delete
+                                    </button>
                                 </div>
-                            ),
-                        },
-                    ]}
+                            </td>
+                        </tr>
+                    )}
                 />
-
-                <div className="rounded-2xl border border-slate-200/70 bg-white/80 backdrop-blur shadow-lg shadow-slate-900/5 p-4">
-                    <Pagination page={page} pages={pages} onPageChange={setPage} />
-                </div>
             </div>
+
+            <Modal show={isDeleteModalOpen} onClose={closeDeleteModal} maxWidth="md">
+                <div className="p-6">
+                    {deletePhase === 'success' ? (
+                        <>
+                            <h2 className="text-lg font-semibold text-gray-900">Employee Deleted</h2>
+                            <p className="mt-2 text-sm text-gray-600">Employee deleted successfully.</p>
+
+                            <div className="mt-6 flex items-center justify-end gap-3">
+                                <SecondaryButton type="button" onClick={closeDeleteModal}>
+                                    Close
+                                </SecondaryButton>
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <h2 className="text-lg font-semibold text-gray-900">Delete Employee</h2>
+                            <p className="mt-2 text-sm text-gray-600">
+                                Are you sure you want to delete{' '}
+                                <span className="font-medium text-gray-900">
+                                    {fullName(deletingEmployee) || deletingEmployee?.employee_code || 'this employee'}
+                                </span>
+                                ?
+                            </p>
+
+                            <div className="mt-6 flex items-center justify-end gap-3">
+                                <SecondaryButton type="button" onClick={closeDeleteModal} disabled={isDeleting}>
+                                    Cancel
+                                </SecondaryButton>
+                                <DangerButton type="button" onClick={confirmDelete} disabled={isDeleting}>
+                                    Delete
+                                </DangerButton>
+                            </div>
+                        </>
+                    )}
+                </div>
+            </Modal>
         </AuthenticatedLayout>
     );
 }

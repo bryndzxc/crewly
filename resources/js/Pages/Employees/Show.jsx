@@ -1,269 +1,364 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import PageHeader from '@/Components/UI/PageHeader';
-import Card from '@/Components/UI/Card';
-import Tabs from '@/Components/UI/Tabs';
-import Badge, { toneFromStatus } from '@/Components/UI/Badge';
 import PrimaryButton from '@/Components/PrimaryButton';
-import DataTable from '@/Components/UI/DataTable';
-import { dummyEmployees } from '@/data/dummyEmployees';
-import { Head, usePage } from '@inertiajs/react';
+import SecondaryButton from '@/Components/SecondaryButton';
+import DatePicker from '@/Components/DatePicker';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
 
-function initials(name) {
-    const parts = String(name || '')
-        .trim()
-        .split(/\s+/)
-        .filter(Boolean);
-    if (parts.length === 0) return 'U';
-    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-    return (parts[0].slice(0, 1) + parts[parts.length - 1].slice(0, 1)).toUpperCase();
-}
-
-function parseEmployeeIdFromUrl(url) {
-    const parts = String(url || '')
-        .split('?')[0]
-        .split('#')[0]
-        .split('/')
+function fullName(employee) {
+    const parts = [employee?.first_name, employee?.middle_name, employee?.last_name, employee?.suffix]
+        .map((v) => String(v || '').trim())
         .filter(Boolean);
 
-    const idx = parts.findIndex((p) => p === 'employees');
-    if (idx === -1) return null;
-
-    const id = parts[idx + 1];
-    if (!id) return null;
-    if (!/^\d+$/.test(id)) return null;
-    return Number(id);
+    return parts.join(' ');
 }
 
-export default function Show({ auth }) {
-    const { url } = usePage();
-    const employeeId = parseEmployeeIdFromUrl(url) ?? 1;
+export default function Show({ auth, employee, departments = [], documents = [], can = {} }) {
+    const departmentName = useMemo(() => {
+        const found = (departments ?? []).find((d) => Number(d.department_id) === Number(employee?.department_id));
+        return found?.name ?? employee?.department_id;
+    }, [departments, employee?.department_id]);
 
-    const employee = useMemo(() => {
-        return dummyEmployees.find((e) => e.id === employeeId) ?? dummyEmployees[0];
-    }, [employeeId]);
+    const [activeTab, setActiveTab] = useState('details');
 
-    const [tab, setTab] = useState('overview');
+    const uploadForm = useForm({
+        type: '',
+        files: [],
+        issue_date: '',
+        expiry_date: '',
+        notes: '',
+    });
+
+    function statusFor(doc) {
+        if (!doc?.expiry_date) return { label: 'OK', className: 'bg-amber-50 text-amber-800 border border-amber-200' };
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const expiry = new Date(`${doc.expiry_date}T00:00:00`);
+        const diffDays = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+
+        if (diffDays < 0) return { label: 'Expired', className: 'bg-red-50 text-red-800 border border-red-200' };
+        if (diffDays <= 30) return { label: 'Expiring', className: 'bg-amber-100 text-amber-900 border border-amber-200' };
+
+        return { label: 'OK', className: 'bg-amber-50 text-amber-800 border border-amber-200' };
+    }
+
+    function submitUpload(e) {
+        e.preventDefault();
+
+        uploadForm.post(route('employees.documents.store', employee.employee_id), {
+            forceFormData: true,
+            onSuccess: () => {
+                uploadForm.reset('type', 'files', 'issue_date', 'expiry_date', 'notes');
+            },
+        });
+    }
+
+    function deleteDocument(docId) {
+        if (!confirm('Delete this document? This cannot be undone.')) return;
+        router.delete(route('employees.documents.destroy', [employee.employee_id, docId]));
+    }
 
     return (
-        <AuthenticatedLayout user={auth.user} header="Employees" contentClassName="max-w-none">
-            <Head title={employee ? `Employee - ${employee.fullName}` : 'Employee'} />
+        <AuthenticatedLayout user={auth.user} header="Employee" contentClassName="max-w-none">
+            <Head title={employee ? `Employee - ${fullName(employee)}` : 'Employee'} />
 
             <div className="w-full space-y-4">
-                <PageHeader
-                    title={employee.fullName}
-                    subtitle={employee.employeeId}
-                    actions={<Badge tone={toneFromStatus(employee.status)}>{employee.status}</Badge>}
-                />
-
-                <Card className="p-5">
+                <div className="bg-white border border-gray-200 rounded-lg p-5 sm:p-6">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex items-center gap-4 min-w-0">
-                            <div className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-amber-800 ring-1 ring-amber-200">
-                                <span className="text-sm font-semibold">{initials(employee.fullName)}</span>
-                            </div>
-                            <div className="min-w-0">
-                                <div className="truncate text-xl font-semibold tracking-tight text-slate-900">
-                                    {employee.fullName}
-                                </div>
-                                <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-600">
-                                    <span>{employee.department}</span>
-                                    <span className="text-slate-300">•</span>
-                                    <span>{employee.position}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="text-sm text-slate-600">
-                            <div className="font-medium text-slate-900">Contact</div>
-                            <div className="mt-0.5">{employee.email}</div>
-                            <div>{employee.phone}</div>
-                        </div>
-                    </div>
-                </Card>
-
-                <Card className="p-5">
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                        <div>
-                            <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Department</div>
-                            <div className="mt-1 text-sm font-medium text-slate-900">{employee.department}</div>
-                        </div>
-                        <div>
-                            <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Position</div>
-                            <div className="mt-1 text-sm font-medium text-slate-900">{employee.position}</div>
-                        </div>
-                        <div>
-                            <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Email</div>
-                            <div className="mt-1 text-sm font-medium text-slate-900">{employee.email}</div>
-                        </div>
-                        <div>
-                            <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Phone</div>
-                            <div className="mt-1 text-sm font-medium text-slate-900">{employee.phone}</div>
-                        </div>
-                        <div>
-                            <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Hire Date</div>
-                            <div className="mt-1 text-sm font-medium text-slate-900">{employee.hireDate}</div>
-                        </div>
-                        <div>
-                            <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Employee ID</div>
-                            <div className="mt-1 text-sm font-medium text-slate-900">{employee.employeeId}</div>
-                        </div>
-                    </div>
-                </Card>
-
-                <Card className="p-5">
-                    <Tabs
-                        tabs={[
-                            { key: 'overview', label: 'Overview' },
-                            { key: 'documents', label: 'Documents' },
-                            { key: 'history', label: 'Employment History' },
-                            { key: 'notes', label: 'Notes' },
-                        ]}
-                        value={tab}
-                        onChange={setTab}
-                    />
-
-                    <div className="pt-5">
-                        {tab === 'overview' && (
-                            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                                <Card className="p-5">
-                                    <div className="text-sm font-semibold text-slate-900">Overview</div>
-                                    <p className="mt-2 text-sm text-slate-600">
-                                        This is frontend-only dummy content. Use this tab to show a summary, key details,
-                                        and quick insights once backend data is connected.
-                                    </p>
-                                    <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                        <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                                            <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Status</div>
-                                            <div className="mt-1">
-                                                <Badge tone={toneFromStatus(employee.status)}>{employee.status}</Badge>
-                                            </div>
-                                        </div>
-                                        <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                                            <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Department</div>
-                                            <div className="mt-1 text-sm font-semibold text-slate-900">{employee.department}</div>
-                                        </div>
-                                    </div>
-                                </Card>
-
-                                <Card className="p-5">
-                                    <div className="text-sm font-semibold text-slate-900">Key Info</div>
-                                    <div className="mt-3 space-y-2 text-sm text-slate-700">
-                                        <div className="flex items-center justify-between gap-4">
-                                            <span className="text-slate-600">Position</span>
-                                            <span className="font-medium text-slate-900">{employee.position}</span>
-                                        </div>
-                                        <div className="flex items-center justify-between gap-4">
-                                            <span className="text-slate-600">Hire date</span>
-                                            <span className="font-medium text-slate-900">{employee.hireDate}</span>
-                                        </div>
-                                        <div className="flex items-center justify-between gap-4">
-                                            <span className="text-slate-600">Employee ID</span>
-                                            <span className="font-medium text-slate-900">{employee.employeeId}</span>
-                                        </div>
-                                    </div>
-                                </Card>
-                            </div>
-                        )}
-
-                        {tab === 'documents' && (
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between gap-3">
-                                    <div>
-                                        <div className="text-sm font-semibold text-slate-900">Documents</div>
-                                        <div className="mt-1 text-sm text-slate-600">Upload/download/delete are UI-only for now.</div>
-                                    </div>
-                                    <PrimaryButton type="button" onClick={() => alert('Frontend only')}>
-                                        Upload
-                                    </PrimaryButton>
-                                </div>
-
-                                <DataTable
-                                    rows={employee.documents ?? []}
-                                    rowKey={(d) => d.id}
-                                    emptyState="No documents uploaded."
-                                    columns={[
-                                        {
-                                            key: 'name',
-                                            header: 'Document',
-                                            cell: (d) => (
-                                                <div className="min-w-0">
-                                                    <div className="truncate font-semibold text-slate-900">{d.name}</div>
-                                                    <div className="mt-0.5 text-xs text-slate-500">{d.type} • {d.size}</div>
-                                                </div>
-                                            ),
-                                        },
-                                        { key: 'uploadedAt', header: 'Uploaded', cell: (d) => d.uploadedAt },
-                                        {
-                                            key: 'actions',
-                                            header: 'Actions',
-                                            align: 'right',
-                                            cellClassName: 'px-4 py-3 text-right',
-                                            cell: () => (
-                                                <div className="flex items-center justify-end gap-3">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => alert('Frontend only')}
-                                                        className="font-semibold text-amber-700 hover:text-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:ring-offset-2 rounded"
-                                                    >
-                                                        Download
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => alert('Frontend only')}
-                                                        className="font-semibold text-rose-700 hover:text-rose-600 focus:outline-none focus:ring-2 focus:ring-rose-500/30 focus:ring-offset-2 rounded"
-                                                    >
-                                                        Delete
-                                                    </button>
-                                                </div>
-                                            ),
-                                        },
-                                    ]}
+                            {employee?.photo_url ? (
+                                <img
+                                    src={employee.photo_url}
+                                    alt="Employee photo"
+                                    className="h-16 w-16 rounded-full border border-gray-200 object-cover"
                                 />
-                            </div>
-                        )}
+                            ) : (
+                                <div className="h-16 w-16 rounded-full border border-gray-200 bg-gray-50 flex items-center justify-center text-base font-semibold text-gray-600">
+                                    {(String(employee?.first_name || '').trim().charAt(0) || 'E').toUpperCase()}
+                                </div>
+                            )}
 
-                        {tab === 'history' && (
-                            <div className="space-y-3">
-                                <div className="text-sm font-semibold text-slate-900">Employment History</div>
-                                <div className="space-y-3">
-                                    {(employee.employmentHistory ?? []).map((item) => (
-                                        <div key={item.id} className="rounded-2xl border border-slate-200 bg-white p-4">
-                                            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                                                <div className="font-semibold text-slate-900">{item.title}</div>
-                                                <div className="text-sm text-slate-600">{item.date}</div>
-                                            </div>
-                                            <div className="mt-2 text-sm text-slate-700">{item.detail}</div>
-                                        </div>
-                                    ))}
-                                    {(employee.employmentHistory ?? []).length === 0 && (
-                                        <div className="text-sm text-slate-600">No history entries.</div>
+                            <div className="min-w-0">
+                                <div className="truncate text-xl font-semibold text-gray-900">
+                                    {fullName(employee) || 'Employee'}
+                                </div>
+                                <div className="mt-1 flex flex-wrap items-center gap-2">
+                                    {!!employee?.employee_code && (
+                                        <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800 ring-1 ring-amber-200">
+                                            {employee.employee_code}
+                                        </span>
+                                    )}
+                                    {!!employee?.status && (
+                                        <span className="text-sm text-gray-600">{employee.status}</span>
                                     )}
                                 </div>
                             </div>
-                        )}
+                        </div>
 
-                        {tab === 'notes' && (
-                            <div className="space-y-3">
-                                <div className="text-sm font-semibold text-slate-900">Notes</div>
-                                <div className="space-y-3">
-                                    {(employee.notes ?? []).map((note) => (
-                                        <div key={note.id} className="rounded-2xl border border-slate-200 bg-white p-4">
-                                            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                                                <div className="font-semibold text-slate-900">{note.author}</div>
-                                                <div className="text-sm text-slate-600">{note.date}</div>
-                                            </div>
-                                            <div className="mt-2 text-sm text-slate-700">{note.body}</div>
-                                        </div>
-                                    ))}
-                                    {(employee.notes ?? []).length === 0 && (
-                                        <div className="text-sm text-slate-600">No notes yet.</div>
-                                    )}
-                                </div>
-                            </div>
-                        )}
+                        <div className="flex items-center gap-3">
+                            <Link href={route('employees.index')}>
+                                <SecondaryButton type="button">Back</SecondaryButton>
+                            </Link>
+                            {employee?.employee_id && (
+                                <Link href={route('employees.edit', employee.employee_id)}>
+                                    <PrimaryButton type="button">Edit</PrimaryButton>
+                                </Link>
+                            )}
+                        </div>
                     </div>
-                </Card>
+                </div>
+
+                <div className="bg-white border border-gray-200 rounded-lg">
+                    <div className="border-b border-gray-200 px-6">
+                        <nav className="flex gap-6">
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('details')}
+                                className={`py-3 text-sm font-medium border-b-2 ${
+                                    activeTab === 'details'
+                                        ? 'border-amber-500 text-gray-900'
+                                        : 'border-transparent text-gray-600 hover:text-gray-900'
+                                }`}
+                            >
+                                Details
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('documents')}
+                                className={`py-3 text-sm font-medium border-b-2 ${
+                                    activeTab === 'documents'
+                                        ? 'border-amber-500 text-gray-900'
+                                        : 'border-transparent text-gray-600 hover:text-gray-900'
+                                }`}
+                            >
+                                Documents
+                            </button>
+                        </nav>
+                    </div>
+
+                    {activeTab === 'details' && (
+                        <div className="p-6">
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                                <div>
+                                    <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Department</div>
+                                    <div className="mt-1 text-sm font-medium text-gray-900">{departmentName ?? '-'}</div>
+                                </div>
+                                <div>
+                                    <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Status</div>
+                                    <div className="mt-1 text-sm font-medium text-gray-900">{employee?.status ?? '-'}</div>
+                                </div>
+                                <div>
+                                    <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Employment Type</div>
+                                    <div className="mt-1 text-sm font-medium text-gray-900">{employee?.employment_type ?? '-'}</div>
+                                </div>
+                                <div>
+                                    <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Email</div>
+                                    <div className="mt-1 text-sm font-medium text-gray-900">{employee?.email ?? '-'}</div>
+                                </div>
+                                <div>
+                                    <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Mobile Number</div>
+                                    <div className="mt-1 text-sm font-medium text-gray-900">{employee?.mobile_number ?? '-'}</div>
+                                </div>
+                                <div>
+                                    <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Position Title</div>
+                                    <div className="mt-1 text-sm font-medium text-gray-900">{employee?.position_title ?? '-'}</div>
+                                </div>
+                                <div>
+                                    <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Date Hired</div>
+                                    <div className="mt-1 text-sm font-medium text-gray-900">{employee?.date_hired ?? '-'}</div>
+                                </div>
+                                <div>
+                                    <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Regularization Date</div>
+                                    <div className="mt-1 text-sm font-medium text-gray-900">{employee?.regularization_date ?? '-'}</div>
+                                </div>
+                            </div>
+
+                            <div className="mt-6">
+                                <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Notes</div>
+                                <div className="mt-2 whitespace-pre-wrap text-sm text-gray-900">{employee?.notes ?? '-'}</div>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'documents' && (
+                        <div className="p-6 space-y-6">
+                            {can?.employeeDocumentsUpload && (
+                                <div className="border border-amber-200 bg-amber-50 rounded-lg p-4">
+                                    <div className="text-sm font-semibold text-gray-900">Upload Document</div>
+                                    <form className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-12" onSubmit={submitUpload}>
+                                        <div className="lg:col-span-3">
+                                            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600">
+                                                Type
+                                            </label>
+                                            <input
+                                                className="mt-1 w-full rounded-md border-gray-300 focus:border-amber-500 focus:ring-amber-500"
+                                                value={uploadForm.data.type}
+                                                onChange={(e) => uploadForm.setData('type', e.target.value)}
+                                                placeholder="e.g. 201 Contract"
+                                            />
+                                            {uploadForm.errors.type && (
+                                                <div className="mt-1 text-sm text-red-600">{uploadForm.errors.type}</div>
+                                            )}
+                                        </div>
+
+                                        <div className="lg:col-span-4">
+                                            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600">
+                                                File (PDF/JPG/PNG, max 10MB)
+                                            </label>
+                                            <input
+                                                type="file"
+                                                accept="application/pdf,image/jpeg,image/png"
+                                                multiple
+                                                className="mt-1 block w-full text-sm"
+                                                onChange={(e) => uploadForm.setData('files', Array.from(e.target.files ?? []))}
+                                            />
+                                            {uploadForm.errors.files && (
+                                                <div className="mt-1 text-sm text-red-600">{uploadForm.errors.files}</div>
+                                            )}
+                                            {uploadForm.errors['files.0'] && (
+                                                <div className="mt-1 text-sm text-red-600">{uploadForm.errors['files.0']}</div>
+                                            )}
+                                        </div>
+
+                                        <div className="lg:col-span-2">
+                                            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600">
+                                                Issue Date
+                                            </label>
+                                            <DatePicker
+                                                value={uploadForm.data.issue_date}
+                                                onChange={(v) => uploadForm.setData('issue_date', v)}
+                                            />
+                                            {uploadForm.errors.issue_date && (
+                                                <div className="mt-1 text-sm text-red-600">{uploadForm.errors.issue_date}</div>
+                                            )}
+                                        </div>
+
+                                        <div className="lg:col-span-2">
+                                            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600">
+                                                Expiry Date
+                                            </label>
+                                            <DatePicker
+                                                value={uploadForm.data.expiry_date}
+                                                onChange={(v) => uploadForm.setData('expiry_date', v)}
+                                            />
+                                            {uploadForm.errors.expiry_date && (
+                                                <div className="mt-1 text-sm text-red-600">{uploadForm.errors.expiry_date}</div>
+                                            )}
+                                        </div>
+
+                                        <div className="lg:col-span-9">
+                                            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600">
+                                                Notes
+                                            </label>
+                                            <textarea
+                                                rows={2}
+                                                className="mt-1 w-full rounded-md border-gray-300 focus:border-amber-500 focus:ring-amber-500"
+                                                value={uploadForm.data.notes}
+                                                onChange={(e) => uploadForm.setData('notes', e.target.value)}
+                                            />
+                                            {uploadForm.errors.notes && (
+                                                <div className="mt-1 text-sm text-red-600">{uploadForm.errors.notes}</div>
+                                            )}
+                                        </div>
+
+                                        <div className="lg:col-span-3 flex items-end justify-end">
+                                            <PrimaryButton type="submit" disabled={uploadForm.processing}>
+                                                {uploadForm.processing ? 'Uploading...' : 'Upload'}
+                                            </PrimaryButton>
+                                        </div>
+                                    </form>
+                                </div>
+                            )}
+
+                            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                                <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+                                    <div className="text-sm font-semibold text-gray-900">Employee Documents</div>
+                                    <div className="text-sm text-gray-600">{(documents ?? []).length} total</div>
+                                </div>
+
+                                <div className="overflow-x-auto">
+                                    <table className="min-w-full divide-y divide-gray-200">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                                    Type
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                                    File
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                                    Issue
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                                    Expiry
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                                    Status
+                                                </th>
+                                                <th className="px-4 py-3" />
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-200 bg-white">
+                                            {(documents ?? []).length === 0 && (
+                                                <tr>
+                                                    <td className="px-4 py-6 text-sm text-gray-600" colSpan={6}>
+                                                        No documents uploaded yet.
+                                                    </td>
+                                                </tr>
+                                            )}
+
+                                            {(documents ?? []).map((doc) => {
+                                                const badge = statusFor(doc);
+                                                return (
+                                                    <tr key={doc.id} className="hover:bg-amber-50/40">
+                                                        <td className="px-4 py-3 text-sm font-medium text-gray-900">{doc.type}</td>
+                                                        <td className="px-4 py-3 text-sm text-gray-700">
+                                                            <div className="truncate max-w-[260px]" title={doc.original_name}>
+                                                                {doc.original_name}
+                                                            </div>
+                                                            {doc.file_size ? (
+                                                                <div className="text-xs text-gray-500">{Math.round(doc.file_size / 1024)} KB</div>
+                                                            ) : null}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-sm text-gray-700">{doc.issue_date ?? '-'}</td>
+                                                        <td className="px-4 py-3 text-sm text-gray-700">{doc.expiry_date ?? '-'}</td>
+                                                        <td className="px-4 py-3">
+                                                            <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${badge.className}`}>
+                                                                {badge.label}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-sm text-right whitespace-nowrap">
+                                                            {can?.employeeDocumentsDownload && (
+                                                                <a
+                                                                    href={route('employees.documents.download', [employee.employee_id, doc.id])}
+                                                                    className="text-amber-700 hover:text-amber-900 font-medium"
+                                                                >
+                                                                    Download
+                                                                </a>
+                                                            )}
+
+                                                            {can?.employeeDocumentsDelete && (
+                                                                <button
+                                                                    type="button"
+                                                                    className="ml-4 text-red-600 hover:text-red-800 font-medium"
+                                                                    onClick={() => deleteDocument(doc.id)}
+                                                                >
+                                                                    Delete
+                                                                </button>
+                                                            )}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
         </AuthenticatedLayout>
     );
