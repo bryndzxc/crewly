@@ -4,7 +4,10 @@ use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeDocumentController;
 use App\Http\Controllers\EmployeeDocumentScanController;
+use App\Http\Controllers\EmployeeIncidentController;
+use App\Http\Controllers\EmployeeNoteController;
 use App\Http\Controllers\EmployeePhotoController;
+use App\Http\Controllers\EmployeeRelationAttachmentController;
 use App\Http\Controllers\EmployeesProbationController;
 use App\Http\Controllers\ExpiringDocumentsController;
 use Illuminate\Support\Facades\Route;
@@ -45,6 +48,41 @@ Route::middleware(['auth', 'can:access-employees'])->group(function () {
     Route::delete('/employees/{employee}/documents/{document}', [EmployeeDocumentController::class, 'destroy'])->whereNumber('employee')
         ->middleware('can:employees-documents-delete')
         ->name('employees.documents.destroy');
+
+    // Employee Relations (Notes & Incidents)
+    Route::post('/employees/{employee}/notes', [EmployeeNoteController::class, 'store'])->whereNumber('employee')
+        ->middleware('can:employees-relations-manage')
+        ->name('employees.notes.store');
+
+    Route::delete('/employees/{employee}/notes/{note}', [EmployeeNoteController::class, 'destroy'])->whereNumber('employee')
+        ->middleware('can:employees-relations-manage')
+        ->name('employees.notes.destroy');
+
+    Route::post('/employees/{employee}/incidents', [EmployeeIncidentController::class, 'store'])->whereNumber('employee')
+        ->middleware('can:employees-relations-manage')
+        ->name('employees.incidents.store');
+
+    Route::patch('/employees/{employee}/incidents/{incident}', [EmployeeIncidentController::class, 'update'])->whereNumber('employee')
+        ->middleware('can:employees-relations-manage')
+        ->name('employees.incidents.update');
+
+    Route::delete('/employees/{employee}/incidents/{incident}', [EmployeeIncidentController::class, 'destroy'])->whereNumber('employee')
+        ->middleware('can:employees-relations-manage')
+        ->name('employees.incidents.destroy');
+
+    Route::post('/relations/{attachableType}/{id}/attachments', [EmployeeRelationAttachmentController::class, 'store'])
+        ->where('attachableType', 'notes|incidents')
+        ->whereNumber('id')
+        ->middleware('can:employees-relations-manage')
+        ->name('relations.attachments.store');
+
+    Route::get('/relations/attachments/{attachment}/download', [EmployeeRelationAttachmentController::class, 'download'])
+        ->middleware('can:employees-relations-view')
+        ->name('relations.attachments.download');
+
+    Route::delete('/relations/attachments/{attachment}', [EmployeeRelationAttachmentController::class, 'destroy'])
+        ->middleware('can:employees-relations-manage')
+        ->name('relations.attachments.destroy');
 
     Route::get('/documents/expiring', [ExpiringDocumentsController::class, 'index'])
         ->name('documents.expiring');

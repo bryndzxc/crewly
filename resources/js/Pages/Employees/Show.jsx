@@ -3,7 +3,7 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import DatePicker from '@/Components/DatePicker';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
-import { useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 
 function fullName(employee) {
     const parts = [employee?.first_name, employee?.middle_name, employee?.last_name, employee?.suffix]
@@ -13,7 +13,7 @@ function fullName(employee) {
     return parts.join(' ');
 }
 
-export default function Show({ auth, employee, departments = [], documents = [], can = {} }) {
+export default function Show({ auth, employee, departments = [], documents = [], notes = [], incidents = [], can = {} }) {
     const flash = usePage().props?.flash;
     const departmentName = useMemo(() => {
         const found = (departments ?? []).find((d) => Number(d.department_id) === Number(employee?.department_id));
@@ -60,6 +60,103 @@ export default function Show({ auth, employee, departments = [], documents = [],
     function deleteDocument(docId) {
         if (!confirm('Delete this document? This cannot be undone.')) return;
         router.delete(route('employees.documents.destroy', [employee.employee_id, docId]));
+    }
+
+    const noteForm = useForm({
+        note_type: 'GENERAL',
+        note: '',
+        follow_up_date: '',
+        attachments: [],
+    });
+
+    function submitNote(e) {
+        e.preventDefault();
+
+        noteForm.post(route('employees.notes.store', employee.employee_id), {
+            forceFormData: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                noteForm.reset('note', 'follow_up_date', 'attachments');
+                noteForm.setData('note_type', 'GENERAL');
+            },
+        });
+    }
+
+    function deleteNote(noteId) {
+        if (!confirm('Delete this note? This cannot be undone.')) return;
+        router.delete(route('employees.notes.destroy', [employee.employee_id, noteId]), { preserveScroll: true });
+    }
+
+    const incidentForm = useForm({
+        category: 'Attendance',
+        incident_date: '',
+        description: '',
+        follow_up_date: '',
+        attachments: [],
+    });
+
+    function submitIncident(e) {
+        e.preventDefault();
+
+        incidentForm.post(route('employees.incidents.store', employee.employee_id), {
+            forceFormData: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                incidentForm.reset('incident_date', 'description', 'follow_up_date', 'attachments');
+                incidentForm.setData('category', 'Attendance');
+            },
+        });
+    }
+
+    const [expandedIncidentId, setExpandedIncidentId] = useState(null);
+    const expandedIncident = useMemo(() => {
+        const items = Array.isArray(incidents) ? incidents : [];
+        return items.find((i) => Number(i.id) === Number(expandedIncidentId)) ?? null;
+    }, [incidents, expandedIncidentId]);
+
+    const incidentEditForm = useForm({
+        status: 'OPEN',
+        action_taken: '',
+        follow_up_date: '',
+        assigned_to: '',
+    });
+
+    useEffect(() => {
+        if (!expandedIncident) return;
+        incidentEditForm.setData({
+            status: expandedIncident.status ?? 'OPEN',
+            action_taken: expandedIncident.action_taken ?? '',
+            follow_up_date: expandedIncident.follow_up_date ?? '',
+            assigned_to: expandedIncident.assigned_to?.id ? String(expandedIncident.assigned_to.id) : '',
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [expandedIncidentId]);
+
+    function submitIncidentUpdate(e) {
+        e.preventDefault();
+        if (!expandedIncidentId) return;
+
+        incidentEditForm.patch(route('employees.incidents.update', [employee.employee_id, expandedIncidentId]), {
+            preserveScroll: true,
+        });
+    }
+
+    function deleteIncident(incidentId) {
+        if (!confirm('Delete this incident? This cannot be undone.')) return;
+        router.delete(route('employees.incidents.destroy', [employee.employee_id, incidentId]), { preserveScroll: true });
+    }
+
+    function deleteRelationAttachment(attachmentId) {
+        if (!confirm('Delete this attachment? This cannot be undone.')) return;
+        router.delete(route('relations.attachments.destroy', attachmentId), { preserveScroll: true });
+    }
+
+    function incidentStatusBadge(status) {
+        const s = String(status || '').toUpperCase();
+        if (s === 'UNDER_REVIEW') return { label: 'Under Review', className: 'bg-slate-100 text-slate-800 border border-slate-200' };
+        if (s === 'RESOLVED') return { label: 'Resolved', className: 'bg-green-50 text-green-800 border border-green-200' };
+        if (s === 'CLOSED') return { label: 'Closed', className: 'bg-slate-100 text-slate-800 border border-slate-200' };
+        return { label: 'Open', className: 'bg-amber-100 text-amber-900 border border-amber-200' };
     }
 
     return (
@@ -191,6 +288,20 @@ export default function Show({ auth, employee, departments = [], documents = [],
                             >
                                 Documents
                             </button>
+
+                            {can?.employeeRelationsView && (
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveTab('relations')}
+                                    className={`py-3 text-sm font-medium border-b-2 ${
+                                        activeTab === 'relations'
+                                            ? 'border-amber-500 text-gray-900'
+                                            : 'border-transparent text-gray-600 hover:text-gray-900'
+                                    }`}
+                                >
+                                    Notes &amp; Incidents
+                                </button>
+                            )}
                         </nav>
                     </div>
 
@@ -414,8 +525,493 @@ export default function Show({ auth, employee, departments = [], documents = [],
                             </div>
                         </div>
                     )}
+
+                    {activeTab === 'relations' && can?.employeeRelationsView && (
+                        <div className="p-6 space-y-8">
+                            {/* Notes */}
+                            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                                <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+                                    <div className="text-sm font-semibold text-gray-900">Employee Notes</div>
+                                    <div className="text-sm text-gray-600">{Array.isArray(notes) ? notes.length : 0} total</div>
+                                </div>
+
+                                {can?.employeeRelationsManage && (
+                                    <div className="border-b border-amber-200 bg-amber-50 p-4">
+                                        <div className="text-sm font-semibold text-gray-900">Add Note</div>
+                                        <form className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-12" onSubmit={submitNote}>
+                                            <div className="lg:col-span-3">
+                                                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600">Type</label>
+                                                <select
+                                                    className="mt-1 w-full rounded-md border-gray-300 focus:border-amber-500 focus:ring-amber-500"
+                                                    value={noteForm.data.note_type}
+                                                    onChange={(e) => noteForm.setData('note_type', e.target.value)}
+                                                >
+                                                    {['GENERAL', 'COACHING', 'COMMENDATION', 'WARNING', 'OTHER'].map((t) => (
+                                                        <option key={t} value={t}>
+                                                            {t}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                {noteForm.errors.note_type && <div className="mt-1 text-sm text-red-600">{noteForm.errors.note_type}</div>}
+                                            </div>
+
+                                            <div className="lg:col-span-5">
+                                                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600">Note</label>
+                                                <textarea
+                                                    rows={3}
+                                                    className="mt-1 w-full rounded-md border-gray-300 focus:border-amber-500 focus:ring-amber-500"
+                                                    value={noteForm.data.note}
+                                                    onChange={(e) => noteForm.setData('note', e.target.value)}
+                                                    placeholder="Write a private HR note…"
+                                                />
+                                                {noteForm.errors.note && <div className="mt-1 text-sm text-red-600">{noteForm.errors.note}</div>}
+                                            </div>
+
+                                            <div className="lg:col-span-2">
+                                                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600">Follow-up</label>
+                                                <DatePicker value={noteForm.data.follow_up_date} onChange={(v) => noteForm.setData('follow_up_date', v)} />
+                                                {noteForm.errors.follow_up_date && (
+                                                    <div className="mt-1 text-sm text-red-600">{noteForm.errors.follow_up_date}</div>
+                                                )}
+                                            </div>
+
+                                            <div className="lg:col-span-2">
+                                                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600">
+                                                    Attachments (optional)
+                                                </label>
+                                                <input
+                                                    type="file"
+                                                    accept="application/pdf,image/jpeg,image/png"
+                                                    multiple
+                                                    className="mt-1 block w-full text-sm"
+                                                    onChange={(e) => noteForm.setData('attachments', Array.from(e.target.files ?? []))}
+                                                />
+                                                {noteForm.errors.attachments && (
+                                                    <div className="mt-1 text-sm text-red-600">{noteForm.errors.attachments}</div>
+                                                )}
+                                                {noteForm.errors['attachments.0'] && (
+                                                    <div className="mt-1 text-sm text-red-600">{noteForm.errors['attachments.0']}</div>
+                                                )}
+                                            </div>
+
+                                            <div className="lg:col-span-12 flex items-end justify-end">
+                                                <PrimaryButton type="submit" disabled={noteForm.processing}>
+                                                    {noteForm.processing ? 'Saving…' : 'Save Note'}
+                                                </PrimaryButton>
+                                            </div>
+                                        </form>
+                                    </div>
+                                )}
+
+                                <div className="divide-y divide-gray-200">
+                                    {(!Array.isArray(notes) || notes.length === 0) && (
+                                        <div className="px-4 py-10">
+                                            <div className="mx-auto max-w-2xl rounded-2xl border border-amber-200/60 bg-amber-50/40 p-6">
+                                                <div className="text-sm font-semibold text-gray-900">No notes yet</div>
+                                                <div className="mt-1 text-sm text-gray-600">Add a quick private note for HR tracking.</div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {(Array.isArray(notes) ? notes : []).map((n) => (
+                                        <div key={n.id} className="px-4 py-4">
+                                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800 ring-1 ring-amber-200">
+                                                        {n.note_type}
+                                                    </span>
+                                                    <span className="text-xs text-gray-600">{n.created_at}</span>
+                                                    {n.created_by?.name ? (
+                                                        <span className="text-xs text-gray-600">• {n.created_by.name}</span>
+                                                    ) : null}
+                                                </div>
+
+                                                {can?.employeeRelationsManage && (
+                                                    <button
+                                                        type="button"
+                                                        className="text-xs font-semibold text-red-600 hover:text-red-800"
+                                                        onClick={() => deleteNote(n.id)}
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            {n.follow_up_date ? (
+                                                <div className="mt-2">
+                                                    <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800 ring-1 ring-amber-200">
+                                                        Follow-up: {n.follow_up_date}
+                                                    </span>
+                                                </div>
+                                            ) : null}
+
+                                            <div className="mt-3 whitespace-pre-wrap text-sm text-gray-900">{n.note}</div>
+
+                                            {(Array.isArray(n.attachments) ? n.attachments : []).length > 0 && (
+                                                <div className="mt-4">
+                                                    <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Attachments</div>
+                                                    <div className="mt-2 space-y-1">
+                                                        {(n.attachments ?? []).map((a) => (
+                                                            <div key={a.id} className="flex items-center justify-between gap-3">
+                                                                <a
+                                                                    href={route('relations.attachments.download', a.id)}
+                                                                    className="text-sm font-medium text-amber-700 hover:text-amber-900 truncate"
+                                                                    title={a.original_name}
+                                                                >
+                                                                    {a.original_name}
+                                                                </a>
+
+                                                                {can?.employeeRelationsManage && (
+                                                                    <button
+                                                                        type="button"
+                                                                        className="text-xs font-semibold text-red-600 hover:text-red-800"
+                                                                        onClick={() => deleteRelationAttachment(a.id)}
+                                                                    >
+                                                                        Delete
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Incidents */}
+                            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                                <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+                                    <div className="text-sm font-semibold text-gray-900">Employee Incidents</div>
+                                    <div className="text-sm text-gray-600">{Array.isArray(incidents) ? incidents.length : 0} total</div>
+                                </div>
+
+                                {can?.employeeRelationsManage && (
+                                    <div className="border-b border-amber-200 bg-amber-50 p-4">
+                                        <div className="text-sm font-semibold text-gray-900">Create Incident</div>
+                                        <form className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-12" onSubmit={submitIncident}>
+                                            <div className="lg:col-span-3">
+                                                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600">Category</label>
+                                                <select
+                                                    className="mt-1 w-full rounded-md border-gray-300 focus:border-amber-500 focus:ring-amber-500"
+                                                    value={incidentForm.data.category}
+                                                    onChange={(e) => incidentForm.setData('category', e.target.value)}
+                                                >
+                                                    {['Attendance', 'Conduct', 'Policy Violation', 'Performance', 'Other'].map((c) => (
+                                                        <option key={c} value={c}>
+                                                            {c}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                {incidentForm.errors.category && <div className="mt-1 text-sm text-red-600">{incidentForm.errors.category}</div>}
+                                            </div>
+
+                                            <div className="lg:col-span-2">
+                                                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600">Date</label>
+                                                <DatePicker
+                                                    value={incidentForm.data.incident_date}
+                                                    onChange={(v) => incidentForm.setData('incident_date', v)}
+                                                />
+                                                {incidentForm.errors.incident_date && (
+                                                    <div className="mt-1 text-sm text-red-600">{incidentForm.errors.incident_date}</div>
+                                                )}
+                                            </div>
+
+                                            <div className="lg:col-span-5">
+                                                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600">Description</label>
+                                                <textarea
+                                                    rows={3}
+                                                    className="mt-1 w-full rounded-md border-gray-300 focus:border-amber-500 focus:ring-amber-500"
+                                                    value={incidentForm.data.description}
+                                                    onChange={(e) => incidentForm.setData('description', e.target.value)}
+                                                    placeholder="What happened? Keep it factual…"
+                                                />
+                                                {incidentForm.errors.description && (
+                                                    <div className="mt-1 text-sm text-red-600">{incidentForm.errors.description}</div>
+                                                )}
+                                            </div>
+
+                                            <div className="lg:col-span-2">
+                                                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600">Follow-up</label>
+                                                <DatePicker
+                                                    value={incidentForm.data.follow_up_date}
+                                                    onChange={(v) => incidentForm.setData('follow_up_date', v)}
+                                                />
+                                                {incidentForm.errors.follow_up_date && (
+                                                    <div className="mt-1 text-sm text-red-600">{incidentForm.errors.follow_up_date}</div>
+                                                )}
+                                            </div>
+
+                                            <div className="lg:col-span-12">
+                                                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600">
+                                                    Attachments (optional)
+                                                </label>
+                                                <input
+                                                    type="file"
+                                                    accept="application/pdf,image/jpeg,image/png"
+                                                    multiple
+                                                    className="mt-1 block w-full text-sm"
+                                                    onChange={(e) => incidentForm.setData('attachments', Array.from(e.target.files ?? []))}
+                                                />
+                                                {incidentForm.errors.attachments && (
+                                                    <div className="mt-1 text-sm text-red-600">{incidentForm.errors.attachments}</div>
+                                                )}
+                                                {incidentForm.errors['attachments.0'] && (
+                                                    <div className="mt-1 text-sm text-red-600">{incidentForm.errors['attachments.0']}</div>
+                                                )}
+                                            </div>
+
+                                            <div className="lg:col-span-12 flex items-end justify-end">
+                                                <PrimaryButton type="submit" disabled={incidentForm.processing}>
+                                                    {incidentForm.processing ? 'Creating…' : 'Create Incident'}
+                                                </PrimaryButton>
+                                            </div>
+                                        </form>
+                                    </div>
+                                )}
+
+                                <div className="overflow-x-auto">
+                                    <table className="min-w-full divide-y divide-gray-200">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Category</th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Date</th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Status</th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Follow-up</th>
+                                                <th className="px-4 py-3" />
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-200 bg-white">
+                                            {(!Array.isArray(incidents) || incidents.length === 0) && (
+                                                <tr>
+                                                    <td className="px-4 py-10" colSpan={5}>
+                                                        <div className="mx-auto max-w-2xl rounded-2xl border border-amber-200/60 bg-amber-50/40 p-6">
+                                                            <div className="text-sm font-semibold text-gray-900">No incidents</div>
+                                                            <div className="mt-1 text-sm text-gray-600">Open cases will show up here.</div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )}
+
+                                            {(Array.isArray(incidents) ? incidents : []).map((i) => {
+                                                const badge = incidentStatusBadge(i.status);
+                                                const isExpanded = Number(expandedIncidentId) === Number(i.id);
+
+                                                return (
+                                                    <Fragment key={i.id}>
+                                                        <tr className="hover:bg-amber-50/40">
+                                                            <td className="px-4 py-3 text-sm font-medium text-gray-900">{i.category}</td>
+                                                            <td className="px-4 py-3 text-sm text-gray-700">{i.incident_date ?? '—'}</td>
+                                                            <td className="px-4 py-3">
+                                                                <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${badge.className}`}>
+                                                                    {badge.label}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-4 py-3 text-sm text-gray-700">{i.follow_up_date ?? '—'}</td>
+                                                            <td className="px-4 py-3 text-sm text-right whitespace-nowrap">
+                                                                <button
+                                                                    type="button"
+                                                                    className="text-amber-700 hover:text-amber-900 font-medium"
+                                                                    onClick={() => setExpandedIncidentId(isExpanded ? null : i.id)}
+                                                                >
+                                                                    {isExpanded ? 'Hide' : 'View'}
+                                                                </button>
+
+                                                                {can?.employeeRelationsManage && (
+                                                                    <button
+                                                                        type="button"
+                                                                        className="ml-4 text-red-600 hover:text-red-800 font-medium"
+                                                                        onClick={() => deleteIncident(i.id)}
+                                                                    >
+                                                                        Delete
+                                                                    </button>
+                                                                )}
+                                                            </td>
+                                                        </tr>
+
+                                                        {isExpanded && (
+                                                            <tr>
+                                                                <td className="px-4 py-4 bg-amber-50/30" colSpan={5}>
+                                                                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+                                                                        <div className="lg:col-span-7">
+                                                                            <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Description</div>
+                                                                            <div className="mt-2 whitespace-pre-wrap text-sm text-gray-900">{i.description}</div>
+
+                                                                            <div className="mt-5">
+                                                                                <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Action Taken</div>
+                                                                                <div className="mt-2 whitespace-pre-wrap text-sm text-gray-900">{i.action_taken || '—'}</div>
+                                                                            </div>
+
+                                                                            {(Array.isArray(i.attachments) ? i.attachments : []).length > 0 && (
+                                                                                <div className="mt-5">
+                                                                                    <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Attachments</div>
+                                                                                    <div className="mt-2 space-y-1">
+                                                                                        {(i.attachments ?? []).map((a) => (
+                                                                                            <div key={a.id} className="flex items-center justify-between gap-3">
+                                                                                                <a
+                                                                                                    href={route('relations.attachments.download', a.id)}
+                                                                                                    className="text-sm font-medium text-amber-700 hover:text-amber-900 truncate"
+                                                                                                    title={a.original_name}
+                                                                                                >
+                                                                                                    {a.original_name}
+                                                                                                </a>
+                                                                                                {can?.employeeRelationsManage && (
+                                                                                                    <button
+                                                                                                        type="button"
+                                                                                                        className="text-xs font-semibold text-red-600 hover:text-red-800"
+                                                                                                        onClick={() => deleteRelationAttachment(a.id)}
+                                                                                                    >
+                                                                                                        Delete
+                                                                                                    </button>
+                                                                                                )}
+                                                                                            </div>
+                                                                                        ))}
+                                                                                    </div>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+
+                                                                        <div className="lg:col-span-5">
+                                                                            {can?.employeeRelationsManage ? (
+                                                                                <div className="rounded-lg border border-amber-200 bg-white p-4">
+                                                                                    <div className="text-sm font-semibold text-gray-900">Update Incident</div>
+                                                                                    <form className="mt-4 space-y-4" onSubmit={submitIncidentUpdate}>
+                                                                                        <div>
+                                                                                            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600">Status</label>
+                                                                                            <select
+                                                                                                className="mt-1 w-full rounded-md border-gray-300 focus:border-amber-500 focus:ring-amber-500"
+                                                                                                value={incidentEditForm.data.status}
+                                                                                                onChange={(e) => incidentEditForm.setData('status', e.target.value)}
+                                                                                            >
+                                                                                                {['OPEN', 'UNDER_REVIEW', 'RESOLVED', 'CLOSED'].map((s) => (
+                                                                                                    <option key={s} value={s}>
+                                                                                                        {s}
+                                                                                                    </option>
+                                                                                                ))}
+                                                                                            </select>
+                                                                                            {incidentEditForm.errors.status && (
+                                                                                                <div className="mt-1 text-sm text-red-600">{incidentEditForm.errors.status}</div>
+                                                                                            )}
+                                                                                        </div>
+
+                                                                                        <div>
+                                                                                            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600">Follow-up</label>
+                                                                                            <DatePicker
+                                                                                                value={incidentEditForm.data.follow_up_date}
+                                                                                                onChange={(v) => incidentEditForm.setData('follow_up_date', v)}
+                                                                                            />
+                                                                                            {incidentEditForm.errors.follow_up_date && (
+                                                                                                <div className="mt-1 text-sm text-red-600">{incidentEditForm.errors.follow_up_date}</div>
+                                                                                            )}
+                                                                                        </div>
+
+                                                                                        <div>
+                                                                                            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600">Action Taken</label>
+                                                                                            <textarea
+                                                                                                rows={4}
+                                                                                                className="mt-1 w-full rounded-md border-gray-300 focus:border-amber-500 focus:ring-amber-500"
+                                                                                                value={incidentEditForm.data.action_taken}
+                                                                                                onChange={(e) => incidentEditForm.setData('action_taken', e.target.value)}
+                                                                                                placeholder="Outcome / next steps…"
+                                                                                            />
+                                                                                            {incidentEditForm.errors.action_taken && (
+                                                                                                <div className="mt-1 text-sm text-red-600">{incidentEditForm.errors.action_taken}</div>
+                                                                                            )}
+                                                                                        </div>
+
+                                                                                        <div className="flex items-center justify-end">
+                                                                                            <PrimaryButton type="submit" disabled={incidentEditForm.processing}>
+                                                                                                {incidentEditForm.processing ? 'Saving…' : 'Save'}
+                                                                                            </PrimaryButton>
+                                                                                        </div>
+                                                                                    </form>
+
+                                                                                    <div className="mt-5 border-t border-gray-200 pt-4">
+                                                                                        <AttachmentUploader
+                                                                                            attachableType="incidents"
+                                                                                            attachableId={i.id}
+                                                                                            canManage={can?.employeeRelationsManage}
+                                                                                        />
+                                                                                    </div>
+                                                                                </div>
+                                                                            ) : (
+                                                                                <div className="rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-600">
+                                                                                    You have view-only access.
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                    </Fragment>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </AuthenticatedLayout>
+    );
+}
+
+function AttachmentUploader({ attachableType, attachableId, canManage }) {
+    const form = useForm({
+        type: '',
+        files: [],
+    });
+
+    if (!canManage) return null;
+
+    return (
+        <div>
+            <div className="text-sm font-semibold text-gray-900">Add Attachments</div>
+            <form
+                className="mt-3 grid grid-cols-1 gap-3"
+                onSubmit={(e) => {
+                    e.preventDefault();
+                    form.post(route('relations.attachments.store', [attachableType, attachableId]), {
+                        forceFormData: true,
+                        preserveScroll: true,
+                        onSuccess: () => form.reset('type', 'files'),
+                    });
+                }}
+            >
+                <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600">Type (optional)</label>
+                    <input
+                        className="mt-1 w-full rounded-md border-gray-300 focus:border-amber-500 focus:ring-amber-500"
+                        value={form.data.type}
+                        onChange={(e) => form.setData('type', e.target.value)}
+                        placeholder="e.g. Evidence, Memo"
+                    />
+                    {form.errors.type && <div className="mt-1 text-sm text-red-600">{form.errors.type}</div>}
+                </div>
+
+                <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600">Files</label>
+                    <input
+                        type="file"
+                        accept="application/pdf,image/jpeg,image/png"
+                        multiple
+                        className="mt-1 block w-full text-sm"
+                        onChange={(e) => form.setData('files', Array.from(e.target.files ?? []))}
+                    />
+                    {form.errors.files && <div className="mt-1 text-sm text-red-600">{form.errors.files}</div>}
+                    {form.errors['files.0'] && <div className="mt-1 text-sm text-red-600">{form.errors['files.0']}</div>}
+                </div>
+
+                <div className="flex items-center justify-end">
+                    <PrimaryButton type="submit" disabled={form.processing}>
+                        {form.processing ? 'Uploading…' : 'Upload'}
+                    </PrimaryButton>
+                </div>
+            </form>
+        </div>
     );
 }

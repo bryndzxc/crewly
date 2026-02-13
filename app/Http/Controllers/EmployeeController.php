@@ -6,11 +6,13 @@ use App\Http\Requests\EmployeeRequest;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\EmployeeDocument;
+use App\Models\EmployeeIncident;
+use App\Models\EmployeeNote;
 use App\Resources\EmployeeResource;
 use App\Services\EmployeeService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -82,12 +84,93 @@ class EmployeeController extends Controller
                 'created_at',
             ]);
 
+        $user = $request->user();
+        $canViewRelations = $user ? Gate::forUser($user)->check('employees-relations-view') : false;
+
+        $notesPayload = [];
+        $incidentsPayload = [];
+
+        if ($canViewRelations) {
+            $notes = EmployeeNote::query()
+                ->where('employee_id', (int) $employee->employee_id)
+                ->with([
+                    'creator:id,name',
+                    'attachments',
+                    'attachments.uploader:id,name',
+                ])
+                ->orderByDesc('id')
+                ->get();
+
+            $notesPayload = $notes->map(function (EmployeeNote $note) {
+                return [
+                    'id' => $note->id,
+                    'note_type' => $note->note_type,
+                    'note' => $note->note,
+                    'follow_up_date' => $note->follow_up_date?->toDateString(),
+                    'created_at' => $note->created_at?->format('Y-m-d H:i:s'),
+                    'created_by' => $note->creator ? $note->creator->only(['id', 'name']) : null,
+                    'attachments' => $note->attachments
+                        ->sortByDesc('id')
+                        ->map(fn ($a) => [
+                            'id' => $a->id,
+                            'type' => $a->type,
+                            'original_name' => $a->original_name,
+                            'mime_type' => $a->mime_type,
+                            'file_size' => $a->file_size,
+                            'uploaded_by' => $a->uploader ? $a->uploader->only(['id', 'name']) : null,
+                            'created_at' => $a->created_at?->format('Y-m-d H:i:s'),
+                        ])->values()->all(),
+                ];
+            })->values()->all();
+
+            $incidents = EmployeeIncident::query()
+                ->where('employee_id', (int) $employee->employee_id)
+                ->with([
+                    'creator:id,name',
+                    'assignee:id,name',
+                    'attachments',
+                    'attachments.uploader:id,name',
+                ])
+                ->orderByRaw("FIELD(status, 'OPEN', 'UNDER_REVIEW', 'RESOLVED', 'CLOSED')")
+                ->orderByDesc('incident_date')
+                ->orderByDesc('id')
+                ->get();
+
+            $incidentsPayload = $incidents->map(function (EmployeeIncident $incident) {
+                return [
+                    'id' => $incident->id,
+                    'category' => $incident->category,
+                    'incident_date' => $incident->incident_date?->toDateString(),
+                    'description' => $incident->description,
+                    'status' => $incident->status,
+                    'action_taken' => $incident->action_taken,
+                    'follow_up_date' => $incident->follow_up_date?->toDateString(),
+                    'created_at' => $incident->created_at?->format('Y-m-d H:i:s'),
+                    'created_by' => $incident->creator ? $incident->creator->only(['id', 'name']) : null,
+                    'assigned_to' => $incident->assignee ? $incident->assignee->only(['id', 'name']) : null,
+                    'attachments' => $incident->attachments
+                        ->sortByDesc('id')
+                        ->map(fn ($a) => [
+                            'id' => $a->id,
+                            'type' => $a->type,
+                            'original_name' => $a->original_name,
+                            'mime_type' => $a->mime_type,
+                            'file_size' => $a->file_size,
+                            'uploaded_by' => $a->uploader ? $a->uploader->only(['id', 'name']) : null,
+                            'created_at' => $a->created_at?->format('Y-m-d H:i:s'),
+                        ])->values()->all(),
+                ];
+            })->values()->all();
+        }
+
         return Inertia::render('Employees/Show', [
             'employee' => (new EmployeeResource($employee))->toArray($request),
             'departments' => Department::query()
                 ->orderBy('name')
                 ->get(['department_id', 'name', 'code']),
             'documents' => $documents,
+            'notes' => $notesPayload,
+            'incidents' => $incidentsPayload,
         ]);
     }
 

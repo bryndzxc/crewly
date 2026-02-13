@@ -103,6 +103,17 @@ class AuthServiceProvider extends ServiceProvider
             User::ROLE_HR,
         ], true));
 
+        // Employee Relations (Notes & Incidents)
+        Gate::define('employees-relations-view', fn (User $user) => in_array($user->role(), [
+            User::ROLE_ADMIN,
+            User::ROLE_HR,
+        ], true));
+
+        Gate::define('employees-relations-manage', fn (User $user) => in_array($user->role(), [
+            User::ROLE_ADMIN,
+            User::ROLE_HR,
+        ], true));
+
         Gate::define('access-leaves', fn (User $user) => in_array($user->role(), [
             User::ROLE_ADMIN,
             User::ROLE_HR,

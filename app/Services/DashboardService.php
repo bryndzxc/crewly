@@ -36,10 +36,14 @@ class DashboardService extends Service
         $user = $request->user();
         $canSeeLeaves = $user ? Gate::forUser($user)->check('access-leaves') : false;
         $canApproveLeaves = $user ? Gate::forUser($user)->check('approve-leave-requests') : false;
+        $canViewRelations = $user ? Gate::forUser($user)->check('employees-relations-view') : false;
 
         $pendingApprovalsCount = 0;
         $pendingApprovalsTop5 = [];
         $upcomingApprovedLeavesTop5 = [];
+
+        $openIncidentsCount = 0;
+        $openIncidentsTop5 = [];
 
         if ($canSeeLeaves) {
             if ($canApproveLeaves) {
@@ -49,6 +53,11 @@ class DashboardService extends Service
 
             $leaveWindowEnd = $today->copy()->addDays(30);
             $upcomingApprovedLeavesTop5 = $this->dashboardRepository->upcomingApprovedLeavesTopPayload($today, $leaveWindowEnd, 5);
+        }
+
+        if ($canViewRelations) {
+            $openIncidentsCount = $this->dashboardRepository->openIncidentsCount();
+            $openIncidentsTop5 = $this->dashboardRepository->openIncidentsTopPayload(5);
         }
 
         return [
@@ -63,6 +72,9 @@ class DashboardService extends Service
             'pending_leave_approvals_count' => $pendingApprovalsCount,
             'pending_leave_approvals_top5' => $pendingApprovalsTop5,
             'upcoming_approved_leaves_top5' => $upcomingApprovedLeavesTop5,
+            'can_view_employee_relations' => $canViewRelations,
+            'open_incidents_count' => $openIncidentsCount,
+            'open_incidents_top5' => $openIncidentsTop5,
         ];
     }
 }

@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Models\Employee;
 use App\Models\EmployeeDocument;
+use App\Models\EmployeeIncident;
 use App\Models\LeaveRequest;
 use Illuminate\Support\Carbon;
 
@@ -191,6 +192,48 @@ class DashboardRepository extends BaseRepository
                     'total_days' => $lr->total_days,
                     'employee' => $lr->employee ? $lr->employee->only(['employee_id', 'employee_code', 'first_name', 'middle_name', 'last_name', 'suffix']) : null,
                     'leave_type' => $lr->leaveType ? $lr->leaveType->only(['id', 'name', 'code']) : null,
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    public function openIncidentsCount(): int
+    {
+        return EmployeeIncident::query()
+            ->whereIn('status', [EmployeeIncident::STATUS_OPEN, EmployeeIncident::STATUS_UNDER_REVIEW])
+            ->count();
+    }
+
+    public function openIncidentsTopPayload(int $limit = 5): array
+    {
+        return EmployeeIncident::query()
+            ->select(['id', 'employee_id', 'category', 'incident_date', 'status', 'follow_up_date', 'created_at'])
+            ->with([
+                'employee:employee_id,employee_code,first_name,middle_name,last_name,suffix',
+            ])
+            ->whereIn('status', [EmployeeIncident::STATUS_OPEN, EmployeeIncident::STATUS_UNDER_REVIEW])
+            ->orderByRaw("FIELD(status, 'OPEN', 'UNDER_REVIEW')")
+            ->orderByDesc('incident_date')
+            ->orderByDesc('id')
+            ->limit($limit)
+            ->get()
+            ->map(function (EmployeeIncident $incident) {
+                return [
+                    'id' => $incident->id,
+                    'category' => $incident->category,
+                    'incident_date' => $incident->incident_date?->toDateString(),
+                    'status' => $incident->status,
+                    'follow_up_date' => $incident->follow_up_date?->toDateString(),
+                    'created_at' => $incident->created_at?->format('Y-m-d H:i:s'),
+                    'employee' => $incident->employee ? $incident->employee->only([
+                        'employee_id',
+                        'employee_code',
+                        'first_name',
+                        'middle_name',
+                        'last_name',
+                        'suffix',
+                    ]) : null,
                 ];
             })
             ->values()

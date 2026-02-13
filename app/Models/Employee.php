@@ -152,4 +152,14 @@ class Employee extends Model
     {
         return $this->hasMany(EmployeeDocument::class, 'employee_id', 'employee_id');
     }
+
+    public function notes(): HasMany
+    {
+        return $this->hasMany(EmployeeNote::class, 'employee_id', 'employee_id');
+    }
+
+    public function incidents(): HasMany
+    {
+        return $this->hasMany(EmployeeIncident::class, 'employee_id', 'employee_id');
+    }
 }
