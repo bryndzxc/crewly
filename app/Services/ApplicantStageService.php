@@ -26,6 +26,15 @@ class ApplicantStageService extends Service
                 'position_id' => (int) $updated->position_id,
             ], 'Applicant stage has been changed.');
 
+            app(\App\Services\AuditLogger::class)->log(
+                'applicant.stage.updated',
+                $updated,
+                ['stage' => $from],
+                ['stage' => (string) $updated->stage],
+                ['position_id' => (int) $updated->position_id],
+                'Applicant stage changed.'
+            );
+
             return $updated;
         });
     }

@@ -48,6 +48,19 @@ class EmployeeRelationService extends Service
                 'follow_up_date' => $note->follow_up_date?->toDateString(),
             ], 'Employee note created.');
 
+            app(\App\Services\AuditLogger::class)->log(
+                'relations.note.created',
+                $note,
+                [],
+                [
+                    'employee_id' => (int) $employee->employee_id,
+                    'note_type' => (string) $note->note_type,
+                    'follow_up_date' => $note->follow_up_date?->toDateString(),
+                ],
+                [],
+                'Employee note created.'
+            );
+
             return $note;
         });
     }
@@ -70,6 +83,18 @@ class EmployeeRelationService extends Service
             $this->activity->log('note_deleted', $note, [
                 'employee_id' => (int) $employee->employee_id,
             ], 'Employee note deleted.');
+
+            app(\App\Services\AuditLogger::class)->log(
+                'relations.note.deleted',
+                $note,
+                [
+                    'employee_id' => (int) $employee->employee_id,
+                    'note_type' => (string) ($note->note_type ?? ''),
+                ],
+                [],
+                [],
+                'Employee note deleted.'
+            );
         });
     }
 
@@ -99,6 +124,20 @@ class EmployeeRelationService extends Service
                 'incident_date' => $incident->incident_date?->toDateString(),
             ], 'Employee incident created.');
 
+            app(\App\Services\AuditLogger::class)->log(
+                'relations.incident.created',
+                $incident,
+                [],
+                [
+                    'employee_id' => (int) $employee->employee_id,
+                    'category' => (string) $incident->category,
+                    'status' => (string) $incident->status,
+                    'incident_date' => $incident->incident_date?->toDateString(),
+                ],
+                [],
+                'Employee incident created.'
+            );
+
             return $incident;
         });
     }
@@ -120,6 +159,23 @@ class EmployeeRelationService extends Service
                 'employee_id' => (int) $employee->employee_id,
                 'changes' => $diff,
             ], 'Employee incident updated.');
+
+            app(\App\Services\AuditLogger::class)->log(
+                'relations.incident.updated',
+                $updated,
+                [
+                    'status' => $before['status'] ?? null,
+                    'follow_up_date' => $before['follow_up_date'] ?? null,
+                    'assigned_to' => $before['assigned_to'] ?? null,
+                ],
+                [
+                    'status' => $updated->status,
+                    'follow_up_date' => $updated->follow_up_date?->toDateString(),
+                    'assigned_to' => $updated->assigned_to,
+                ],
+                ['employee_id' => (int) $employee->employee_id],
+                'Employee incident updated.'
+            );
 
             return $updated;
         });
@@ -144,6 +200,19 @@ class EmployeeRelationService extends Service
                 'employee_id' => (int) $employee->employee_id,
                 'category' => $incident->category,
             ], 'Employee incident deleted.');
+
+            app(\App\Services\AuditLogger::class)->log(
+                'relations.incident.deleted',
+                $incident,
+                [
+                    'employee_id' => (int) $employee->employee_id,
+                    'category' => (string) $incident->category,
+                    'status' => (string) ($incident->status ?? ''),
+                ],
+                [],
+                [],
+                'Employee incident deleted.'
+            );
         });
     }
 
@@ -161,6 +230,22 @@ class EmployeeRelationService extends Service
                     'attachable_type' => get_class($attachable),
                     'attachable_id' => (int) $attachable->getKey(),
                 ], 'Employee relation attachment uploaded.');
+
+                app(\App\Services\AuditLogger::class)->log(
+                    'relations.attachment.uploaded',
+                    $attachment,
+                    [],
+                    [
+                        'employee_id' => (int) ($attachable->employee_id ?? 0),
+                        'attachable_type' => get_class($attachable),
+                        'attachable_id' => (int) $attachable->getKey(),
+                        'type' => (string) ($attachment->type ?? ''),
+                        'filename' => (string) ($attachment->original_name ?? ''),
+                        'file_size' => (int) ($attachment->file_size ?? 0),
+                    ],
+                    [],
+                    'Employee relation attachment uploaded.'
+                );
             }
 
             return $created;
@@ -176,6 +261,22 @@ class EmployeeRelationService extends Service
                 'attachable_type' => get_class($attachable),
                 'attachable_id' => (int) $attachable->getKey(),
             ], 'Employee relation attachment deleted.');
+
+            app(\App\Services\AuditLogger::class)->log(
+                'relations.attachment.deleted',
+                $attachment,
+                [
+                    'employee_id' => (int) ($attachable->employee_id ?? 0),
+                    'attachable_type' => get_class($attachable),
+                    'attachable_id' => (int) $attachable->getKey(),
+                    'type' => (string) ($attachment->type ?? ''),
+                    'filename' => (string) ($attachment->original_name ?? ''),
+                    'file_size' => (int) ($attachment->file_size ?? 0),
+                ],
+                [],
+                [],
+                'Employee relation attachment deleted.'
+            );
         });
     }
 }

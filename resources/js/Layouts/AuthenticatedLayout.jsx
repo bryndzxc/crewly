@@ -1,11 +1,38 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import ApplicationLogo from '@/Components/ApplicationLogo';
 import Sidebar from '@/Components/Sidebar';
 import Dropdown from '@/Components/Dropdown';
-import { Link } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 
 export default function Authenticated({ user, header, children, contentClassName = 'max-w-7xl mx-auto' }) {
     const [showingSidebar, setShowingSidebar] = useState(false);
+    const notifications = usePage().props.notifications || {};
+    const unreadCount = Number(notifications.unread_count || 0);
+    const latest = useMemo(() => (Array.isArray(notifications.latest) ? notifications.latest : []), [notifications.latest]);
+
+    const severityDotClass = (severity) => {
+        const s = String(severity || '').toUpperCase();
+        if (s === 'DANGER') return 'bg-red-500';
+        if (s === 'WARNING') return 'bg-amber-500';
+        if (s === 'SUCCESS') return 'bg-green-500';
+        return 'bg-slate-500';
+    };
+
+    const openNotification = (n) => {
+        const url = n?.url;
+        router.patch(
+            route('notifications.read', n.id),
+            {},
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    if (url) {
+                        router.visit(url);
+                    }
+                },
+            }
+        );
+    };
 
     return (
         <div className="min-h-screen bg-slate-50 flex">
@@ -47,6 +74,87 @@ export default function Authenticated({ user, header, children, contentClassName
                     </div>
 
                     <div className="flex items-center gap-3">
+                        <Dropdown>
+                            <Dropdown.Trigger>
+                                <button
+                                    type="button"
+                                    className="relative inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white p-2.5 text-slate-700 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
+                                    aria-label="Open notifications"
+                                >
+                                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0a3 3 0 11-6 0m6 0H9"
+                                        />
+                                    </svg>
+
+                                    {unreadCount > 0 && (
+                                        <span className="absolute -top-1 -right-1 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-amber-500 px-1.5 text-[10px] font-bold text-white ring-2 ring-white">
+                                            {unreadCount > 99 ? '99+' : unreadCount}
+                                        </span>
+                                    )}
+                                </button>
+                            </Dropdown.Trigger>
+
+                            <Dropdown.Content
+                                align="right"
+                                width="96"
+                                contentClasses="py-2 bg-white border border-slate-200 rounded-xl shadow-xl shadow-slate-900/10"
+                            >
+                                <div className="px-4 pb-2 flex items-center justify-between gap-3">
+                                    <div>
+                                        <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Notifications</div>
+                                        <div className="mt-0.5 text-sm font-semibold text-slate-900">{unreadCount} unread</div>
+                                    </div>
+                                    <Link
+                                        href={route('notifications.index')}
+                                        className="text-xs font-semibold text-amber-700 hover:text-amber-800"
+                                    >
+                                        View all
+                                    </Link>
+                                </div>
+                                <div className="my-2 h-px bg-slate-200" />
+
+                                {latest.length === 0 ? (
+                                    <div className="px-4 py-3 text-sm text-slate-600">No notifications yet.</div>
+                                ) : (
+                                    <div className="max-h-80 overflow-auto">
+                                        {latest.map((n) => {
+                                            const isUnread = !n.read_at;
+                                            return (
+                                                <button
+                                                    key={n.id}
+                                                    type="button"
+                                                    onClick={() => openNotification(n)}
+                                                    className={
+                                                        'w-full px-4 py-3 text-left hover:bg-amber-50 focus:bg-amber-50 focus:outline-none transition ' +
+                                                        (isUnread ? 'bg-white' : 'bg-white/70')
+                                                    }
+                                                >
+                                                    <div className="flex items-start gap-3">
+                                                        <span className={'mt-1.5 inline-flex h-2.5 w-2.5 rounded-full ' + severityDotClass(n.severity)} />
+                                                        <div className="min-w-0 flex-1">
+                                                            <div className="flex items-center justify-between gap-2">
+                                                                <div className="truncate text-sm font-semibold text-slate-900">{n.title}</div>
+                                                                {isUnread && (
+                                                                    <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800 ring-1 ring-amber-200">
+                                                                        Unread
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            {!!n.body && <div className="mt-0.5 text-sm text-slate-700">{n.body}</div>}
+                                                            <div className="mt-1 text-xs text-slate-500">{n.created_at_human || n.created_at}</div>
+                                                        </div>
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </Dropdown.Content>
+                        </Dropdown>
+
                         <Dropdown>
                             <Dropdown.Trigger>
                                 <button

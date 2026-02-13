@@ -190,6 +190,23 @@ class EmployeeService extends Service
 
             $photoPath = (string) ($employee->getAttribute('photo_path') ?? '');
 
+            app(\App\Services\AuditLogger::class)->log(
+                'employee.deleted',
+                $employee,
+                [
+                    'employee_id' => (int) $employee->employee_id,
+                    'employee_code' => (string) $employee->employee_code,
+                    'department_id' => (int) $employee->department_id,
+                    'status' => (string) $employee->status,
+                ],
+                [],
+                [
+                    'documents_count' => count($documentPaths),
+                    'had_photo' => $photoPath !== '',
+                ],
+                'Employee deleted.'
+            );
+
             // Remove DB references first (employee is soft-deleted, so FK cascade does not run).
             EmployeeDocument::query()
                 ->where('employee_id', (int) $employee->employee_id)
@@ -249,6 +266,20 @@ class EmployeeService extends Service
             ],
         ], 'Employee has been created.');
 
+        app(\App\Services\AuditLogger::class)->log(
+            'employee.created',
+            $employee,
+            [],
+            [
+                'employee_id' => (int) $employee->employee_id,
+                'employee_code' => (string) $employee->employee_code,
+                'department_id' => (int) $employee->department_id,
+                'status' => (string) $employee->status,
+            ],
+            [],
+            'Employee created.'
+        );
+
         return $employee;
     }
 
@@ -266,6 +297,16 @@ class EmployeeService extends Service
         $before = $employee->only($trackedFields);
 
         $updated = $this->employeeRepository->updateEmployee($employee, $employeeData->toArray());
+
+        $after = $updated->only($trackedFields);
+        app(\App\Services\AuditLogger::class)->log(
+            'employee.updated',
+            $updated,
+            $before,
+            $after,
+            [],
+            'Employee updated.'
+        );
 
         $this->activityLogService->logModelUpdated(
             $updated,

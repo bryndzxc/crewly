@@ -59,6 +59,21 @@ class ApplicantHireService extends Service
                 'migrate_resume' => (bool) $dto->migrate_resume,
             ], 'Applicant has been hired.');
 
+            app(\App\Services\AuditLogger::class)->log(
+                'applicant.hired',
+                $applicant,
+                ['stage' => (string) ($applicant->getOriginal('stage') ?? '')],
+                ['stage' => (string) $applicant->stage],
+                [
+                    'applicant_id' => (int) $applicant->id,
+                    'employee_id' => (int) $employee->employee_id,
+                    'employee_code' => (string) $employee->employee_code,
+                    'position_id' => (int) $applicant->position_id,
+                    'migrate_resume' => (bool) $dto->migrate_resume,
+                ],
+                'Applicant hired.'
+            );
+
             return $employee;
         });
 

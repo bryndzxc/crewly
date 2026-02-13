@@ -70,6 +70,26 @@ class ApplicantDocumentService extends Service
                     'document_ids' => array_map(fn (ApplicantDocument $d) => (int) $d->id, $created),
                 ], 'Applicant documents have been uploaded.');
 
+                app(\App\Services\AuditLogger::class)->log(
+                    'applicant_document.uploaded',
+                    $applicant,
+                    [],
+                    [
+                        'applicant_id' => (int) $applicant->id,
+                        'type' => (string) $validated['type'],
+                        'count' => count($created),
+                        'total_size' => $totalSize,
+                        'documents' => array_map(fn (ApplicantDocument $d) => [
+                            'id' => (int) $d->id,
+                            'filename' => (string) ($d->original_name ?? ''),
+                            'file_size' => (int) ($d->file_size ?? 0),
+                            'mime_type' => (string) ($d->mime_type ?? ''),
+                        ], $created),
+                    ],
+                    [],
+                    'Applicant documents uploaded.'
+                );
+
                 return $created;
             } catch (\Throwable $e) {
                 $disk = (string) config('crewly.documents.disk', config('filesystems.default'));
@@ -102,6 +122,23 @@ class ApplicantDocumentService extends Service
             'file_size' => (int) $document->file_size,
         ], 'Applicant document has been downloaded.');
 
+        app(\App\Services\AuditLogger::class)->log(
+            'document.downloaded',
+            $document,
+            [],
+            [],
+            [
+                'module' => 'recruitment',
+                'applicant_id' => (int) $applicant->id,
+                'document_id' => (int) $document->id,
+                'type' => (string) $document->type,
+                'filename' => (string) ($document->original_name ?? ''),
+                'file_size' => (int) ($document->file_size ?? 0),
+                'mime_type' => (string) ($document->mime_type ?? ''),
+            ],
+            'Applicant document downloaded.'
+        );
+
         return response()->streamDownload(function () use ($stream) {
             fpassthru($stream);
             if (is_resource($stream)) {
@@ -128,6 +165,21 @@ class ApplicantDocumentService extends Service
                 'type' => (string) $document->type,
                 'file_size' => (int) $document->file_size,
             ];
+
+            app(\App\Services\AuditLogger::class)->log(
+                'applicant_document.deleted',
+                $document,
+                [
+                    'applicant_id' => (int) $applicant->id,
+                    'document_id' => (int) $document->id,
+                    'type' => (string) $document->type,
+                    'filename' => (string) ($document->original_name ?? ''),
+                    'file_size' => (int) ($document->file_size ?? 0),
+                ],
+                [],
+                ['module' => 'recruitment'],
+                'Applicant document deleted.'
+            );
 
             $document->delete();
 

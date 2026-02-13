@@ -88,7 +88,7 @@ export default function DatePicker({ id, name, value, onChange, placeholder = 'd
                     {open && (
                         <Popover.Panel
                             static
-                            className="absolute z-20 mt-2 w-80 rounded-lg border border-gray-200 bg-white shadow-lg"
+                            className="absolute z-50 mt-2 w-80 rounded-lg border border-gray-200 bg-white shadow-lg"
                         >
                             <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
                                 <button

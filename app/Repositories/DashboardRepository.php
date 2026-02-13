@@ -2,6 +2,7 @@
 
 namespace App\Repositories;
 
+use App\Models\AttendanceRecord;
 use App\Models\Employee;
 use App\Models\EmployeeDocument;
 use App\Models\EmployeeIncident;
@@ -236,6 +237,80 @@ class DashboardRepository extends BaseRepository
                     ]) : null,
                 ];
             })
+            ->values()
+            ->all();
+    }
+
+    public function attendanceUnmarkedTodayCount(Carbon $day): int
+    {
+        $employeeIds = Employee::query()->pluck('employee_id')->map(fn ($v) => (int) $v)->values()->all();
+        if (count($employeeIds) === 0) {
+            return 0;
+        }
+
+        $onLeaveIds = LeaveRequest::query()
+            ->whereIn('employee_id', $employeeIds)
+            ->where('status', LeaveRequest::STATUS_APPROVED)
+            ->whereDate('start_date', '<=', $day->toDateString())
+            ->whereDate('end_date', '>=', $day->toDateString())
+            ->pluck('employee_id')
+            ->map(fn ($v) => (int) $v)
+            ->unique()
+            ->values()
+            ->all();
+
+        $markedIds = AttendanceRecord::query()
+            ->whereDate('date', $day->toDateString())
+            ->whereIn('employee_id', $employeeIds)
+            ->pluck('employee_id')
+            ->map(fn ($v) => (int) $v)
+            ->unique()
+            ->values()
+            ->all();
+
+        $exclude = array_unique(array_merge($onLeaveIds, $markedIds));
+
+        return Employee::query()
+            ->when(count($exclude) > 0, fn ($q) => $q->whereNotIn('employee_id', $exclude))
+            ->count();
+    }
+
+    public function attendanceUnmarkedTodayTopPayload(Carbon $day, int $limit = 5): array
+    {
+        $employeeIds = Employee::query()->pluck('employee_id')->map(fn ($v) => (int) $v)->values()->all();
+        if (count($employeeIds) === 0) {
+            return [];
+        }
+
+        $onLeaveIds = LeaveRequest::query()
+            ->whereIn('employee_id', $employeeIds)
+            ->where('status', LeaveRequest::STATUS_APPROVED)
+            ->whereDate('start_date', '<=', $day->toDateString())
+            ->whereDate('end_date', '>=', $day->toDateString())
+            ->pluck('employee_id')
+            ->map(fn ($v) => (int) $v)
+            ->unique()
+            ->values()
+            ->all();
+
+        $markedIds = AttendanceRecord::query()
+            ->whereDate('date', $day->toDateString())
+            ->whereIn('employee_id', $employeeIds)
+            ->pluck('employee_id')
+            ->map(fn ($v) => (int) $v)
+            ->unique()
+            ->values()
+            ->all();
+
+        $exclude = array_unique(array_merge($onLeaveIds, $markedIds));
+
+        return Employee::query()
+            ->select(['employee_id', 'employee_code', 'first_name', 'middle_name', 'last_name', 'suffix'])
+            ->when(count($exclude) > 0, fn ($q) => $q->whereNotIn('employee_id', $exclude))
+            ->orderBy('employee_code', 'asc')
+            ->limit($limit)
+            ->get()
+            ->map(fn (Employee $e) => $e->only(['employee_id', 'employee_code', 'first_name', 'middle_name', 'last_name', 'suffix']))
             ->values()
             ->all();
     }

@@ -49,6 +49,25 @@ class EmployeeRelationAttachmentController extends Controller
         $fileName = $attachment->original_name ?: 'attachment';
         $mime = $attachment->mime_type ?: 'application/octet-stream';
 
+        app(\App\Services\AuditLogger::class)->log(
+            'document.downloaded',
+            $attachment,
+            [],
+            [],
+            [
+                'module' => 'relations',
+                'employee_id' => (int) ($attachable->employee_id ?? 0),
+                'attachable_type' => get_class($attachable),
+                'attachable_id' => (int) $attachable->getKey(),
+                'attachment_id' => (int) $attachment->id,
+                'type' => (string) ($attachment->type ?? ''),
+                'filename' => (string) ($attachment->original_name ?? ''),
+                'file_size' => (int) ($attachment->file_size ?? 0),
+                'mime_type' => (string) ($attachment->mime_type ?? ''),
+            ],
+            'Employee relation attachment downloaded.'
+        );
+
         return response()->streamDownload(function () use ($stream) {
             fpassthru($stream);
             if (is_resource($stream)) {

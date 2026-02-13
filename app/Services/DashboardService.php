@@ -37,6 +37,7 @@ class DashboardService extends Service
         $canSeeLeaves = $user ? Gate::forUser($user)->check('access-leaves') : false;
         $canApproveLeaves = $user ? Gate::forUser($user)->check('approve-leave-requests') : false;
         $canViewRelations = $user ? Gate::forUser($user)->check('employees-relations-view') : false;
+        $canManageAttendance = $user ? Gate::forUser($user)->check('manage-attendance') : false;
 
         $pendingApprovalsCount = 0;
         $pendingApprovalsTop5 = [];
@@ -44,6 +45,9 @@ class DashboardService extends Service
 
         $openIncidentsCount = 0;
         $openIncidentsTop5 = [];
+
+        $attendanceUnmarkedTodayCount = 0;
+        $attendanceUnmarkedTodayTop5 = [];
 
         if ($canSeeLeaves) {
             if ($canApproveLeaves) {
@@ -58,6 +62,11 @@ class DashboardService extends Service
         if ($canViewRelations) {
             $openIncidentsCount = $this->dashboardRepository->openIncidentsCount();
             $openIncidentsTop5 = $this->dashboardRepository->openIncidentsTopPayload(5);
+        }
+
+        if ($canManageAttendance) {
+            $attendanceUnmarkedTodayCount = $this->dashboardRepository->attendanceUnmarkedTodayCount($today);
+            $attendanceUnmarkedTodayTop5 = $this->dashboardRepository->attendanceUnmarkedTodayTopPayload($today, 5);
         }
 
         return [
@@ -75,6 +84,9 @@ class DashboardService extends Service
             'can_view_employee_relations' => $canViewRelations,
             'open_incidents_count' => $openIncidentsCount,
             'open_incidents_top5' => $openIncidentsTop5,
+            'can_manage_attendance' => $canManageAttendance,
+            'attendance_unmarked_today_count' => $attendanceUnmarkedTodayCount,
+            'attendance_unmarked_today_top5' => $attendanceUnmarkedTodayTop5,
         ];
     }
 }

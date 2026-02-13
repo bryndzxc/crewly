@@ -38,4 +38,13 @@ return [
         'algo' => env('ENCRYPTION_ALGO', 'AES-256-GCM'),
         'cipher' => env('ENCRYPTION_CIPHER', 'aes-256-gcm'),
     ],
+
+    'attendance' => [
+        // Company-wide schedule used for basic computations.
+        // Times are in 24h format.
+        'schedule_start' => env('CREWLY_ATTENDANCE_START', '09:00'),
+        'schedule_end' => env('CREWLY_ATTENDANCE_END', '18:00'),
+        'break_minutes' => (int) env('CREWLY_ATTENDANCE_BREAK_MINUTES', 60),
+        'grace_minutes' => (int) env('CREWLY_ATTENDANCE_GRACE_MINUTES', 0),
+    ],
 ];

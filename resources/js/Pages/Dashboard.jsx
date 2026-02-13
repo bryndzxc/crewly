@@ -29,6 +29,9 @@ export default function Dashboard({
     can_view_employee_relations = false,
     open_incidents_count = 0,
     open_incidents_top5 = [],
+    can_manage_attendance = false,
+    attendance_unmarked_today_count = 0,
+    attendance_unmarked_today_top5 = [],
 }) {
     const statCardLinkClassName =
         'cursor-pointer transition will-change-transform ' +
@@ -97,6 +100,7 @@ export default function Dashboard({
     const pendingLeaveItems = Array.isArray(pending_leave_approvals_top5) ? pending_leave_approvals_top5 : [];
     const upcomingLeaveItems = Array.isArray(upcoming_approved_leaves_top5) ? upcoming_approved_leaves_top5 : [];
     const openIncidentItems = Array.isArray(open_incidents_top5) ? open_incidents_top5 : [];
+    const attendanceUnmarkedItems = Array.isArray(attendance_unmarked_today_top5) ? attendance_unmarked_today_top5 : [];
 
     if (can_view_employee_relations) {
         stats.push({
@@ -112,6 +116,23 @@ export default function Dashboard({
                         strokeLinejoin="round"
                         d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
                     />
+                </svg>
+            ),
+        });
+    }
+
+    if (can_manage_attendance) {
+        stats.push({
+            title: "Attendance Pending (Today)",
+            value: attendance_unmarked_today_count,
+            caption: 'Employees not yet marked (excludes approved leave)',
+            href: route('attendance.daily'),
+            icon: (
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 11h16" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 5h12a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 16l2 2 4-4" />
                 </svg>
             ),
         });
@@ -232,6 +253,65 @@ export default function Dashboard({
                                             </tr>
                                         );
                                     })}
+                                </tbody>
+                            </table>
+                        </div>
+                    </Card>
+                </div>
+            )}
+
+            {can_manage_attendance && (
+                <div className="mt-6">
+                    <Card className="p-6">
+                        <div className="flex items-center justify-between gap-4">
+                            <div>
+                                <h3 className="text-base font-semibold text-slate-900">Attendance Pending (Today)</h3>
+                                <p className="mt-1 text-sm text-slate-600">Top 5 employees not yet marked today (excludes approved leave).</p>
+                            </div>
+                            <Link
+                                href={route('attendance.daily')}
+                                className="text-sm font-semibold text-amber-800 hover:text-amber-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40 focus-visible:ring-offset-2 rounded"
+                            >
+                                Open daily sheet
+                            </Link>
+                        </div>
+
+                        <div className="mt-4 overflow-x-auto">
+                            <table className="min-w-full divide-y divide-slate-200">
+                                <thead className="bg-slate-50">
+                                    <tr>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Employee</th>
+                                        <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-200 bg-white">
+                                    {attendanceUnmarkedItems.length === 0 && (
+                                        <tr>
+                                            <td className="px-4 py-10" colSpan={2}>
+                                                <div className="mx-auto max-w-xl rounded-2xl border border-amber-200/60 bg-amber-50/40 p-6">
+                                                    <div className="text-sm font-semibold text-slate-900">All set</div>
+                                                    <div className="mt-1 text-sm text-slate-600">Everyone is marked (or on approved leave).</div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+
+                                    {attendanceUnmarkedItems.map((employee) => (
+                                        <tr key={employee.employee_id} className="hover:bg-amber-50/40">
+                                            <td className="px-4 py-3 text-sm font-medium text-slate-900">
+                                                {fullName(employee) || employee.employee_code || 'Employee'}
+                                                <div className="text-xs text-slate-500">{employee.employee_code}</div>
+                                            </td>
+                                            <td className="px-4 py-3 text-sm text-right whitespace-nowrap">
+                                                <Link
+                                                    href={route('attendance.daily')}
+                                                    className="inline-flex items-center rounded-md border border-amber-200 bg-white px-3 py-1.5 text-xs font-semibold uppercase tracking-widest text-amber-900 shadow-sm hover:bg-amber-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40 focus-visible:ring-offset-2"
+                                                >
+                                                    Mark
+                                                </Link>
+                                            </td>
+                                        </tr>
+                                    ))}
                                 </tbody>
                             </table>
                         </div>

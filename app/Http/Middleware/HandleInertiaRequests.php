@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Middleware;
@@ -31,11 +32,16 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         $user = $request->user();
+        $notificationService = $user ? app(NotificationService::class) : null;
 
         return [
             ...parent::share($request),
             'auth' => [
                 'user' => $user,
+            ],
+            'notifications' => [
+                'unread_count' => fn () => $user ? $notificationService?->unreadCountFor($user) : 0,
+                'latest' => fn () => $user ? $notificationService?->latestFor($user, 5) : [],
             ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
@@ -63,6 +69,11 @@ class HandleInertiaRequests extends Middleware
                 'manageLeaveTypes' => $user ? Gate::forUser($user)->check('manage-leave-types') : false,
                 'createLeaveRequests' => $user ? Gate::forUser($user)->check('create-leave-requests') : false,
                 'approveLeaveRequests' => $user ? Gate::forUser($user)->check('approve-leave-requests') : false,
+                'accessAttendance' => $user ? Gate::forUser($user)->check('access-attendance') : false,
+                'manageAttendance' => $user ? Gate::forUser($user)->check('manage-attendance') : false,
+                'accessPayrollSummary' => $user ? Gate::forUser($user)->check('access-payroll-summary') : false,
+                'exportPayrollSummary' => $user ? Gate::forUser($user)->check('export-payroll-summary') : false,
+                'viewAuditLogs' => $user ? Gate::forUser($user)->check('view-audit-logs') : false,
             ],
         ];
     }

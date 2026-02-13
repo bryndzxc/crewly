@@ -64,6 +64,22 @@ class ApplicantService extends Service
                 'applied_at' => $applicant->applied_at?->format('Y-m-d'),
             ], 'Applicant has been created.');
 
+            app(\App\Services\AuditLogger::class)->log(
+                'applicant.created',
+                $applicant,
+                [],
+                [
+                    'applicant_id' => (int) $applicant->id,
+                    'position_id' => (int) $applicant->position_id,
+                    'stage' => (string) $applicant->stage,
+                    'source' => (string) ($applicant->source ?? ''),
+                    'expected_salary' => $applicant->expected_salary,
+                    'applied_at' => $applicant->applied_at?->format('Y-m-d'),
+                ],
+                [],
+                'Applicant created.'
+            );
+
             if ($resume) {
                 $this->applicantDocumentService->uploadMany(
                     $applicant,
@@ -178,6 +194,16 @@ class ApplicantService extends Service
 
             $updated = $this->applicantRepository->update($applicant, $dto);
 
+            $after = $updated->only($trackedFields);
+            app(\App\Services\AuditLogger::class)->log(
+                'applicant.updated',
+                $updated,
+                $before,
+                $after,
+                ['applicant_id' => (int) $updated->id],
+                'Applicant updated.'
+            );
+
             $this->activityLogService->logModelUpdated(
                 $updated,
                 $before,
@@ -197,6 +223,15 @@ class ApplicantService extends Service
     {
         DB::transaction(function () use ($applicant) {
             $attributes = $applicant->only(['id', 'position_id', 'stage', 'source', 'expected_salary', 'applied_at']);
+
+            app(\App\Services\AuditLogger::class)->log(
+                'applicant.deleted',
+                $applicant,
+                $attributes,
+                [],
+                [],
+                'Applicant deleted.'
+            );
 
             $this->applicantRepository->delete($applicant);
 

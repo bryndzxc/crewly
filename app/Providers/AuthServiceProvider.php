@@ -135,5 +135,35 @@ class AuthServiceProvider extends ServiceProvider
             User::ROLE_HR,
             User::ROLE_MANAGER,
         ], true));
+
+        // Attendance
+        Gate::define('access-attendance', fn (User $user) => in_array($user->role(), [
+            User::ROLE_ADMIN,
+            User::ROLE_HR,
+            User::ROLE_MANAGER,
+        ], true));
+
+        Gate::define('manage-attendance', fn (User $user) => in_array($user->role(), [
+            User::ROLE_ADMIN,
+            User::ROLE_HR,
+        ], true));
+
+        // Payroll Summary
+        Gate::define('access-payroll-summary', fn (User $user) => in_array($user->role(), [
+            User::ROLE_ADMIN,
+            User::ROLE_HR,
+            User::ROLE_MANAGER,
+        ], true));
+
+        Gate::define('export-payroll-summary', fn (User $user) => in_array($user->role(), [
+            User::ROLE_ADMIN,
+            User::ROLE_HR,
+        ], true));
+
+        // Audit Logs
+        Gate::define('view-audit-logs', fn (User $user) => in_array($user->role(), [
+            User::ROLE_ADMIN,
+            User::ROLE_HR,
+        ], true));
     }
 }

@@ -20,3 +20,7 @@ Route::group([], base_path('routes/modules/employees.php'));
 Route::group([], base_path('routes/modules/recruitment.php'));
 Route::group([], base_path('routes/modules/account.php'));
 Route::group([], base_path('routes/modules/leaves.php'));
+Route::group([], base_path('routes/modules/attendance.php'));
+Route::group([], base_path('routes/modules/payroll.php'));
+Route::group([], base_path('routes/modules/audit_logs.php'));
+Route::group([], base_path('routes/modules/notifications.php'));

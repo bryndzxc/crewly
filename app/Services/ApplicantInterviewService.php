@@ -8,6 +8,7 @@ use App\Models\ApplicantInterview;
 use App\Repositories\ApplicantInterviewRepository;
 use App\Repositories\ApplicantRepository;
 use Illuminate\Support\Facades\DB;
+use App\Services\AuditLogger;
 
 class ApplicantInterviewService extends Service
 {
@@ -24,6 +25,20 @@ class ApplicantInterviewService extends Service
         return DB::transaction(function () use ($applicant, $dto, $userId) {
             $interview = $this->applicantInterviewRepository->create((int) $applicant->id, $dto, $userId);
             $this->applicantRepository->touchLastActivity($applicant);
+
+            app(AuditLogger::class)->log(
+                'applicant.interview.created',
+                $interview,
+                [],
+                [
+                    'applicant_id' => (int) $applicant->id,
+                    'interview_id' => (int) $interview->id,
+                    'scheduled_at' => $interview->scheduled_at?->format('Y-m-d H:i:s'),
+                    'has_notes' => ($interview->notes ?? '') !== '',
+                ],
+                [],
+                'Applicant interview created.'
+            );
 
             $this->activityLogService->log('created', $interview, [
                 'applicant_id' => (int) $applicant->id,
@@ -46,9 +61,27 @@ class ApplicantInterviewService extends Service
         return DB::transaction(function () use ($applicant, $interview, $dto, $userId) {
             $trackedFields = ['scheduled_at'];
             $before = $interview->only($trackedFields);
+            $beforeScheduledAt = $interview->scheduled_at?->format('Y-m-d H:i:s');
 
             $updated = $this->applicantInterviewRepository->update($interview, $dto, $userId);
             $this->applicantRepository->touchLastActivity($applicant);
+
+            app(AuditLogger::class)->log(
+                'applicant.interview.updated',
+                $updated,
+                [
+                    'scheduled_at' => $beforeScheduledAt,
+                ],
+                [
+                    'scheduled_at' => $updated->scheduled_at?->format('Y-m-d H:i:s'),
+                    'has_notes' => ($updated->notes ?? '') !== '',
+                ],
+                [
+                    'applicant_id' => (int) $applicant->id,
+                    'interview_id' => (int) $updated->id,
+                ],
+                'Applicant interview updated.'
+            );
 
             $this->activityLogService->logModelUpdated(
                 $updated,
@@ -73,6 +106,19 @@ class ApplicantInterviewService extends Service
 
         DB::transaction(function () use ($applicant, $interview) {
             $attributes = $interview->only(['id', 'applicant_id', 'scheduled_at']);
+
+            app(AuditLogger::class)->log(
+                'applicant.interview.deleted',
+                $interview,
+                [
+                    'applicant_id' => (int) $applicant->id,
+                    'interview_id' => (int) $interview->id,
+                    'scheduled_at' => $interview->scheduled_at?->format('Y-m-d H:i:s'),
+                ],
+                [],
+                [],
+                'Applicant interview deleted.'
+            );
 
             $this->applicantInterviewRepository->delete($interview);
             $this->applicantRepository->touchLastActivity($applicant);
