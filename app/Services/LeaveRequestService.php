@@ -15,6 +15,7 @@ class LeaveRequestService extends Service
 {
     public function __construct(
         private readonly LeaveRequestRepository $leaveRequestRepository,
+        private readonly ActivityLogService $activityLogService,
     ) {}
 
     public function index(Request $request): array
@@ -81,7 +82,22 @@ class LeaveRequestService extends Service
         /** @var LeaveType $type */
         $type = LeaveType::query()->findOrFail($dto->leave_type_id);
 
-        return $this->leaveRequestRepository->create($dto, $type, $userId, Carbon::now());
+        return DB::transaction(function () use ($dto, $type, $userId) {
+            $leaveRequest = $this->leaveRequestRepository->create($dto, $type, $userId, Carbon::now());
+
+            $this->activityLogService->log('created', $leaveRequest, [
+                'employee_id' => (int) $leaveRequest->employee_id,
+                'leave_type_id' => (int) $leaveRequest->leave_type_id,
+                'start_date' => $leaveRequest->start_date?->format('Y-m-d'),
+                'end_date' => $leaveRequest->end_date?->format('Y-m-d'),
+                'is_half_day' => (bool) $leaveRequest->is_half_day,
+                'half_day_part' => $leaveRequest->half_day_part,
+                'status' => $leaveRequest->status,
+                'total_days' => $leaveRequest->total_days,
+            ], 'Leave request has been created.');
+
+            return $leaveRequest;
+        });
     }
 
     public function show(Request $request, LeaveRequest $requestModel): array
@@ -136,7 +152,18 @@ class LeaveRequestService extends Service
 
     public function cancel(LeaveRequest $requestModel): LeaveRequest
     {
-        return $this->leaveRequestRepository->cancel($requestModel);
+        return DB::transaction(function () use ($requestModel) {
+            $fromStatus = (string) $requestModel->status;
+
+            $updated = $this->leaveRequestRepository->cancel($requestModel);
+
+            $this->activityLogService->log('cancelled', $updated, [
+                'from_status' => $fromStatus,
+                'to_status' => (string) $updated->status,
+            ], 'Leave request has been cancelled.');
+
+            return $updated;
+        });
     }
 
     public function approve(LeaveRequest $requestModel, array $validated, ?int $userId): LeaveRequest
@@ -144,7 +171,23 @@ class LeaveRequestService extends Service
         $decision = LeaveDecisionData::fromArray($validated);
 
         return DB::transaction(function () use ($requestModel, $decision, $userId) {
-            return $this->leaveRequestRepository->approve($requestModel, $decision, $userId, Carbon::now());
+            $fromStatus = (string) $requestModel->status;
+
+            $updated = $this->leaveRequestRepository->approve($requestModel, $decision, $userId, Carbon::now());
+
+            $this->activityLogService->log('approved', $updated, [
+                'from_status' => $fromStatus,
+                'to_status' => (string) $updated->status,
+                'employee_id' => (int) $updated->employee_id,
+                'leave_type_id' => (int) $updated->leave_type_id,
+                'start_date' => $updated->start_date?->format('Y-m-d'),
+                'end_date' => $updated->end_date?->format('Y-m-d'),
+                'is_half_day' => (bool) $updated->is_half_day,
+                'half_day_part' => $updated->half_day_part,
+                'total_days' => $updated->total_days,
+            ], 'Leave request has been approved.');
+
+            return $updated;
         });
     }
 
@@ -153,7 +196,23 @@ class LeaveRequestService extends Service
         $decision = LeaveDecisionData::fromArray($validated);
 
         return DB::transaction(function () use ($requestModel, $decision, $userId) {
-            return $this->leaveRequestRepository->deny($requestModel, $decision, $userId, Carbon::now());
+            $fromStatus = (string) $requestModel->status;
+
+            $updated = $this->leaveRequestRepository->deny($requestModel, $decision, $userId, Carbon::now());
+
+            $this->activityLogService->log('denied', $updated, [
+                'from_status' => $fromStatus,
+                'to_status' => (string) $updated->status,
+                'employee_id' => (int) $updated->employee_id,
+                'leave_type_id' => (int) $updated->leave_type_id,
+                'start_date' => $updated->start_date?->format('Y-m-d'),
+                'end_date' => $updated->end_date?->format('Y-m-d'),
+                'is_half_day' => (bool) $updated->is_half_day,
+                'half_day_part' => $updated->half_day_part,
+                'total_days' => $updated->total_days,
+            ], 'Leave request has been denied.');
+
+            return $updated;
         });
     }
 }

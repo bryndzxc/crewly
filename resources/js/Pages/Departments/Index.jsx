@@ -8,7 +8,7 @@ import Table from '@/Components/Table';
 import DepartmentCreate from '@/Pages/Departments/Create';
 import DepartmentEdit from '@/Pages/Departments/Edit';
 import { Head, router } from '@inertiajs/react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 export default function Index({ auth, departments, filters = {} }) {
     const [query, setQuery] = useState(filters.q ?? '');
@@ -21,6 +21,7 @@ export default function Index({ auth, departments, filters = {} }) {
     const [isDeleting, setIsDeleting] = useState(false);
     const [deletePhase, setDeletePhase] = useState('confirm');
     const [isLoading, setIsLoading] = useState(false);
+    const didInitSearchRef = useRef(false);
 
     const departmentItems = departments?.data ?? [];
 
@@ -63,6 +64,11 @@ export default function Index({ auth, departments, filters = {} }) {
     }, [isDeleteModalOpen, deletePhase]);
 
     useEffect(() => {
+        if (!didInitSearchRef.current) {
+            didInitSearchRef.current = true;
+            return;
+        }
+
         const handler = setTimeout(() => {
             router.get(
                 route('departments.index'),

@@ -41,6 +41,50 @@ class AuthServiceProvider extends ServiceProvider
         Gate::define('access-recruitment', fn (User $user) => in_array($user->role(), [
             User::ROLE_ADMIN,
             User::ROLE_HR,
+            User::ROLE_MANAGER,
+        ], true));
+
+        // Recruitment (ATS-lite)
+        Gate::define('recruitment-manage', fn (User $user) => in_array($user->role(), [
+            User::ROLE_ADMIN,
+            User::ROLE_HR,
+        ], true));
+
+        Gate::define('recruitment-stage-update', fn (User $user) => in_array($user->role(), [
+            User::ROLE_ADMIN,
+            User::ROLE_HR,
+        ], true));
+
+        Gate::define('recruitment-hire', fn (User $user) => in_array($user->role(), [
+            User::ROLE_ADMIN,
+            User::ROLE_HR,
+        ], true));
+
+        Gate::define('recruitment-documents-download', fn (User $user) => in_array($user->role(), [
+            User::ROLE_ADMIN,
+            User::ROLE_HR,
+            User::ROLE_MANAGER,
+        ], true));
+
+        Gate::define('recruitment-documents-upload', fn (User $user) => in_array($user->role(), [
+            User::ROLE_ADMIN,
+            User::ROLE_HR,
+        ], true));
+
+        Gate::define('recruitment-documents-delete', fn (User $user) => in_array($user->role(), [
+            User::ROLE_ADMIN,
+            User::ROLE_HR,
+        ], true));
+
+        Gate::define('recruitment-interviews-create', fn (User $user) => in_array($user->role(), [
+            User::ROLE_ADMIN,
+            User::ROLE_HR,
+            User::ROLE_MANAGER,
+        ], true));
+
+        Gate::define('recruitment-interviews-manage', fn (User $user) => in_array($user->role(), [
+            User::ROLE_ADMIN,
+            User::ROLE_HR,
         ], true));
 
         Gate::define('employees-documents-download', fn (User $user) => in_array($user->role(), [
