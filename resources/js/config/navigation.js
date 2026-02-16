@@ -126,6 +126,15 @@ export const navigation = [
         roles: null,
     },
     {
+        type: 'link',
+        label: 'Chat',
+        routeName: 'chat.index',
+        iconKey: 'dashboard',
+        activePatterns: ['/chat'],
+        ability: null,
+        roles: ['admin', 'hr', 'manager', 'employee'],
+    },
+    {
         type: 'group',
         label: 'Account Management',
         iconKey: 'account',

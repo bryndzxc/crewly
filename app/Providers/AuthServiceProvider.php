@@ -16,6 +16,7 @@ class AuthServiceProvider extends ServiceProvider
     protected $policies = [
         \App\Models\LeaveType::class => \App\Policies\LeaveTypePolicy::class,
         \App\Models\LeaveRequest::class => \App\Policies\LeaveRequestPolicy::class,
+        \App\Models\Conversation::class => \App\Policies\ConversationPolicy::class,
     ];
 
     /**

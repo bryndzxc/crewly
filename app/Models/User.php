@@ -38,6 +38,26 @@ class User extends Authenticatable
         return $this->role() === $role;
     }
 
+    public function isAdmin(): bool
+    {
+        return $this->hasRole(self::ROLE_ADMIN);
+    }
+
+    public function isHR(): bool
+    {
+        return $this->hasRole(self::ROLE_HR);
+    }
+
+    public function isManager(): bool
+    {
+        return $this->hasRole(self::ROLE_MANAGER);
+    }
+
+    public function isEmployee(): bool
+    {
+        return $this->hasRole(self::ROLE_EMPLOYEE);
+    }
+
     public function isDeveloper(): bool
     {
         if (!config('app.developer_bypass', false)) {
@@ -61,6 +81,7 @@ class User extends Authenticatable
         'role',
         'password',
         'must_change_password',
+        'chat_sound_enabled',
     ];
 
     /**
@@ -85,6 +106,7 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'must_change_password' => 'boolean',
+        'chat_sound_enabled' => 'boolean',
     ];
 
     public function getProfilePhotoUrlAttribute(): ?string
@@ -100,5 +122,22 @@ class User extends Authenticatable
     public function employee()
     {
         return $this->hasOne(Employee::class, 'user_id', 'id');
+    }
+
+    public function conversations()
+    {
+        return $this->belongsToMany(Conversation::class, 'conversation_participants')
+            ->withPivot(['role_in_conversation', 'last_read_at'])
+            ->withTimestamps();
+    }
+
+    public function conversationParticipants()
+    {
+        return $this->hasMany(ConversationParticipant::class);
+    }
+
+    public function messages()
+    {
+        return $this->hasMany(Message::class);
     }
 }

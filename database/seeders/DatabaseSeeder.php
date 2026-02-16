@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             DepartmentSeeder::class,
             LeaveTypeSeeder::class,
             RecruitmentPositionSeeder::class,
+            ChatSeeder::class,
         ]);
     }
 }
