@@ -47,4 +47,10 @@ return [
         'break_minutes' => (int) env('CREWLY_ATTENDANCE_BREAK_MINUTES', 60),
         'grace_minutes' => (int) env('CREWLY_ATTENDANCE_GRACE_MINUTES', 0),
     ],
+
+    'employee_portal' => [
+        // If set, newly auto-created employee portal users will use this password.
+        // Leave null in production and rely on reset/invite links instead.
+        'default_password' => env('CREWLY_EMPLOYEE_DEFAULT_PASSWORD', null),
+    ],
 ];

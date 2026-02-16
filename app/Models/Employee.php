@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Employee extends Model
@@ -13,6 +14,7 @@ class Employee extends Model
     protected $primaryKey = 'employee_id';
 
     protected $fillable = [
+        'user_id',
         'department_id',
         'employee_code',
         'first_name',
@@ -151,6 +153,16 @@ class Employee extends Model
     public function documents(): HasMany
     {
         return $this->hasMany(EmployeeDocument::class, 'employee_id', 'employee_id');
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id', 'id');
+    }
+
+    public function department(): BelongsTo
+    {
+        return $this->belongsTo(Department::class, 'department_id', 'department_id');
     }
 
     public function notes(): HasMany

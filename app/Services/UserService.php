@@ -49,6 +49,7 @@ class UserService extends Service
 				['key' => 'admin', 'name' => 'Admin'],
 				['key' => 'hr', 'name' => 'HR'],
 				['key' => 'manager', 'name' => 'Manager'],
+				['key' => 'employee', 'name' => 'Employee'],
 			]);
 		}
 

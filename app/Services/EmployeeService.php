@@ -25,6 +25,7 @@ class EmployeeService extends Service
     
     public function __construct(
         private readonly EmployeeRepository $employeeRepository,
+        private readonly EmployeePortalUserService $employeePortalUserService,
         ActivityLogService $activityLogService,
         EmployeeDocumentService $employeeDocumentService,
         EmployeePhotoService $employeePhotoService
@@ -70,6 +71,17 @@ class EmployeeService extends Service
             // return $this->employeeRepository->createEmployee($employeeData);
             return $this->processEmployeeCreation($employeeData);
         });
+
+        try {
+            $this->employeePortalUserService->ensureLinked($employee);
+        } catch (\Throwable $e) {
+            Log::warning('Employee portal user auto-link failed.', [
+                'employee_id' => (int) $employee->employee_id,
+                'email' => (string) ($employee->email ?? ''),
+                'error' => $e->getMessage(),
+            ]);
+            session()->flash('error', 'Employee created, but the portal account could not be created automatically.');
+        }
 
         $this->handleInitialDocumentsIfAny($employee, $validated);
         $this->handlePhotoIfAny($employee, $validated);

@@ -32,6 +32,9 @@ class AuthServiceProvider extends ServiceProvider
         Gate::define('manage-users', fn (User $user) => $user->hasRole(User::ROLE_ADMIN));
         Gate::define('manage-roles', fn (User $user) => $user->hasRole(User::ROLE_ADMIN));
 
+        // Employee self-service portal
+        Gate::define('access-my-portal', fn (User $user) => $user->hasRole(User::ROLE_EMPLOYEE));
+
         Gate::define('access-employees', fn (User $user) => in_array($user->role(), [
             User::ROLE_ADMIN,
             User::ROLE_HR,

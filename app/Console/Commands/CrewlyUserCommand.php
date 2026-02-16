@@ -64,6 +64,7 @@ class CrewlyUserCommand extends Command
                 User::ROLE_ADMIN => 'Admin',
                 User::ROLE_HR => 'HR',
                 User::ROLE_MANAGER => 'Manager',
+                User::ROLE_EMPLOYEE => 'Employee',
             ];
         }
 

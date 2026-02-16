@@ -14,6 +14,7 @@ class RoleSeeder extends Seeder
             ['key' => User::ROLE_ADMIN, 'name' => 'Admin'],
             ['key' => User::ROLE_HR, 'name' => 'HR'],
             ['key' => User::ROLE_MANAGER, 'name' => 'Manager'],
+            ['key' => User::ROLE_EMPLOYEE, 'name' => 'Employee'],
         ];
 
         foreach ($roles as $role) {

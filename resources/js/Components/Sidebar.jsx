@@ -122,20 +122,30 @@ function Chevron({ open }) {
 
 export default function Sidebar() {
     const { url } = usePage();
+    const role = String(usePage()?.props?.auth?.user?.role || '').toLowerCase();
     const can = useCan();
+
+    const roleAllows = (item) => {
+        const roles = item?.roles;
+        if (!Array.isArray(roles) || roles.length === 0) {
+            // For Employee users, default to hiding non-My-Portal items unless explicitly allowed.
+            return role !== 'employee';
+        }
+        return roles.map((r) => String(r).toLowerCase()).includes(role);
+    };
 
     const visibleNavigation = useMemo(() => {
         return navigation
             .map((item) => {
                 if (item.type === 'group') {
-                    const children = (item.children || []).filter((c) => can(c.ability));
+                    const children = (item.children || []).filter((c) => roleAllows(c) && can(c.ability));
                     return children.length ? { ...item, children } : null;
                 }
 
-                return can(item.ability) ? item : null;
+                return roleAllows(item) && can(item.ability) ? item : null;
             })
             .filter(Boolean);
-    }, [can]);
+    }, [can, role]);
 
     const groupInitiallyOpen = (group) => (group.children || []).some((c) => isActive(url, c.activePatterns));
     const [openGroups, setOpenGroups] = useState(() => {

@@ -48,6 +48,7 @@ class HandleInertiaRequests extends Middleware
                 'error' => fn () => $request->session()->get('error'),
             ],
             'can' => [
+                'accessMyPortal' => $user ? Gate::forUser($user)->check('access-my-portal') : false,
                 'manageUsers' => $user ? Gate::forUser($user)->check('manage-users') : false,
                 'manageRoles' => $user ? Gate::forUser($user)->check('manage-roles') : false,
                 'accessEmployees' => $user ? Gate::forUser($user)->check('access-employees') : false,

@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use App\Services\DashboardService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -13,8 +15,12 @@ class DashboardController extends Controller
         private readonly DashboardService $dashboardService,
     ) {}
 
-    public function __invoke(Request $request): Response
+    public function __invoke(Request $request): Response|RedirectResponse
     {
+        if ($request->user()?->hasRole(User::ROLE_EMPLOYEE)) {
+            return to_route('my.profile')->setStatusCode(303);
+        }
+
         return Inertia::render('Dashboard', $this->dashboardService->data($request));
     }
 }
