@@ -16,6 +16,24 @@ use Inertia\Response;
 
 class ChatController extends Controller
 {
+    public function unreadCount(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user, 401);
+
+        $count = ConversationParticipant::query()
+            ->join('conversations', 'conversations.id', '=', 'conversation_participants.conversation_id')
+            ->where('conversation_participants.user_id', $user->id)
+            ->whereNotNull('conversations.last_message_at')
+            ->where(function ($q) {
+                $q->whereNull('conversation_participants.last_read_at')
+                    ->orWhereColumn('conversation_participants.last_read_at', '<', 'conversations.last_message_at');
+            })
+            ->count();
+
+        return response()->json(['unread_count' => $count]);
+    }
+
     public function index(Request $request): Response
     {
         $user = $request->user();

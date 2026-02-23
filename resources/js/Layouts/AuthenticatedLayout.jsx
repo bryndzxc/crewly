@@ -1,8 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import ApplicationLogo from '@/Components/ApplicationLogo';
 import Sidebar from '@/Components/Sidebar';
 import Dropdown from '@/Components/Dropdown';
 import { Link, router, usePage } from '@inertiajs/react';
+import axios from 'axios';
+import useNotificationSound from '@/hooks/useNotificationSound';
 
 export default function Authenticated({ user, header, children, contentClassName = 'max-w-7xl mx-auto' }) {
     const [showingSidebar, setShowingSidebar] = useState(false);
@@ -16,6 +18,79 @@ export default function Authenticated({ user, header, children, contentClassName
     const notifications = usePage().props.notifications || {};
     const unreadCount = Number(notifications.unread_count || 0);
     const latest = useMemo(() => (Array.isArray(notifications.latest) ? notifications.latest : []), [notifications.latest]);
+
+    const chat = usePage().props.chat || {};
+    const initialChatUnreadCount = Number(chat.unread_count || 0);
+    const conversationIds = useMemo(() => (Array.isArray(chat.conversation_ids) ? chat.conversation_ids : []), [chat.conversation_ids]);
+    const [chatUnreadCount, setChatUnreadCount] = useState(initialChatUnreadCount);
+    const { play: playNotificationSound, unlock: unlockNotificationSound } = useNotificationSound(true);
+
+    useEffect(() => {
+        setChatUnreadCount(initialChatUnreadCount);
+    }, [initialChatUnreadCount]);
+
+    const refreshUnreadScheduledRef = useRef(false);
+    const refreshChatUnreadCount = () => {
+        if (refreshUnreadScheduledRef.current) return;
+        refreshUnreadScheduledRef.current = true;
+        window.setTimeout(async () => {
+            try {
+                const res = await axios.get(route('chat.unread_count'), { headers: { Accept: 'application/json' } });
+                const next = Number(res?.data?.unread_count || 0);
+                setChatUnreadCount(next);
+            } catch {
+                // ignore
+            } finally {
+                refreshUnreadScheduledRef.current = false;
+            }
+        }, 150);
+    };
+
+    // Realtime chat notifications (badge + sound).
+    useEffect(() => {
+        const echo = window.Echo;
+        const myId = Number(user?.id);
+        if (!echo || !myId || conversationIds.length === 0) return;
+
+        unlockNotificationSound();
+
+        const subscriptions = [];
+        for (const id of conversationIds) {
+            const conversationId = Number(id);
+            if (!conversationId) continue;
+            const channelName = `conversation.${conversationId}`;
+            const channel = echo.private(channelName);
+            const handler = (e) => {
+                const msg = e?.message;
+                if (!msg) return;
+                const senderId = Number(msg?.sender?.id);
+                if (senderId === myId) return;
+
+                // Play sound only when not actively viewing chat, or when the tab is hidden.
+                const onChatPage = window.location?.pathname?.startsWith('/chat');
+                if (!onChatPage || document.hidden === true) {
+                    playNotificationSound();
+                }
+
+                refreshChatUnreadCount();
+            };
+
+            channel.listen('.MessageSent', handler);
+            subscriptions.push({ channelName, channel, handler });
+        }
+
+        return () => {
+            try {
+                for (const s of subscriptions) {
+                    s.channel.stopListening('.MessageSent');
+                    echo.leave(s.channelName);
+                }
+            } catch {
+                // ignore
+            }
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [conversationIds.join(','), user?.id]);
 
     const severityDotClass = (severity) => {
         const s = String(severity || '').toUpperCase();
@@ -56,7 +131,7 @@ export default function Authenticated({ user, header, children, contentClassName
                             </span>
                         </Link>
                     </div>
-                    <Sidebar />
+                    <Sidebar chatUnreadCount={chatUnreadCount} />
                 </aside>
             )}
 
@@ -222,7 +297,7 @@ export default function Authenticated({ user, header, children, contentClassName
 
                 {!mustChangePassword && (
                     <div className={(showingSidebar ? 'block' : 'hidden') + ' md:hidden bg-slate-50 border-b border-slate-200'}>
-                        <Sidebar />
+                        <Sidebar chatUnreadCount={chatUnreadCount} />
                     </div>
                 )}
 

@@ -22,5 +22,11 @@ Broadcast::channel('conversation.{conversationId}', function ($user, $conversati
     $conversation = Conversation::query()->find($conversationId);
     if (!$conversation) return false;
 
-    return $user->can('view', $conversation);
+    if (!$user->can('view', $conversation)) return false;
+
+    return [
+        'id' => (int) $user->id,
+        'name' => (string) ($user->name ?? ''),
+        'role' => (string) ($user->role ?? ''),
+    ];
 });

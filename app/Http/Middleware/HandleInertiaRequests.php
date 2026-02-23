@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\ConversationParticipant;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -38,6 +39,31 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'auth' => [
                 'user' => $user,
+            ],
+            'chat' => [
+                'unread_count' => fn () => $user
+                    ? ConversationParticipant::query()
+                        ->join('conversations', 'conversations.id', '=', 'conversation_participants.conversation_id')
+                        ->where('conversation_participants.user_id', $user->id)
+                        ->whereNotNull('conversations.last_message_at')
+                        ->where(function ($q) {
+                            $q->whereNull('conversation_participants.last_read_at')
+                                ->orWhereColumn('conversation_participants.last_read_at', '<', 'conversations.last_message_at');
+                        })
+                        ->count()
+                    : 0,
+                // Used to subscribe for realtime notifications (limit to reduce client load).
+                'conversation_ids' => fn () => $user
+                    ? ConversationParticipant::query()
+                        ->join('conversations', 'conversations.id', '=', 'conversation_participants.conversation_id')
+                        ->where('conversation_participants.user_id', $user->id)
+                        ->orderByRaw('conversations.last_message_at is null')
+                        ->orderByDesc('conversations.last_message_at')
+                        ->limit(200)
+                        ->pluck('conversation_participants.conversation_id')
+                        ->values()
+                        ->all()
+                    : [],
             ],
             'notifications' => [
                 'unread_count' => fn () => $user ? $notificationService?->unreadCountFor($user) : 0,

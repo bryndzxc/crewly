@@ -37,6 +37,13 @@ export default function ChatIndex({ auth, conversations = [], selectedConversati
 
     const listRef = useRef(null);
 
+    const [onlineUsers, setOnlineUsers] = useState([]);
+    const [typingUsers, setTypingUsers] = useState([]);
+    const presenceChannelRef = useRef(null);
+    const typingPruneTimerRef = useRef(null);
+    const lastTypingWhisperAtRef = useRef(0);
+    const stopTypingTimerRef = useRef(null);
+
     useEffect(() => {
         setItems(Array.isArray(conversations) ? conversations : []);
     }, [conversations]);
@@ -137,6 +144,11 @@ export default function ChatIndex({ auth, conversations = [], selectedConversati
         if (!body) return;
         setComposer('');
         try {
+            try {
+                presenceChannelRef.current?.whisper('typing', { user_id: auth?.user?.id, stopped: true });
+            } catch {
+                // ignore
+            }
             const res = await axios.post(route('chat.messages.store', active.id), { body });
             const msg = res?.data?.message;
             if (msg) {
@@ -151,6 +163,52 @@ export default function ChatIndex({ auth, conversations = [], selectedConversati
         } catch {
             // restore composer on failure
             setComposer(body);
+        }
+    };
+
+    const displayUserLabel = (u) => {
+        const role = String(u?.role || '').trim();
+        if (role) return role.toUpperCase();
+        const name = String(u?.name || '').trim();
+        return name || 'User';
+    };
+
+    const pruneTypingUsers = () => {
+        const now = Date.now();
+        setTypingUsers((prev) => prev.filter((u) => now - (u.lastSeenAt || 0) < 3000));
+    };
+
+    const emitTyping = (nextValue) => {
+        const channel = presenceChannelRef.current;
+        if (!channel || !active?.id) return;
+
+        const myId = Number(auth?.user?.id);
+        if (!myId) return;
+
+        const isEmpty = !String(nextValue || '').trim();
+
+        if (isEmpty) {
+            try {
+                channel.whisper('typing', { user_id: myId, stopped: true });
+            } catch {
+                // ignore
+            }
+            return;
+        }
+
+        const now = Date.now();
+        if (now - lastTypingWhisperAtRef.current < 800) return;
+        lastTypingWhisperAtRef.current = now;
+
+        try {
+            channel.whisper('typing', {
+                user_id: myId,
+                name: auth?.user?.name,
+                role: auth?.user?.role,
+                conversation_id: active.id,
+            });
+        } catch {
+            // ignore
         }
     };
 
@@ -259,12 +317,115 @@ export default function ChatIndex({ auth, conversations = [], selectedConversati
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [items.map((c) => c.id).join(','), active?.id, auth?.user?.id]);
 
+    // Presence + typing (active conversation only)
+    useEffect(() => {
+        const echo = window.Echo;
+        const conversationId = Number(active?.id);
+        const myId = Number(auth?.user?.id);
+        if (!echo || !conversationId || !myId) {
+            setOnlineUsers([]);
+            setTypingUsers([]);
+            return;
+        }
+
+        let channel;
+        try {
+            channel = echo.join(`conversation.${conversationId}`);
+        } catch {
+            channel = null;
+        }
+
+        presenceChannelRef.current = channel;
+        setTypingUsers([]);
+
+        if (typingPruneTimerRef.current) window.clearInterval(typingPruneTimerRef.current);
+        typingPruneTimerRef.current = window.setInterval(() => pruneTypingUsers(), 1000);
+
+        if (!channel) return;
+
+        channel
+            .here((users) => {
+                setOnlineUsers(Array.isArray(users) ? users : []);
+            })
+            .joining((user) => {
+                setOnlineUsers((prev) => {
+                    const list = Array.isArray(prev) ? prev : [];
+                    if (!user?.id || list.some((u) => Number(u.id) === Number(user.id))) return list;
+                    return [...list, user];
+                });
+            })
+            .leaving((user) => {
+                setOnlineUsers((prev) => (Array.isArray(prev) ? prev.filter((u) => Number(u.id) !== Number(user?.id)) : []));
+                setTypingUsers((prev) => (Array.isArray(prev) ? prev.filter((u) => Number(u.id) !== Number(user?.id)) : []));
+            })
+            .listenForWhisper('typing', (payload) => {
+                const fromId = Number(payload?.user_id);
+                if (!fromId || fromId === myId) return;
+
+                if (payload?.stopped === true) {
+                    setTypingUsers((prev) => prev.filter((u) => Number(u.id) !== fromId));
+                    return;
+                }
+
+                const label = payload?.role ? String(payload.role).toUpperCase() : String(payload?.name || '').trim();
+                setTypingUsers((prev) => {
+                    const next = Array.isArray(prev) ? [...prev] : [];
+                    const idx = next.findIndex((u) => Number(u.id) === fromId);
+                    const entry = { id: fromId, label: label || 'User', lastSeenAt: Date.now() };
+                    if (idx === -1) return [...next, entry];
+                    next[idx] = entry;
+                    return next;
+                });
+            });
+
+        return () => {
+            try {
+                echo.leave(`presence-conversation.${conversationId}`);
+                echo.leave(`conversation.${conversationId}`);
+            } catch {
+                // ignore
+            }
+            presenceChannelRef.current = null;
+            setOnlineUsers([]);
+            setTypingUsers([]);
+            if (typingPruneTimerRef.current) window.clearInterval(typingPruneTimerRef.current);
+            typingPruneTimerRef.current = null;
+            if (stopTypingTimerRef.current) window.clearTimeout(stopTypingTimerRef.current);
+            stopTypingTimerRef.current = null;
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [active?.id, auth?.user?.id]);
+
     const headerTitle = active?.type === 'CHANNEL' ? `# ${active?.name || ''}` : active?.name || 'Chat';
     const participantText = useMemo(() => {
         const ps = Array.isArray(active?.participants) ? active.participants : [];
         if (!ps.length) return '';
         return ps.map((p) => p.name).join(', ');
     }, [active?.participants]);
+
+    const presenceText = useMemo(() => {
+        if (!active?.id) return '';
+        const list = Array.isArray(onlineUsers) ? onlineUsers : [];
+        const myId = Number(auth?.user?.id);
+
+        if (active?.type === 'DM') {
+            const ps = Array.isArray(active?.participants) ? active.participants : [];
+            const other = ps.find((p) => Number(p?.id) !== myId);
+            if (!other?.id) return '';
+            const isOtherOnline = list.some((u) => Number(u?.id) === Number(other.id));
+            return isOtherOnline ? 'Online' : 'Offline';
+        }
+
+        const onlineCount = list.length;
+        return onlineCount > 0 ? `${onlineCount} online` : '';
+    }, [active?.id, active?.type, active?.participants, onlineUsers, auth?.user?.id]);
+
+    const typingText = useMemo(() => {
+        const list = Array.isArray(typingUsers) ? typingUsers : [];
+        if (list.length === 0) return '';
+        if (list.length === 1) return `${list[0].label} is typing…`;
+        return `${list[0].label} and ${list.length - 1} other${list.length - 1 === 1 ? '' : 's'} are typing…`;
+    }, [typingUsers]);
 
     return (
         <AuthenticatedLayout user={auth.user} header="Chat" contentClassName="max-w-none">
@@ -365,6 +526,8 @@ export default function ChatIndex({ auth, conversations = [], selectedConversati
                             <div className="min-w-0">
                                 <div className="truncate text-sm font-semibold text-slate-900">{headerTitle}</div>
                                 {!!participantText && <div className="truncate text-xs text-slate-500">{participantText}</div>}
+                                {!!presenceText && <div className="truncate text-xs text-slate-500">{presenceText}</div>}
+                                {!!typingText && <div className="truncate text-xs text-amber-700">{typingText}</div>}
                             </div>
                             <div className="flex items-center gap-4">{loading && <div className="text-xs text-slate-500">Loading…</div>}</div>
                         </div>
@@ -409,7 +572,21 @@ export default function ChatIndex({ auth, conversations = [], selectedConversati
                                     <div className="flex items-end gap-3">
                                         <textarea
                                             value={composer}
-                                            onChange={(e) => setComposer(e.target.value)}
+                                            onChange={(e) => {
+                                                const next = e.target.value;
+                                                setComposer(next);
+                                                emitTyping(next);
+
+                                                if (stopTypingTimerRef.current) window.clearTimeout(stopTypingTimerRef.current);
+                                                stopTypingTimerRef.current = window.setTimeout(() => {
+                                                    try {
+                                                        const myId = Number(auth?.user?.id);
+                                                        presenceChannelRef.current?.whisper('typing', { user_id: myId, stopped: true });
+                                                    } catch {
+                                                        // ignore
+                                                    }
+                                                }, 1400);
+                                            }}
                                             onKeyDown={(e) => {
                                                 if (e.key === 'Enter' && !e.shiftKey) {
                                                     e.preventDefault();

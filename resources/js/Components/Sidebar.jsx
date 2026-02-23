@@ -120,10 +120,13 @@ function Chevron({ open }) {
     );
 }
 
-export default function Sidebar() {
+export default function Sidebar({ chatUnreadCount: chatUnreadCountProp = null }) {
     const { url } = usePage();
     const role = String(usePage()?.props?.auth?.user?.role || '').toLowerCase();
     const can = useCan();
+
+    const chat = usePage().props?.chat || {};
+    const chatUnreadCount = Number((chatUnreadCountProp ?? chat.unread_count) || 0);
 
     const roleAllows = (item) => {
         const roles = item?.roles;
@@ -168,6 +171,8 @@ export default function Sidebar() {
                         <div className="mt-2 space-y-1">
                             {topLinks.map((item) => {
                                 const active = isActive(url, item.activePatterns);
+                                const isChat = item.routeName === 'chat.index';
+                                const showChatBadge = isChat && chatUnreadCount > 0;
 
                                 return (
                                     <Link
@@ -192,7 +197,16 @@ export default function Sidebar() {
                                             <Icon name={item.iconKey} className="h-5 w-5" />
                                         </span>
                                         <span className="truncate">{item.label}</span>
-                                        {active && <span className="ml-auto h-2 w-2 rounded-full bg-amber-500" aria-hidden="true" />}
+                                        {(showChatBadge || active) && (
+                                            <span className="ml-auto flex items-center gap-2">
+                                                {showChatBadge && (
+                                                    <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-slate-900 px-2 py-0.5 text-xs font-semibold text-white">
+                                                        {chatUnreadCount > 99 ? '99+' : chatUnreadCount}
+                                                    </span>
+                                                )}
+                                                {active && <span className="h-2 w-2 rounded-full bg-amber-500" aria-hidden="true" />}
+                                            </span>
+                                        )}
                                     </Link>
                                 );
                             })}
