@@ -2,6 +2,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import DatePicker from '@/Components/DatePicker';
+import GenerateMemoModal from '@/Components/Employees/GenerateMemoModal';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -13,7 +14,17 @@ function fullName(employee) {
     return parts.join(' ');
 }
 
-export default function Show({ auth, employee, departments = [], documents = [], notes = [], incidents = [], can = {} }) {
+export default function Show({
+    auth,
+    employee,
+    departments = [],
+    documents = [],
+    notes = [],
+    incidents = [],
+    memoTemplates = [],
+    memos = [],
+    can = {},
+}) {
     const flash = usePage().props?.flash;
     const departmentName = useMemo(() => {
         const found = (departments ?? []).find((d) => Number(d.department_id) === Number(employee?.department_id));
@@ -114,6 +125,29 @@ export default function Show({ auth, employee, departments = [], documents = [],
         return items.find((i) => Number(i.id) === Number(expandedIncidentId)) ?? null;
     }, [incidents, expandedIncidentId]);
 
+    const memoTemplatesItems = useMemo(() => (Array.isArray(memoTemplates) ? memoTemplates : []), [memoTemplates]);
+    const memoItems = useMemo(() => (Array.isArray(memos) ? memos : []), [memos]);
+
+    const memosByIncident = useMemo(() => {
+        const map = new Map();
+        for (const m of memoItems) {
+            const incidentId = m?.incident_id;
+            if (!incidentId) continue;
+            const key = Number(incidentId);
+            if (!map.has(key)) map.set(key, []);
+            map.get(key).push(m);
+        }
+        return map;
+    }, [memoItems]);
+
+    const [showGenerateMemo, setShowGenerateMemo] = useState(false);
+    const [memoIncident, setMemoIncident] = useState(null);
+
+    function openGenerateMemo(incident) {
+        setMemoIncident(incident);
+        setShowGenerateMemo(true);
+    }
+
     const incidentEditForm = useForm({
         status: 'OPEN',
         action_taken: '',
@@ -160,6 +194,7 @@ export default function Show({ auth, employee, departments = [], documents = [],
     }
 
     return (
+        <>
         <AuthenticatedLayout user={auth.user} header="Employee" contentClassName="max-w-none">
             <Head title={employee ? `Employee - ${fullName(employee)}` : 'Employee'} />
 
@@ -797,6 +832,7 @@ export default function Show({ auth, employee, departments = [], documents = [],
                                             {(Array.isArray(incidents) ? incidents : []).map((i) => {
                                                 const badge = incidentStatusBadge(i.status);
                                                 const isExpanded = Number(expandedIncidentId) === Number(i.id);
+                                                const incidentMemos = memosByIncident.get(Number(i.id)) ?? [];
 
                                                 return (
                                                     <Fragment key={i.id}>
@@ -817,6 +853,16 @@ export default function Show({ auth, employee, departments = [], documents = [],
                                                                 >
                                                                     {isExpanded ? 'Hide' : 'View'}
                                                                 </button>
+
+                                                                {can?.generateMemos && memoTemplatesItems.length > 0 && (
+                                                                    <button
+                                                                        type="button"
+                                                                        className="ml-4 text-slate-700 hover:text-slate-900 font-medium"
+                                                                        onClick={() => openGenerateMemo(i)}
+                                                                    >
+                                                                        Generate Memo
+                                                                    </button>
+                                                                )}
 
                                                                 {can?.employeeRelationsManage && (
                                                                     <button
@@ -865,6 +911,35 @@ export default function Show({ auth, employee, departments = [], documents = [],
                                                                                                         Delete
                                                                                                     </button>
                                                                                                 )}
+                                                                                            </div>
+                                                                                        ))}
+                                                                                    </div>
+                                                                                </div>
+                                                                            )}
+
+                                                                            {incidentMemos.length > 0 && (
+                                                                                <div className="mt-5">
+                                                                                    <div className="flex items-center justify-between gap-3">
+                                                                                        <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Generated Memos</div>
+                                                                                        <div className="text-xs text-slate-500">{incidentMemos.length}</div>
+                                                                                    </div>
+                                                                                    <div className="mt-2 space-y-1">
+                                                                                        {incidentMemos.map((m) => (
+                                                                                            <div key={m.id} className="flex items-center justify-between gap-3">
+                                                                                                {can?.downloadMemos ? (
+                                                                                                    <a
+                                                                                                        href={route('memos.download', m.id)}
+                                                                                                        className="text-sm font-medium text-amber-700 hover:text-amber-900 truncate"
+                                                                                                        title={m.title}
+                                                                                                    >
+                                                                                                        {m.title}
+                                                                                                    </a>
+                                                                                                ) : (
+                                                                                                    <div className="text-sm font-medium text-slate-900 truncate" title={m.title}>
+                                                                                                        {m.title}
+                                                                                                    </div>
+                                                                                                )}
+                                                                                                <div className="text-xs text-slate-500 whitespace-nowrap">{m.created_at ?? ''}</div>
                                                                                             </div>
                                                                                         ))}
                                                                                     </div>
@@ -957,6 +1032,16 @@ export default function Show({ auth, employee, departments = [], documents = [],
                 </div>
             </div>
         </AuthenticatedLayout>
+
+        <GenerateMemoModal
+            show={showGenerateMemo}
+            onClose={() => setShowGenerateMemo(false)}
+            employee={employee}
+            incident={memoIncident}
+            templates={memoTemplatesItems}
+            defaultSignatory={auth?.user?.name ?? ''}
+        />
+        </>
     );
 }
 

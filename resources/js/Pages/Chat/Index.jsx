@@ -23,7 +23,7 @@ function isNearBottom(el, thresholdPx = 160) {
     return remaining < thresholdPx;
 }
 
-export default function ChatIndex({ auth, conversations = [], selectedConversation, messages: initialMessages = [], hasMore = false, dmUsers = [] }) {
+export default function ChatIndex({ auth, crewly, conversations = [], selectedConversation, messages: initialMessages = [], hasMore = false, dmUsers = [] }) {
     const [query, setQuery] = useState('');
     const [items, setItems] = useState(Array.isArray(conversations) ? conversations : []);
     const [active, setActive] = useState(selectedConversation || null);
@@ -34,6 +34,10 @@ export default function ChatIndex({ auth, conversations = [], selectedConversati
     const [showDmModal, setShowDmModal] = useState(false);
     const [dmSearch, setDmSearch] = useState('');
     const [startingDm, setStartingDm] = useState(false);
+
+    const demoEmail = String((crewly?.demo_email ?? 'demo@crewly.test') || '').toLowerCase();
+    const myEmail = String(auth?.user?.email || '').toLowerCase();
+    const isDemo = demoEmail !== '' && myEmail === demoEmail;
 
     const listRef = useRef(null);
 
@@ -140,6 +144,7 @@ export default function ChatIndex({ auth, conversations = [], selectedConversati
 
     const onSend = async () => {
         if (!active?.id) return;
+        if (isDemo) return;
         const body = composer.trim();
         if (!body) return;
         setComposer('');
@@ -573,6 +578,7 @@ export default function ChatIndex({ auth, conversations = [], selectedConversati
                                         <textarea
                                             value={composer}
                                             onChange={(e) => {
+                                                if (isDemo) return;
                                                 const next = e.target.value;
                                                 setComposer(next);
                                                 emitTyping(next);
@@ -594,15 +600,17 @@ export default function ChatIndex({ auth, conversations = [], selectedConversati
                                                 }
                                             }}
                                             placeholder={active ? 'Message…' : 'Select a conversation…'}
-                                            disabled={!active}
+                                            disabled={!active || isDemo}
                                             rows={2}
                                             className="flex-1 resize-none rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-amber-400 focus:ring-amber-400 disabled:bg-slate-100"
                                         />
-                                        <PrimaryButton type="button" disabled={!active || !composer.trim()} onClick={onSend}>
+                                        <PrimaryButton type="button" disabled={!active || isDemo || !composer.trim()} onClick={onSend}>
                                             Send
                                         </PrimaryButton>
                                     </div>
-                                    <div className="mt-2 text-xs text-slate-500">Enter to send • Shift+Enter for new line</div>
+                                    <div className="mt-2 text-xs text-slate-500">
+                                        {isDemo ? 'Demo account: sending is disabled.' : 'Enter to send • Shift+Enter for new line'}
+                                    </div>
                                 </div>
                         </div>
                     </div>

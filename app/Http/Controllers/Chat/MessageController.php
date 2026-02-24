@@ -18,6 +18,11 @@ class MessageController extends Controller
         $user = $request->user();
         abort_unless($user, 401);
 
+        $demoEmail = strtolower((string) config('crewly.demo.email', 'demo@crewly.test'));
+        if ($demoEmail !== '' && strtolower((string) ($user->email ?? '')) === $demoEmail) {
+            abort(403, 'Demo account cannot send messages.');
+        }
+
         $conversation = Conversation::query()->findOrFail($id);
         $this->authorize('sendMessage', $conversation);
 

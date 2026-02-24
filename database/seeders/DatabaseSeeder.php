@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             LeaveTypeSeeder::class,
             RecruitmentPositionSeeder::class,
             ChatSeeder::class,
+            MemoTemplateSeeder::class,
         ]);
     }
 }

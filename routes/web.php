@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Route;
 
 require __DIR__.'/auth.php';
 
+Route::group([], base_path('routes/modules/public.php'));
 Route::group([], base_path('routes/modules/core.php'));
 Route::group([], base_path('routes/modules/employees.php'));
 Route::group([], base_path('routes/modules/recruitment.php'));
@@ -27,3 +28,4 @@ Route::group([], base_path('routes/modules/notifications.php'));
 Route::group([], base_path('routes/modules/my.php'));
 Route::group([], base_path('routes/modules/chat.php'));
 Route::group([], base_path('routes/modules/settings.php'));
+Route::group([], base_path('routes/modules/memos.php'));

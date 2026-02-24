@@ -10,6 +10,7 @@ use App\Http\Controllers\EmployeePhotoController;
 use App\Http\Controllers\EmployeeRelationAttachmentController;
 use App\Http\Controllers\EmployeesProbationController;
 use App\Http\Controllers\ExpiringDocumentsController;
+use App\Http\Controllers\MemoController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -65,6 +66,18 @@ Route::middleware(['auth', 'can:access-employees'])->group(function () {
     Route::patch('/employees/{employee}/incidents/{incident}', [EmployeeIncidentController::class, 'update'])->whereNumber('employee')
         ->middleware('can:employees-relations-manage')
         ->name('employees.incidents.update');
+
+    Route::post('/employees/{employee}/incidents/{incident}/memos/preview', [MemoController::class, 'previewForIncident'])
+        ->whereNumber('employee')
+        ->whereNumber('incident')
+        ->middleware('can:generate-memos')
+        ->name('employees.incidents.memos.preview');
+
+    Route::post('/employees/{employee}/incidents/{incident}/memos', [MemoController::class, 'storeForIncident'])
+        ->whereNumber('employee')
+        ->whereNumber('incident')
+        ->middleware('can:generate-memos')
+        ->name('employees.incidents.memos.store');
 
     Route::delete('/employees/{employee}/incidents/{incident}', [EmployeeIncidentController::class, 'destroy'])->whereNumber('employee')
         ->middleware('can:employees-relations-manage')

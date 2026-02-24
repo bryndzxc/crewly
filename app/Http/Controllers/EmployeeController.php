@@ -8,6 +8,8 @@ use App\Models\Employee;
 use App\Models\EmployeeDocument;
 use App\Models\EmployeeIncident;
 use App\Models\EmployeeNote;
+use App\Models\Memo;
+use App\Models\MemoTemplate;
 use App\Resources\EmployeeResource;
 use App\Services\EmployeeService;
 use Illuminate\Http\RedirectResponse;
@@ -86,9 +88,12 @@ class EmployeeController extends Controller
 
         $user = $request->user();
         $canViewRelations = $user ? Gate::forUser($user)->check('employees-relations-view') : false;
+        $canGenerateMemos = $user ? Gate::forUser($user)->check('generate-memos') : false;
 
         $notesPayload = [];
         $incidentsPayload = [];
+        $memoTemplatesPayload = [];
+        $memosPayload = [];
 
         if ($canViewRelations) {
             $notes = EmployeeNote::query()
@@ -161,6 +166,37 @@ class EmployeeController extends Controller
                         ])->values()->all(),
                 ];
             })->values()->all();
+
+            if ($canGenerateMemos) {
+                $memoTemplatesPayload = MemoTemplate::query()
+                    ->whereNull('company_id')
+                    ->where('is_active', true)
+                    ->orderByDesc('is_system')
+                    ->orderBy('name')
+                    ->get(['id', 'name'])
+                    ->values()
+                    ->all();
+            }
+
+            $memos = Memo::query()
+                ->where('employee_id', (int) $employee->employee_id)
+                ->with([
+                    'template:id,name',
+                ])
+                ->orderByDesc('id')
+                ->limit(50)
+                ->get();
+
+            $memosPayload = $memos->map(function (Memo $memo) {
+                return [
+                    'id' => $memo->id,
+                    'title' => $memo->title,
+                    'status' => $memo->status,
+                    'memo_template' => $memo->template ? $memo->template->only(['id', 'name']) : null,
+                    'incident_id' => $memo->incident_id,
+                    'created_at' => $memo->created_at?->format('Y-m-d H:i:s'),
+                ];
+            })->values()->all();
         }
 
         return Inertia::render('Employees/Show', [
@@ -171,6 +207,8 @@ class EmployeeController extends Controller
             'documents' => $documents,
             'notes' => $notesPayload,
             'incidents' => $incidentsPayload,
+            'memoTemplates' => $memoTemplatesPayload,
+            'memos' => $memosPayload,
         ]);
     }
 

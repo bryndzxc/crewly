@@ -162,4 +162,18 @@ export const navigation = [
             },
         ],
     },
+    {
+        type: 'group',
+        label: 'HR Settings',
+        iconKey: 'employees',
+        children: [
+            {
+                label: 'Memo Templates',
+                routeName: 'settings.memo_templates.index',
+                iconKey: 'employees',
+                activePatterns: ['/settings/memo-templates'],
+                ability: 'manageMemoTemplates',
+            },
+        ],
+    },
 ];

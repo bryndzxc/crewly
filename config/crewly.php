@@ -1,6 +1,14 @@
 <?php
 
 return [
+    'demo' => [
+        'email' => env('CREWLY_DEMO_EMAIL', 'demo@crewly.test'),
+    ],
+
+    'leads' => [
+        'admin_email' => env('ADMIN_LEADS_EMAIL', null),
+    ],
+
     'documents' => [
         'disk' => env('CREWLY_DOCUMENTS_DISK', env('FILESYSTEM_DISK', 'local')),
         'expiring_soon_days' => (int) env('CREWLY_DOCS_EXPIRING_SOON_DAYS', 30),

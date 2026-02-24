@@ -111,11 +111,30 @@ class AuthServiceProvider extends ServiceProvider
         Gate::define('employees-relations-view', fn (User $user) => in_array($user->role(), [
             User::ROLE_ADMIN,
             User::ROLE_HR,
+            User::ROLE_MANAGER,
         ], true));
 
         Gate::define('employees-relations-manage', fn (User $user) => in_array($user->role(), [
             User::ROLE_ADMIN,
             User::ROLE_HR,
+        ], true));
+
+        // Memo templates + generation
+        Gate::define('manage-memo-templates', fn (User $user) => in_array($user->role(), [
+            User::ROLE_ADMIN,
+            User::ROLE_HR,
+        ], true));
+
+        Gate::define('generate-memos', fn (User $user) => in_array($user->role(), [
+            User::ROLE_ADMIN,
+            User::ROLE_HR,
+            User::ROLE_MANAGER,
+        ], true));
+
+        Gate::define('download-memos', fn (User $user) => in_array($user->role(), [
+            User::ROLE_ADMIN,
+            User::ROLE_HR,
+            User::ROLE_MANAGER,
         ], true));
 
         Gate::define('access-leaves', fn (User $user) => in_array($user->role(), [

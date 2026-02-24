@@ -37,6 +37,9 @@ class HandleInertiaRequests extends Middleware
 
         return [
             ...parent::share($request),
+            'crewly' => [
+                'demo_email' => config('crewly.demo.email', 'demo@crewly.test'),
+            ],
             'auth' => [
                 'user' => $user,
             ],
@@ -92,6 +95,9 @@ class HandleInertiaRequests extends Middleware
                 'employeeDocumentsDelete' => $user ? Gate::forUser($user)->check('employees-documents-delete') : false,
                 'employeeRelationsView' => $user ? Gate::forUser($user)->check('employees-relations-view') : false,
                 'employeeRelationsManage' => $user ? Gate::forUser($user)->check('employees-relations-manage') : false,
+                'manageMemoTemplates' => $user ? Gate::forUser($user)->check('manage-memo-templates') : false,
+                'generateMemos' => $user ? Gate::forUser($user)->check('generate-memos') : false,
+                'downloadMemos' => $user ? Gate::forUser($user)->check('download-memos') : false,
                 'accessLeaves' => $user ? Gate::forUser($user)->check('access-leaves') : false,
                 'manageLeaveTypes' => $user ? Gate::forUser($user)->check('manage-leave-types') : false,
                 'createLeaveRequests' => $user ? Gate::forUser($user)->check('create-leave-requests') : false,

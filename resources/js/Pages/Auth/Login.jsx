@@ -9,8 +9,17 @@ import PasswordVisibilityToggle from '@/Components/Auth/PasswordVisibilityToggle
 import { Head, Link, useForm } from '@inertiajs/react';
 
 export default function Login({ status, canResetPassword }) {
+    const initialEmail = (() => {
+        try {
+            const v = new URLSearchParams(window.location.search).get('email');
+            return v ? String(v) : '';
+        } catch {
+            return '';
+        }
+    })();
+
     const { data, setData, post, processing, errors, reset } = useForm({
-        email: '',
+        email: initialEmail,
         password: '',
         remember: false,
     });
