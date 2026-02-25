@@ -26,10 +26,6 @@ class EmployeeRepository extends BaseRepository
             'email_hash' => $emailHash,
             'mobile_number' => $data['mobile_number'] ?? null,
             'mobile_number_hash' => $mobileNumberHash,
-            'first_name_bi' => $data['first_name_bi'] ?? null,
-            'last_name_bi' => $data['last_name_bi'] ?? null,
-            'first_name_prefix_bi' => $data['first_name_prefix_bi'] ?? null,
-            'last_name_prefix_bi' => $data['last_name_prefix_bi'] ?? null,
             'status' => $data['status'] ?? 'Active',
             'position_title' => $data['position_title'] ?? null,
             'date_hired' => $data['date_hired'] ?? null,
@@ -57,10 +53,6 @@ class EmployeeRepository extends BaseRepository
             'email_hash' => $emailHash,
             'mobile_number' => $data['mobile_number'] ?? null,
             'mobile_number_hash' => $mobileNumberHash,
-            'first_name_bi' => $data['first_name_bi'] ?? $employee->first_name_bi,
-            'last_name_bi' => $data['last_name_bi'] ?? $employee->last_name_bi,
-            'first_name_prefix_bi' => $data['first_name_prefix_bi'] ?? $employee->first_name_prefix_bi,
-            'last_name_prefix_bi' => $data['last_name_prefix_bi'] ?? $employee->last_name_prefix_bi,
             'status' => $data['status'] ?? $employee->status,
             'position_title' => $data['position_title'] ?? null,
             'date_hired' => $data['date_hired'] ?? null,
@@ -111,7 +103,7 @@ class EmployeeRepository extends BaseRepository
         Carbon $end,
         array $allowedStatuses,
         string $search,
-        int $perPage = 15,
+        int $perPage = 15
     ): LengthAwarePaginator {
         return Employee::query()
             ->from('employees')

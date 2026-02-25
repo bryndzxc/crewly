@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Company;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -18,6 +19,16 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
+            'company_id' => function () {
+                return Company::query()->firstOrCreate(
+                    ['slug' => 'test-company'],
+                    [
+                        'name' => 'Test Company',
+                        'timezone' => (string) config('app.timezone', 'Asia/Manila'),
+                        'is_active' => true,
+                    ]
+                )->id;
+            },
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),

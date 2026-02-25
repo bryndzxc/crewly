@@ -35,7 +35,6 @@ export default function Probation({ auth, employees, filters = {} }) {
         () => ({
             days,
             search: String(search || '').trim() === '' ? undefined : search,
-            page: 1,
         }),
         [days, search]
     );
@@ -68,8 +67,13 @@ export default function Probation({ auth, employees, filters = {} }) {
     }, []);
 
     useEffect(() => {
+        const currentDays = Number(filters.days ?? 30);
+        const currentSearch = String(filters.search ?? '');
+
+        if (Number(days) === currentDays && String(search ?? '') === currentSearch) return;
+
         const handler = setTimeout(() => {
-            router.get(route('employees.probation'), queryParams, {
+            router.get(route('employees.probation'), { ...queryParams, page: 1 }, {
                 preserveState: true,
                 preserveScroll: true,
                 replace: true,

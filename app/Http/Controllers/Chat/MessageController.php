@@ -2,17 +2,20 @@
 
 namespace App\Http\Controllers\Chat;
 
-use App\Events\MessageSent;
+use App\DTO\ChatMessageSendData;
 use App\Http\Controllers\Controller;
 use App\Models\Conversation;
-use App\Models\ConversationParticipant;
-use App\Models\Message;
-use App\Services\AuditLogger;
+use App\Services\ChatMessageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class MessageController extends Controller
 {
+    public function __construct(
+        private readonly ChatMessageService $chatMessageService,
+    ) {}
+
     public function store(Request $request, int $id): JsonResponse
     {
         $user = $request->user();
@@ -26,57 +29,17 @@ class MessageController extends Controller
         $conversation = Conversation::query()->findOrFail($id);
         $this->authorize('sendMessage', $conversation);
 
-        $data = $request->validate([
+        $validated = $request->validate([
             'body' => ['required', 'string', 'max:5000'],
         ]);
 
-        $message = Message::query()->create([
-            'conversation_id' => $conversation->id,
-            'user_id' => $user->id,
-            'body' => $data['body'],
-            'type' => 'text',
-        ]);
+        $dto = ChatMessageSendData::fromArray($validated);
+        if ($dto->body === '') {
+            throw ValidationException::withMessages(['body' => 'Message body is required.']);
+        }
 
-        $conversation->forceFill(['last_message_at' => now()])->save();
+        $payload = $this->chatMessageService->sendTextMessage($user, $conversation, $dto->body);
 
-        // Ensure sender isn't considered unread
-        ConversationParticipant::query()
-            ->where('conversation_id', $conversation->id)
-            ->where('user_id', $user->id)
-            ->update(['last_read_at' => now()]);
-
-        $recipientRoles = $conversation
-            ->users()
-            ->where('users.id', '!=', $user->id)
-            ->pluck('role')
-            ->unique()
-            ->values()
-            ->all();
-
-        app(AuditLogger::class)->log(
-            'chat.message.sent',
-            $message,
-            [],
-            ['conversation_id' => $conversation->id, 'type' => $conversation->type, 'body' => '[CHAT_MESSAGE]'],
-            ['recipient_roles' => $recipientRoles]
-        );
-
-        broadcast(new MessageSent($message))->toOthers();
-
-        $message->loadMissing(['sender:id,name']);
-
-        return response()->json([
-            'message' => [
-                'id' => $message->id,
-                'conversation_id' => $message->conversation_id,
-                'body' => $message->body,
-                'type' => $message->type,
-                'sender' => [
-                    'id' => $message->sender?->id,
-                    'name' => $message->sender?->name,
-                ],
-                'created_at' => $message->created_at?->toISOString(),
-            ],
-        ]);
+        return response()->json($payload);
     }
 }

@@ -76,6 +76,8 @@ export default function Index({ auth, employees, departments = [], filters = {} 
     }, [isDeleteModalOpen, deletePhase]);
 
     useEffect(() => {
+        if ((filters.q ?? '') === query) return;
+
         const handler = setTimeout(() => {
             router.get(
                 route('employees.index'),

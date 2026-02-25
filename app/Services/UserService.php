@@ -26,12 +26,15 @@ class UserService extends Service
 		$q = trim((string) $request->query('q', ''));
 		$perPage = (int) $request->query('per_page', 10);
 
+		$companyId = (int) ($request->user()?->company_id ?? 0);
+
 		if (!in_array($perPage, [10, 25, 50, 100], true)) {
 			$perPage = 10;
 		}
 
 		return [
 			'users' => User::query()
+				->when($companyId > 0, fn ($q) => $q->where('company_id', $companyId))
 				->searchable($q)
 				->sortable()
 				->pagination($perPage, ['id', 'name', 'email', 'role']),

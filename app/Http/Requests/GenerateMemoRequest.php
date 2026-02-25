@@ -18,12 +18,14 @@ class GenerateMemoRequest extends FormRequest
 
     public function rules(): array
     {
+        $companyId = (int) ($this->user()?->company_id ?? 0);
+
         return [
             'memo_template_id' => [
                 'required',
                 'integer',
                 Rule::exists('memo_templates', 'id')
-                    ->whereNull('company_id')
+                    ->where('company_id', $companyId)
                     ->where('is_active', 1),
             ],
             'incident_summary' => ['nullable', 'string', 'max:5000'],

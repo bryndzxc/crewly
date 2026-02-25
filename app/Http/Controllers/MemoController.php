@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\GenerateMemoRequest;
 use App\Models\Employee;
 use App\Models\EmployeeIncident;
+use App\Models\Company;
 use App\Models\Memo;
 use App\Models\MemoTemplate;
 use App\Services\MemoPdfService;
@@ -35,7 +36,6 @@ class MemoController extends Controller
 
         /** @var MemoTemplate $template */
         $template = MemoTemplate::query()
-            ->whereNull('company_id')
             ->where('is_active', true)
             ->findOrFail((int) $validated['memo_template_id']);
 
@@ -67,7 +67,6 @@ class MemoController extends Controller
 
         /** @var MemoTemplate $template */
         $template = MemoTemplate::query()
-            ->whereNull('company_id')
             ->where('is_active', true)
             ->findOrFail((int) $validated['memo_template_id']);
 
@@ -84,10 +83,16 @@ class MemoController extends Controller
         $title = trim($template->name . ' - ' . ($vars['employee_name'] ?? ''));
 
         $memo = DB::transaction(function () use ($employee, $incident, $template, $user, $title, $renderedHtml) {
-            $stored = $this->pdf->renderAndStore((int) $employee->employee_id, $title, $renderedHtml);
+            $footer = null;
+            $companyId = (int) ($employee->company_id ?? 0);
+            if ($companyId > 0) {
+                $footer = (string) (Company::query()->whereKey($companyId)->value('name') ?? '');
+                $footer = trim($footer) !== '' ? $footer : null;
+            }
+
+            $stored = $this->pdf->renderAndStore((int) $employee->employee_id, $title, $renderedHtml, $footer);
 
             return Memo::create([
-                'company_id' => null,
                 'employee_id' => (int) $employee->employee_id,
                 'incident_id' => (int) $incident->id,
                 'memo_template_id' => (int) $template->id,
@@ -107,10 +112,6 @@ class MemoController extends Controller
     public function download(Memo $memo)
     {
         Gate::authorize('download-memos');
-
-        if ($memo->company_id !== null) {
-            abort(404);
-        }
 
         abort_unless(Storage::disk('local')->exists($memo->pdf_path), 404);
 

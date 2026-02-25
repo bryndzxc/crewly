@@ -327,11 +327,19 @@ class EmployeeRequest extends FormRequest
         $key = (string) config('app.key', '');
         $bi = hash_hmac('sha256', $normalized, $key);
 
+        $parts = preg_split('/\s+/', $normalized, -1, PREG_SPLIT_NO_EMPTY) ?: [];
         $prefixes = [];
-        $maxLen = min(10, mb_strlen($normalized));
-        for ($i = 1; $i <= $maxLen; $i++) {
-            $prefix = mb_substr($normalized, 0, $i);
-            $prefixes[] = hash_hmac('sha256', $prefix, $key);
+        foreach ($parts as $part) {
+            $part = trim((string) $part);
+            if ($part === '') {
+                continue;
+            }
+
+            $maxLen = min(10, mb_strlen($part));
+            for ($i = 1; $i <= $maxLen; $i++) {
+                $prefix = mb_substr($part, 0, $i);
+                $prefixes[] = hash_hmac('sha256', $prefix, $key);
+            }
         }
 
         $prefixes = array_values(array_unique($prefixes));

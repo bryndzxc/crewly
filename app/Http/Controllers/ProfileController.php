@@ -121,7 +121,22 @@ class ProfileController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        $request->validate([
+            'password' => ['required', 'current_password'],
+        ]);
 
-        abort(403);
+        $user = $request->user();
+        if (!$user) {
+            abort(401);
+        }
+
+        Auth::logout();
+
+        $user->forceDelete();
+
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return Redirect::to('/');
     }
 }

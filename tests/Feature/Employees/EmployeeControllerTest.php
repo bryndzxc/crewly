@@ -75,12 +75,13 @@ class EmployeeControllerTest extends TestCase
         $this->assertDatabaseHas('employees', [
             'department_id' => $payload['department_id'],
             'employee_code' => $payload['employee_code'],
-            'first_name' => $payload['first_name'],
-            'last_name' => $payload['last_name'],
             'deleted_at' => null,
         ]);
 
         $createdEmployee = Employee::query()->where('employee_code', $payload['employee_code'])->firstOrFail();
+
+        $this->assertSame($payload['first_name'], $createdEmployee->first_name);
+        $this->assertSame($payload['last_name'], $createdEmployee->last_name);
 
         $this->assertDatabaseHas('activity_logs', [
             'actor_id' => auth()->id(),
@@ -172,9 +173,10 @@ class EmployeeControllerTest extends TestCase
 
         $this->assertDatabaseHas('employees', [
             'employee_id' => $employee->employee_id,
-            'first_name' => 'Janet',
             'deleted_at' => null,
         ]);
+
+        $this->assertSame('Janet', $employee->refresh()->first_name);
 
         $this->assertDatabaseHas('activity_logs', [
             'actor_id' => auth()->id(),

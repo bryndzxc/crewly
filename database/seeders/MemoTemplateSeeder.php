@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Company;
 use App\Models\MemoTemplate;
 use Illuminate\Database\Seeder;
 
@@ -9,6 +10,18 @@ class MemoTemplateSeeder extends Seeder
 {
     public function run(): void
     {
+        $companies = Company::query()->orderBy('id')->get(['id']);
+        if ($companies->isEmpty()) {
+            $companies = collect([
+                Company::query()->create([
+                    'name' => 'Default Company',
+                    'slug' => 'default',
+                    'timezone' => (string) config('app.timezone', 'Asia/Manila'),
+                    'is_active' => true,
+                ]),
+            ]);
+        }
+
         $templates = [
             [
                 'name' => 'Notice to Explain (NTE)',
@@ -30,21 +43,23 @@ class MemoTemplateSeeder extends Seeder
             ],
         ];
 
-        foreach ($templates as $t) {
-            MemoTemplate::query()->updateOrCreate(
-                [
-                    'company_id' => null,
-                    'slug' => $t['slug'],
-                ],
-                [
-                    'name' => $t['name'],
-                    'description' => $t['description'],
-                    'body_html' => $t['body_html'],
-                    'is_active' => true,
-                    'is_system' => true,
-                    'created_by_user_id' => null,
-                ]
-            );
+        foreach ($companies as $company) {
+            foreach ($templates as $t) {
+                MemoTemplate::query()->updateOrCreate(
+                    [
+                        'company_id' => (int) $company->id,
+                        'slug' => $t['slug'],
+                    ],
+                    [
+                        'name' => $t['name'],
+                        'description' => $t['description'],
+                        'body_html' => $t['body_html'],
+                        'is_active' => true,
+                        'is_system' => true,
+                        'created_by_user_id' => null,
+                    ]
+                );
+            }
         }
     }
 

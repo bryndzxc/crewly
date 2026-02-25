@@ -34,7 +34,7 @@ export default function AuditLogsIndex({ auth, filters = {}, logs, users = [], m
 
     const onApply = () => {
         router.get(
-            route('audit-logs.index'),
+            route('developer.audit-logs.index'),
             {
                 from: from || undefined,
                 to: to || undefined,
@@ -53,7 +53,7 @@ export default function AuditLogsIndex({ auth, filters = {}, logs, users = [], m
         setAction('');
         setModule('');
         setUserId('');
-        router.get(route('audit-logs.index'), {}, { preserveState: true, preserveScroll: true, replace: true });
+        router.get(route('developer.audit-logs.index'), {}, { preserveState: true, preserveScroll: true, replace: true });
     };
 
     const emptyState = (
@@ -171,7 +171,7 @@ export default function AuditLogsIndex({ auth, filters = {}, logs, users = [], m
                             <td className="px-4 py-3 text-sm text-slate-700 whitespace-nowrap">{l.ip || '—'}</td>
                             <td className="px-4 py-3 text-right text-sm whitespace-nowrap">
                                 <Link
-                                    href={route('audit-logs.show', l.id)}
+                                    href={route('developer.audit-logs.show', l.id)}
                                     className="font-medium text-amber-700 hover:text-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:ring-offset-2 rounded"
                                 >
                                     View

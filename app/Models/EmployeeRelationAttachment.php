@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToCompany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class EmployeeRelationAttachment extends Model
 {
+    use BelongsToCompany;
     protected $fillable = [
+        'company_id',
         'attachable_type',
         'attachable_id',
         'type',
@@ -24,6 +27,7 @@ class EmployeeRelationAttachment extends Model
     ];
 
     protected $casts = [
+        'company_id' => 'integer',
         'is_encrypted' => 'boolean',
         'file_size' => 'integer',
         'key_version' => 'integer',

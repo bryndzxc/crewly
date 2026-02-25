@@ -33,6 +33,9 @@ export default function Dashboard({
     attendance_unmarked_today_count = 0,
     attendance_unmarked_today_top5 = [],
 }) {
+    const isDemo = Boolean(auth?.company?.is_demo);
+    const demoCompanyName = String(auth?.company?.name || '').trim();
+
     const statCardLinkClassName =
         'cursor-pointer transition will-change-transform ' +
         'hover:-translate-y-0.5 hover:shadow-xl hover:shadow-slate-900/10 hover:ring-1 hover:ring-amber-200 ' +
@@ -157,6 +160,20 @@ export default function Dashboard({
     return (
         <AuthenticatedLayout user={auth.user} header="Dashboard" contentClassName="max-w-none">
             <Head title="Dashboard" />
+
+            {isDemo && (
+                <div className="mb-6">
+                    <Card className="p-6 border-amber-200/60 bg-amber-50/40">
+                        <div className="text-sm font-semibold text-slate-900">
+                            👋 You&apos;re in the Crewly Demo{demoCompanyName ? ` (${demoCompanyName})` : ''}
+                        </div>
+                        <div className="mt-1 text-sm text-slate-700">
+                            Try this: Employees → Juan Dela Cruz → Open Incident → Generate Memo → Download PDF
+                        </div>
+                        <div className="mt-1 text-sm text-slate-600">Changes may reset periodically.</div>
+                    </Card>
+                </div>
+            )}
 
             <PageHeader title="Dashboard" subtitle="Your people operations snapshot." />
 

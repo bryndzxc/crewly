@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToCompany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class RecruitmentPosition extends Model
 {
+    use BelongsToCompany;
+
     public const STATUS_OPEN = 'OPEN';
     public const STATUS_CLOSED = 'CLOSED';
 

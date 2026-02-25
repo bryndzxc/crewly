@@ -62,7 +62,7 @@ class MemoGenerationTest extends TestCase
         ]);
 
         $template = MemoTemplate::query()->create([
-            'company_id' => null,
+            'company_id' => (int) $admin->company_id,
             'name' => 'Notice to Explain (NTE)',
             'slug' => 'notice-to-explain',
             'description' => 'Test template',
@@ -156,7 +156,7 @@ class MemoGenerationTest extends TestCase
         ]);
 
         $template = MemoTemplate::query()->create([
-            'company_id' => null,
+            'company_id' => (int) $employeeUser->company_id,
             'name' => 'NTE',
             'slug' => 'nte',
             'body_html' => '<p>Employee: {{employee_name}}</p>',
@@ -212,7 +212,6 @@ class MemoGenerationTest extends TestCase
         Storage::disk('local')->put($path, '%PDF-1.4 dummy');
 
         $memo = Memo::query()->create([
-            'company_id' => null,
             'employee_id' => (int) $employee->employee_id,
             'incident_id' => null,
             'memo_template_id' => null,
@@ -259,7 +258,6 @@ class MemoGenerationTest extends TestCase
         Storage::disk('local')->put($path, '%PDF-1.4 dummy');
 
         $memo = Memo::query()->create([
-            'company_id' => null,
             'employee_id' => (int) $employee->employee_id,
             'incident_id' => null,
             'memo_template_id' => null,

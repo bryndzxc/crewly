@@ -12,6 +12,8 @@ import { useEffect, useMemo, useState } from 'react';
 
 export default function Index({ auth, roles, filters = {} }) {
     const flash = usePage().props.flash;
+    const can = usePage().props.can ?? {};
+    const canCreateRole = Boolean(can?.accessDeveloper);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState('create');
     const [editingRole, setEditingRole] = useState(null);
@@ -51,6 +53,7 @@ export default function Index({ auth, roles, filters = {} }) {
     }, []);
 
     const openCreate = () => {
+        if (!canCreateRole) return;
         setModalMode('create');
         setEditingRole(null);
         setIsModalOpen(true);
@@ -155,14 +158,16 @@ export default function Index({ auth, roles, filters = {} }) {
                             className="w-full sm:w-72"
                             aria-label="Search roles"
                         />
-                        <PrimaryButton
-                            className="shrink-0"
-                            type="button"
-                            onClick={() => openCreate()}
-                            disabled={isModalOpen && modalMode === 'create'}
-                        >
-                            Create Role
-                        </PrimaryButton>
+                        {canCreateRole ? (
+                            <PrimaryButton
+                                className="shrink-0"
+                                type="button"
+                                onClick={() => openCreate()}
+                                disabled={isModalOpen && modalMode === 'create'}
+                            >
+                                Create Role
+                            </PrimaryButton>
+                        ) : null}
                     </div>
                 </div>
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Company;
 use App\Models\User;
 use App\Providers\RouteServiceProvider;
 use Illuminate\Auth\Events\Registered;
@@ -37,7 +38,17 @@ class RegisteredUserController extends Controller
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
+        $defaultCompany = Company::query()->firstOrCreate(
+            ['slug' => 'default-company'],
+            [
+                'name' => 'Default Company',
+                'timezone' => (string) config('app.timezone', 'Asia/Manila'),
+                'is_active' => true,
+            ]
+        );
+
         $user = User::create([
+            'company_id' => (int) $defaultCompany->id,
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),

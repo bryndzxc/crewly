@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Company;
 use App\Models\Employee;
 use App\Models\EmployeeIncident;
 use Illuminate\Support\Str;
@@ -32,7 +33,15 @@ class MemoRenderService extends Service
      */
     public function buildIncidentVars(Employee $employee, ?EmployeeIncident $incident, array $overrides = []): array
     {
-        $companyName = (string) config('app.name', 'Crewly');
+        $companyNameOverride = array_key_exists('company_name', $overrides) ? (string) ($overrides['company_name'] ?? '') : '';
+        $companyName = trim($companyNameOverride);
+
+        if ($companyName === '') {
+            $companyId = (int) ($employee->company_id ?? 0);
+            if ($companyId > 0) {
+                $companyName = (string) (Company::query()->whereKey($companyId)->value('name') ?? '');
+            }
+        }
 
         $employeeName = trim(collect([
             $employee->first_name,

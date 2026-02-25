@@ -2,12 +2,16 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToCompany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 class EmployeeDocument extends Model
 {
+    use BelongsToCompany;
+
     protected $fillable = [
+        'company_id',
         'employee_id',
         'type',
         'original_name',
@@ -26,6 +30,7 @@ class EmployeeDocument extends Model
     ];
 
     protected $casts = [
+        'company_id' => 'integer',
         'issue_date' => 'date:Y-m-d',
         'expiry_date' => 'date:Y-m-d',
         'is_encrypted' => 'boolean',

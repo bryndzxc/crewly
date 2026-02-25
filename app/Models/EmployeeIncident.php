@@ -2,17 +2,20 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToCompany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class EmployeeIncident extends Model
 {
+    use BelongsToCompany;
     public const STATUS_OPEN = 'OPEN';
     public const STATUS_UNDER_REVIEW = 'UNDER_REVIEW';
     public const STATUS_RESOLVED = 'RESOLVED';
     public const STATUS_CLOSED = 'CLOSED';
 
     protected $fillable = [
+        'company_id',
         'employee_id',
         'category',
         'incident_date',
@@ -25,6 +28,7 @@ class EmployeeIncident extends Model
     ];
 
     protected $casts = [
+        'company_id' => 'integer',
         'incident_date' => 'date:Y-m-d',
         'follow_up_date' => 'date:Y-m-d',
     ];

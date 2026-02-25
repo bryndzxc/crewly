@@ -5,7 +5,7 @@ use App\Http\Controllers\My\MyLeaveController;
 use App\Http\Controllers\My\MyProfileController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'can:access-my-portal'])->prefix('my')->group(function () {
+Route::middleware(['auth', 'ensure.company', 'can:access-my-portal'])->prefix('my')->group(function () {
     Route::get('/profile', [MyProfileController::class, 'show'])->name('my.profile');
 
     Route::get('/leave', [MyLeaveController::class, 'index'])->name('my.leave.index');

@@ -184,9 +184,6 @@ class AuthServiceProvider extends ServiceProvider
         ], true));
 
         // Audit Logs
-        Gate::define('view-audit-logs', fn (User $user) => in_array($user->role(), [
-            User::ROLE_ADMIN,
-            User::ROLE_HR,
-        ], true));
+        Gate::define('view-audit-logs', fn (User $user) => $user->isDeveloper());
     }
 }

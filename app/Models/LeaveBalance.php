@@ -2,11 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToCompany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class LeaveBalance extends Model
 {
+    use BelongsToCompany;
+
     protected $casts = [
+        'company_id' => 'integer',
         'credits' => 'decimal:2',
         'used' => 'decimal:2',
         'year' => 'integer',

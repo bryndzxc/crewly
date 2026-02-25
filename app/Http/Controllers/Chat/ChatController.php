@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Chat;
 
 use App\Http\Controllers\Controller;
+use App\DTO\ChatDmOpenData;
 use App\Models\Conversation;
 use App\Models\ConversationParticipant;
 use App\Models\Message;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\ChatDmService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -16,6 +18,10 @@ use Inertia\Response;
 
 class ChatController extends Controller
 {
+    public function __construct(
+        private readonly ChatDmService $chatDmService,
+    ) {}
+
     public function unreadCount(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -80,11 +86,13 @@ class ChatController extends Controller
         $user = $request->user();
         abort_unless($user, 401);
 
-        $data = $request->validate([
+        $validated = $request->validate([
             'user_id' => ['required', 'integer', 'exists:users,id'],
         ]);
 
-        $other = User::query()->findOrFail((int) $data['user_id']);
+        $dto = ChatDmOpenData::fromArray($validated);
+
+        $other = User::query()->findOrFail((int) $dto->userId);
         if ((int) $other->id === (int) $user->id) {
             throw ValidationException::withMessages(['user_id' => 'You cannot message yourself.']);
         }
@@ -93,42 +101,7 @@ class ChatController extends Controller
             abort(403);
         }
 
-        $existing = Conversation::query()
-            ->dms()
-            ->whereHas('participants', fn ($q) => $q->where('user_id', $user->id))
-            ->whereHas('participants', fn ($q) => $q->where('user_id', $other->id))
-            ->withCount('participants')
-            ->having('participants_count', '=', 2)
-            ->first();
-
-        if ($existing) {
-            return response()->json(['conversation_id' => $existing->id]);
-        }
-
-        $conversation = Conversation::query()->create([
-            'type' => Conversation::TYPE_DM,
-            'created_by' => $user->id,
-        ]);
-
-        ConversationParticipant::query()->create([
-            'conversation_id' => $conversation->id,
-            'user_id' => $user->id,
-            'role_in_conversation' => 'OWNER',
-        ]);
-
-        ConversationParticipant::query()->create([
-            'conversation_id' => $conversation->id,
-            'user_id' => $other->id,
-            'role_in_conversation' => 'MEMBER',
-        ]);
-
-        app(AuditLogger::class)->log(
-            'chat.dm.created',
-            $conversation,
-            [],
-            ['type' => 'DM'],
-            ['other_user_id' => $other->id, 'other_role' => $other->role()]
-        );
+        $conversation = $this->chatDmService->openOrCreate($user, $other);
 
         return response()->json(['conversation_id' => $conversation->id]);
     }

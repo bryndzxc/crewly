@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Company;
 use App\Models\Department;
 use Illuminate\Database\Seeder;
 
@@ -12,6 +13,18 @@ class DepartmentSeeder extends Seeder
      */
     public function run(): void
     {
+        $companies = Company::query()->orderBy('id')->get(['id']);
+        if ($companies->isEmpty()) {
+            $companies = collect([
+                Company::query()->create([
+                    'name' => 'Default Company',
+                    'slug' => 'default',
+                    'timezone' => (string) config('app.timezone', 'Asia/Manila'),
+                    'is_active' => true,
+                ]),
+            ]);
+        }
+
         $departments = [
             ['name' => 'Executive', 'code' => 'EXEC'],
             ['name' => 'Administration', 'code' => 'ADMIN'],
@@ -40,20 +53,24 @@ class DepartmentSeeder extends Seeder
             ['name' => 'Logistics', 'code' => 'LOG'],
         ];
 
-        foreach ($departments as $dept) {
-            $department = Department::withTrashed()->firstOrNew([
-                'code' => $dept['code'],
-            ]);
+        foreach ($companies as $company) {
+            foreach ($departments as $dept) {
+                $department = Department::withTrashed()->firstOrNew([
+                    'company_id' => (int) $company->id,
+                    'code' => $dept['code'],
+                ]);
 
-            $department->fill([
-                'name' => $dept['name'],
-                'code' => $dept['code'],
-            ]);
+                $department->fill([
+                    'company_id' => (int) $company->id,
+                    'name' => $dept['name'],
+                    'code' => $dept['code'],
+                ]);
 
-            $department->save();
+                $department->save();
 
-            if (method_exists($department, 'restore') && $department->trashed()) {
-                $department->restore();
+                if (method_exists($department, 'restore') && $department->trashed()) {
+                    $department->restore();
+                }
             }
         }
     }

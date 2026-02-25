@@ -30,6 +30,12 @@ export default function Show({ auth, applicant, documents = [], interviews = [],
 
     const isHired = String(applicant?.stage || '').toUpperCase() === 'HIRED';
 
+    const stageOptions = useMemo(() => {
+        const all = Array.isArray(stages) ? stages : [];
+        if (isHired) return all;
+        return all.filter((s) => String(s || '').toUpperCase() !== 'HIRED');
+    }, [stages, isHired]);
+
     const [activeTab, setActiveTab] = useState('overview');
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -180,7 +186,7 @@ export default function Show({ auth, applicant, documents = [], interviews = [],
                                         onChange={onUpdateStage}
                                         disabled={stageForm.processing || isStageUpdating || isHired}
                                     >
-                                        {(stages ?? []).map((s) => (
+                                        {stageOptions.map((s) => (
                                             <option key={s} value={s}>
                                                 {s}
                                             </option>

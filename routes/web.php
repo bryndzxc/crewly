@@ -29,3 +29,4 @@ Route::group([], base_path('routes/modules/my.php'));
 Route::group([], base_path('routes/modules/chat.php'));
 Route::group([], base_path('routes/modules/settings.php'));
 Route::group([], base_path('routes/modules/memos.php'));
+Route::group([], base_path('routes/modules/developer.php'));

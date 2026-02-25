@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToCompany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,10 +11,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Employee extends Model
 {
     use SoftDeletes;
+    use BelongsToCompany;
 
     protected $primaryKey = 'employee_id';
 
     protected $fillable = [
+        'company_id',
         'user_id',
         'department_id',
         'employee_code',
@@ -86,6 +89,7 @@ class Employee extends Model
     ];
 
     protected $casts = [
+        'company_id' => 'integer',
         'first_name' => 'encrypted',
         'middle_name' => 'encrypted',
         'last_name' => 'encrypted',
@@ -99,6 +103,47 @@ class Employee extends Model
         'first_name_prefix_bi' => 'array',
         'last_name_prefix_bi' => 'array',
     ];
+
+    protected static function booted(): void
+    {
+        static::saving(function (Employee $employee) {
+            $key = (string) config('app.key', '');
+
+            if ($employee->isDirty('email') || (string) ($employee->getAttribute('email_hash') ?? '') === '') {
+                $email = (string) ($employee->getAttribute('email') ?? '');
+                $normalized = strtolower(trim($email));
+                $employee->setAttribute('email_hash', $normalized !== '' ? hash_hmac('sha256', $normalized, $key) : null);
+            }
+
+            if ($employee->isDirty('mobile_number') || ($employee->getAttribute('mobile_number_hash') === null && $employee->getAttribute('mobile_number') !== null)) {
+                $mobile = $employee->getAttribute('mobile_number');
+                if ($mobile === null) {
+                    $employee->setAttribute('mobile_number_hash', null);
+                } else {
+                    $normalized = preg_replace('/\D+/', '', trim((string) $mobile)) ?? '';
+                    $employee->setAttribute('mobile_number_hash', $normalized !== '' ? hash_hmac('sha256', $normalized, $key) : null);
+                }
+            }
+
+            $firstNamePrefixes = $employee->getAttribute('first_name_prefix_bi');
+            $firstNamePrefixesEmpty = is_array($firstNamePrefixes) && count($firstNamePrefixes) === 0;
+
+            if ($employee->isDirty('first_name') || $firstNamePrefixes === null || $firstNamePrefixesEmpty) {
+                $indexes = self::buildNameIndexes('first_name', (string) ($employee->getAttribute('first_name') ?? ''), $key);
+                $employee->setAttribute('first_name_bi', $indexes['first_name_bi']);
+                $employee->setAttribute('first_name_prefix_bi', $indexes['first_name_prefix_bi']);
+            }
+
+            $lastNamePrefixes = $employee->getAttribute('last_name_prefix_bi');
+            $lastNamePrefixesEmpty = is_array($lastNamePrefixes) && count($lastNamePrefixes) === 0;
+
+            if ($employee->isDirty('last_name') || $lastNamePrefixes === null || $lastNamePrefixesEmpty) {
+                $indexes = self::buildNameIndexes('last_name', (string) ($employee->getAttribute('last_name') ?? ''), $key);
+                $employee->setAttribute('last_name_bi', $indexes['last_name_bi']);
+                $employee->setAttribute('last_name_prefix_bi', $indexes['last_name_prefix_bi']);
+            }
+        });
+    }
 
     public function getHasPhotoAttribute(): bool
     {
@@ -133,7 +178,7 @@ class Employee extends Model
             if (count($tokens) > 0) {
                 $sub->orWhere(function (Builder $nameQ) use ($tokens) {
                     foreach ($tokens as $token) {
-                        $token = trim((string) $token);
+                        $token = self::normalizeName((string) $token);
                         if ($token === '') {
                             continue;
                         }
@@ -173,5 +218,51 @@ class Employee extends Model
     public function incidents(): HasMany
     {
         return $this->hasMany(EmployeeIncident::class, 'employee_id', 'employee_id');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function buildNameIndexes(string $field, string $value, string $key): array
+    {
+        $normalized = self::normalizeName($value);
+        if ($normalized === '') {
+            return [
+                "{$field}_bi" => null,
+                "{$field}_prefix_bi" => null,
+            ];
+        }
+
+        $bi = hash_hmac('sha256', $normalized, $key);
+
+        $parts = preg_split('/\s+/', $normalized, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $prefixes = [];
+        foreach ($parts as $part) {
+            $part = trim((string) $part);
+            if ($part === '') {
+                continue;
+            }
+
+            $maxLen = min(10, mb_strlen($part));
+            for ($i = 1; $i <= $maxLen; $i++) {
+                $prefix = mb_substr($part, 0, $i);
+                $prefixes[] = hash_hmac('sha256', $prefix, $key);
+            }
+        }
+
+        $prefixes = array_values(array_unique($prefixes));
+
+        return [
+            "{$field}_bi" => $bi,
+            "{$field}_prefix_bi" => $prefixes,
+        ];
+    }
+
+    private static function normalizeName(string $value): string
+    {
+        $v = mb_strtolower(trim($value));
+        $v = preg_replace('/\s+/', ' ', $v) ?? '';
+        $v = preg_replace('/[^\p{L}\p{N}\s\-\']+/u', '', $v) ?? '';
+        return trim($v);
     }
 }

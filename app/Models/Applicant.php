@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToCompany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Applicant extends Model
 {
+    use BelongsToCompany;
+
     public const STAGE_APPLIED = 'APPLIED';
     public const STAGE_SCREENING = 'SCREENING';
     public const STAGE_INTERVIEW = 'INTERVIEW';
@@ -20,6 +23,7 @@ class Applicant extends Model
      * Columns must be TEXT to support ciphertext payload length.
      */
     protected $casts = [
+        'company_id' => 'integer',
         'first_name' => 'encrypted',
         'middle_name' => 'encrypted',
         'last_name' => 'encrypted',

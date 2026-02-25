@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\ConfirmablePasswordController;
+use App\Http\Controllers\Auth\ChangePasswordController;
 use App\Http\Controllers\Auth\EmailVerificationNotificationController;
 use App\Http\Controllers\Auth\EmailVerificationPromptController;
 use App\Http\Controllers\Auth\NewPasswordController;
@@ -37,7 +38,9 @@ Route::middleware('guest')->group(function () {
 
 });
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'ensure.company'])->group(function () {
+        Route::get('change-password', [ChangePasswordController::class, 'show'])->name('password.change');
+
     Route::get('verify-email', EmailVerificationPromptController::class)
             ->name('verification.notice');
 
@@ -57,9 +60,13 @@ Route::middleware('auth')->group(function () {
 
     Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('profile', [ProfileController::class, 'update'])->name('profile.update');
+        Route::delete('profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
         Route::get('profile/photo', [ProfileController::class, 'showPhoto'])->name('profile.photo.show');
         Route::post('profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.photo');
 
-    Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
-                ->name('logout');
+});
+
+Route::middleware(['auth'])->group(function () {
+        Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
+                                ->name('logout');
 });

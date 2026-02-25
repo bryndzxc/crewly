@@ -29,8 +29,10 @@
         {!! $bodyHtml !!}
     </div>
 
-    <div class="footer">
-        {{ config('app.name') }}
-    </div>
+    @if(!empty($footer))
+        <div class="footer">
+            {{ $footer }}
+        </div>
+    @endif
 </body>
 </html>

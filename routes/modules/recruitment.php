@@ -8,7 +8,7 @@ use App\Http\Controllers\Recruitment\ApplicantStageController;
 use App\Http\Controllers\Recruitment\RecruitmentPositionController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'can:access-recruitment'])->group(function () {
+Route::middleware(['auth', 'ensure.company', 'can:access-recruitment'])->group(function () {
     Route::get('/recruitment', fn () => redirect()->route('recruitment.applicants.index'))
         ->name('recruitment.index');
 

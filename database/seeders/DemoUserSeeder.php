@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Company;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -11,11 +12,22 @@ class DemoUserSeeder extends Seeder
 {
     public function run(): void
     {
+        $companyId = (int) (Company::query()->orderBy('id')->value('id') ?? 0);
+        if ($companyId <= 0) {
+            $companyId = (int) Company::query()->create([
+                'name' => 'Default Company',
+                'slug' => 'default',
+                'timezone' => (string) config('app.timezone', 'Asia/Manila'),
+                'is_active' => true,
+            ])->id;
+        }
+
         $email = (string) env('CREWLY_DEMO_EMAIL', 'demo@crewly.test');
         $password = (string) env('CREWLY_DEMO_PASSWORD', 'demo-password');
         $role = (string) env('CREWLY_DEMO_ROLE', 'manager');
 
         $attributes = [
+            'company_id' => $companyId,
             'name' => 'Crewly Demo',
             'email' => $email,
             'password' => Hash::make($password),

@@ -21,7 +21,7 @@
         <meta name="twitter:description" content="{{ (string) (config('app.description') ?? env('APP_DESCRIPTION', 'HR documentation & incident tracking for PH SMEs.')) }}">
         <meta name="twitter:image" content="{{ url('/storage-images/crewly_logo.png') }}">
 
-        <title inertia>{{ config('app.name', 'Laravel') }}</title>
+        <title inertia>{{ config('app.name', 'Crewly') }}</title>
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">

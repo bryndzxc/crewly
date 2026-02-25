@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToCompany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class EmployeeNote extends Model
 {
+    use BelongsToCompany;
     public const TYPE_GENERAL = 'GENERAL';
     public const TYPE_COACHING = 'COACHING';
     public const TYPE_COMMENDATION = 'COMMENDATION';
@@ -16,6 +18,7 @@ class EmployeeNote extends Model
     public const VISIBILITY_HR_ONLY = 'HR_ONLY';
 
     protected $fillable = [
+        'company_id',
         'employee_id',
         'note_type',
         'note',
@@ -25,6 +28,7 @@ class EmployeeNote extends Model
     ];
 
     protected $casts = [
+        'company_id' => 'integer',
         'follow_up_date' => 'date:Y-m-d',
     ];
 

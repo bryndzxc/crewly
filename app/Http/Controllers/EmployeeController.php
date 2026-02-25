@@ -169,7 +169,6 @@ class EmployeeController extends Controller
 
             if ($canGenerateMemos) {
                 $memoTemplatesPayload = MemoTemplate::query()
-                    ->whereNull('company_id')
                     ->where('is_active', true)
                     ->orderByDesc('is_system')
                     ->orderBy('name')

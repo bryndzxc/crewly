@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\ConversationParticipant;
 use App\Services\NotificationService;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Middleware;
@@ -32,17 +33,60 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        $user = $request->user();
-        $notificationService = $user ? app(NotificationService::class) : null;
+        $minimalAuthRoutes = [
+            'verification.notice',
+            'verification.verify',
+            'verification.send',
+            'password.confirm',
+            'password.update',
+            'password.request',
+            'password.email',
+            'password.reset',
+            'password.store',
+        ];
 
-        return [
+        $routeName = (string) optional($request->route())->getName();
+
+        if ($request->routeIs('logout')) {
+            return parent::share($request);
+        }
+
+        // Most non-Inertia form posts return redirects, where shared Inertia props are unused.
+        // Avoid computing heavy props (and any model serialization) for those requests.
+        if (! $request->header('X-Inertia') && ! $request->isMethod('get')) {
+            return parent::share($request);
+        }
+
+        $user = $request->user();
+        $isMinimalAuth = in_array($routeName, $minimalAuthRoutes, true);
+
+        $base = [
             ...parent::share($request),
             'crewly' => [
                 'demo_email' => config('crewly.demo.email', 'demo@crewly.test'),
             ],
             'auth' => [
-                'user' => $user,
+                'user' => fn () => $user
+                    ? $this->safeOnlyAttributes($user, ['id', 'name', 'email', 'role', 'company_id'])
+                    : null,
+                'company' => fn () => $user && $user->company_id
+                    ? (($company = $user->company()->select(['id', 'name', 'slug', 'is_active', 'is_demo'])->first())
+                        ? $this->safeOnlyAttributes($company, ['id', 'name', 'slug', 'is_active', 'is_demo'])
+                        : null)
+                    : null,
             ],
+            'flash' => [
+                'success' => fn () => $request->session()->get('success'),
+                'error' => fn () => $request->session()->get('error'),
+            ],
+        ];
+
+        if ($isMinimalAuth) {
+            return $base;
+        }
+
+        return [
+            ...$base,
             'chat' => [
                 'unread_count' => fn () => $user
                     ? ConversationParticipant::query()
@@ -69,14 +113,11 @@ class HandleInertiaRequests extends Middleware
                     : [],
             ],
             'notifications' => [
-                'unread_count' => fn () => $user ? $notificationService?->unreadCountFor($user) : 0,
-                'latest' => fn () => $user ? $notificationService?->latestFor($user, 5) : [],
-            ],
-            'flash' => [
-                'success' => fn () => $request->session()->get('success'),
-                'error' => fn () => $request->session()->get('error'),
+                'unread_count' => fn () => $user ? app(NotificationService::class)->unreadCountFor($user) : 0,
+                'latest' => fn () => $user ? app(NotificationService::class)->latestFor($user, 5) : [],
             ],
             'can' => [
+                'accessDeveloper' => $user ? (bool) $user->isDeveloper() : false,
                 'accessMyPortal' => $user ? Gate::forUser($user)->check('access-my-portal') : false,
                 'manageUsers' => $user ? Gate::forUser($user)->check('manage-users') : false,
                 'manageRoles' => $user ? Gate::forUser($user)->check('manage-roles') : false,
@@ -109,5 +150,24 @@ class HandleInertiaRequests extends Middleware
                 'viewAuditLogs' => $user ? Gate::forUser($user)->check('view-audit-logs') : false,
             ],
         ];
+    }
+
+    /**
+     * Eloquent's `only()` calls `getAttribute()` which can be expensive and may
+     * trigger relationship resolution. For shared props, stick to raw attributes.
+     *
+     * @param  array<int, string>  $keys
+     * @return array<string, mixed>
+     */
+    private function safeOnlyAttributes(Model $model, array $keys): array
+    {
+        $attributes = $model->getAttributes();
+        $result = [];
+
+        foreach ($keys as $key) {
+            $result[$key] = $attributes[$key] ?? null;
+        }
+
+        return $result;
     }
 }

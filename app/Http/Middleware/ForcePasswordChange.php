@@ -4,7 +4,6 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use App\Models\User;
 
 class ForcePasswordChange
 {
@@ -24,6 +23,7 @@ class ForcePasswordChange
         }
 
         if (
+            $request->routeIs('password.change') ||
             $request->routeIs('my.profile') ||
             $request->routeIs('profile.edit') ||
             $request->routeIs('profile.update') ||
@@ -35,10 +35,8 @@ class ForcePasswordChange
             return $next($request);
         }
 
-        $route = ($user->role ?? null) === User::ROLE_EMPLOYEE ? 'my.profile' : 'profile.edit';
-
         return redirect()
-            ->route($route)
+            ->route('password.change')
             ->with('warning', 'Please change your password before continuing.')
             ->setStatusCode(303);
     }

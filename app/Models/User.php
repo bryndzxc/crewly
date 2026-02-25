@@ -28,6 +28,13 @@ class User extends Authenticatable
         'role',
     ];
 
+    public function getRoleAttribute($value): string
+    {
+        $role = is_string($value) ? trim($value) : '';
+
+        return $role !== '' ? $role : self::ROLE_ADMIN;
+    }
+
     public function role(): string
     {
         return $this->getAttribute('role') ?? self::ROLE_ADMIN;
@@ -76,6 +83,7 @@ class User extends Authenticatable
      * @var array<int, string>
      */
     protected $fillable = [
+        'company_id',
         'name',
         'email',
         'role',
@@ -107,7 +115,13 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'must_change_password' => 'boolean',
         'chat_sound_enabled' => 'boolean',
+        'company_id' => 'integer',
     ];
+
+    public function company()
+    {
+        return $this->belongsTo(Company::class);
+    }
 
     public function getProfilePhotoUrlAttribute(): ?string
     {

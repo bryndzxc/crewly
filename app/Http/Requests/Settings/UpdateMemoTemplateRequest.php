@@ -14,6 +14,8 @@ class UpdateMemoTemplateRequest extends FormRequest
 
     public function rules(): array
     {
+        $companyId = (int) ($this->user()?->company_id ?? 0);
+
         $template = $this->route('template');
         $templateId = is_object($template) ? ($template->id ?? null) : null;
 
@@ -26,7 +28,7 @@ class UpdateMemoTemplateRequest extends FormRequest
                 'alpha_dash',
                 Rule::unique('memo_templates', 'slug')
                     ->ignore($templateId)
-                    ->whereNull('company_id'),
+                    ->where('company_id', $companyId),
             ],
             'description' => ['nullable', 'string', 'max:255'],
             'body_html' => ['required', 'string'],

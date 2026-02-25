@@ -14,9 +14,11 @@ class StoreMemoTemplateRequest extends FormRequest
 
     public function rules(): array
     {
+        $companyId = (int) ($this->user()?->company_id ?? 0);
+
         return [
             'name' => ['required', 'string', 'max:120'],
-            'slug' => ['nullable', 'string', 'max:150', 'alpha_dash', Rule::unique('memo_templates', 'slug')->whereNull('company_id')],
+            'slug' => ['nullable', 'string', 'max:150', 'alpha_dash', Rule::unique('memo_templates', 'slug')->where('company_id', $companyId)],
             'description' => ['nullable', 'string', 'max:255'],
             'body_html' => ['required', 'string'],
             'is_active' => ['nullable', 'boolean'],

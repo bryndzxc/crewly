@@ -22,7 +22,7 @@ export default function AuditLogsShow({ auth, log }) {
                 subtitle={`${log?.action ?? '—'}${log?.created_at ? ` • ${log.created_at}` : ''}`}
                 actions={
                     <Link
-                        href={route('audit-logs.index')}
+                        href={route('developer.audit-logs.index')}
                         className="inline-flex items-center rounded-md border border-slate-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-widest text-slate-700 shadow-sm hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40 focus-visible:ring-offset-2"
                     >
                         Back

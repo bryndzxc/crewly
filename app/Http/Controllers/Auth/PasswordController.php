@@ -21,17 +21,30 @@ class PasswordController extends Controller
             'password' => ['required', Password::defaults(), 'confirmed'],
         ]);
 
-        $request->user()->update([
+        /** @var User $user */
+        $user = $request->user();
+
+        $wasForced = (bool) ($user->must_change_password ?? false);
+
+        $user->update([
             'password' => Hash::make($validated['password']),
             'must_change_password' => false,
         ]);
 
-		if ($request->user()?->hasRole(User::ROLE_EMPLOYEE)) {
-			return redirect()
-				->route('my.profile')
-				->with('success', 'Password updated successfully.')
-				->setStatusCode(303);
-		}
+        if ($wasForced) {
+            return redirect()
+                ->route('dashboard')
+                ->with('success', 'Password updated successfully.')
+                ->setStatusCode(303);
+        }
+
+        $role = $user->getAttributes()['role'] ?? null;
+        if ($role === User::ROLE_EMPLOYEE) {
+            return redirect()
+                ->route('dashboard')
+                ->with('success', 'Password updated successfully.')
+                ->setStatusCode(303);
+        }
 
         return back()->with('success', 'Password updated successfully.');
     }

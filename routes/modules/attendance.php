@@ -4,7 +4,7 @@ use App\Http\Controllers\AttendanceDailyController;
 use App\Http\Controllers\AttendanceMonthlyController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'can:access-attendance'])->group(function () {
+Route::middleware(['auth', 'ensure.company', 'can:access-attendance'])->group(function () {
     Route::get('/attendance/daily', [AttendanceDailyController::class, 'index'])->name('attendance.daily');
     Route::put('/attendance/daily/{employee}', [AttendanceDailyController::class, 'upsert'])
         ->whereNumber('employee')

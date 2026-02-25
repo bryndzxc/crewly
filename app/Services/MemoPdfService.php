@@ -11,7 +11,7 @@ class MemoPdfService extends Service
     /**
      * Render and store a memo PDF under storage/app/private/memos/{employee_id}/{uuid}.pdf
      */
-    public function renderAndStore(int $employeeId, string $title, string $bodyHtml): array
+    public function renderAndStore(int $employeeId, string $title, string $bodyHtml, ?string $footer = null): array
     {
         $uuid = (string) Str::uuid();
         $relativePath = "private/memos/{$employeeId}/{$uuid}.pdf";
@@ -20,6 +20,7 @@ class MemoPdfService extends Service
             'title' => $title,
             'bodyHtml' => $bodyHtml,
             'generatedAt' => now(),
+            'footer' => $footer,
         ])->setPaper('A4');
 
         Storage::disk('local')->put($relativePath, $pdf->output());

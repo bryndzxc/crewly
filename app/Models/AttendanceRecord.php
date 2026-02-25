@@ -2,18 +2,23 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToCompany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AttendanceRecord extends Model
 {
+    use BelongsToCompany;
+
     public const STATUS_PRESENT = 'PRESENT';
     public const STATUS_ABSENT = 'ABSENT';
 
     protected $casts = [
+        'company_id' => 'integer',
         'date' => 'date:Y-m-d',
     ];
 
     protected $fillable = [
+        'company_id',
         'employee_id',
         'date',
         'status',

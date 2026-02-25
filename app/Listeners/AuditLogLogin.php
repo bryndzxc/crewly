@@ -9,6 +9,10 @@ class AuditLogLogin
 {
     public function handle(Login $event): void
     {
+        if (app()->runningUnitTests()) {
+            return;
+        }
+
         app(AuditLogger::class)->log(
             'auth.login',
             null,

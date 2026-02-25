@@ -10,6 +10,7 @@ class UserRepository extends BaseRepository
 	public function createUser(array $validated): User
 	{
 		$attributes = [
+			'company_id' => $validated['company_id'] ?? null,
 			'name' => $validated['name'],
 			'email' => $validated['email'],
 			'role' => $validated['role'],

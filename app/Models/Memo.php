@@ -6,10 +6,13 @@ use App\Models\Employee;
 use App\Models\EmployeeIncident;
 use App\Models\MemoTemplate;
 use App\Models\User;
+use App\Models\Concerns\BelongsToCompany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Memo extends Model
 {
+    use BelongsToCompany;
+
     protected $fillable = [
         'company_id',
         'employee_id',

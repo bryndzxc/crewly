@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Company;
 use App\Models\Department;
 use App\Models\RecruitmentPosition;
 use App\Models\User;
@@ -14,18 +15,17 @@ class RecruitmentPositionSeeder extends Seeder
      */
     public function run(): void
     {
-        $createdBy = User::query()
-            ->where('role', User::ROLE_ADMIN)
-            ->orderBy('id')
-            ->value('id');
-
-        if (!$createdBy) {
-            $createdBy = User::query()->orderBy('id')->value('id');
+        $companies = Company::query()->orderBy('id')->get(['id']);
+        if ($companies->isEmpty()) {
+            $companies = collect([
+                Company::query()->create([
+                    'name' => 'Default Company',
+                    'slug' => 'default',
+                    'timezone' => (string) config('app.timezone', 'Asia/Manila'),
+                    'is_active' => true,
+                ]),
+            ]);
         }
-
-        $departmentNameByCode = Department::query()
-            ->pluck('name', 'code')
-            ->all();
 
         $positions = [
             ['title' => 'Recruitment Specialist', 'department_code' => 'HR', 'location' => 'Hybrid', 'status' => RecruitmentPosition::STATUS_OPEN],
@@ -43,20 +43,38 @@ class RecruitmentPositionSeeder extends Seeder
             ['title' => 'Data Analyst', 'department_code' => 'DATA', 'location' => 'Hybrid', 'status' => RecruitmentPosition::STATUS_CLOSED],
         ];
 
-        foreach ($positions as $pos) {
-            $department = $departmentNameByCode[$pos['department_code']] ?? $pos['department_code'];
+        foreach ($companies as $company) {
+            $createdBy = User::query()
+                ->where('company_id', (int) $company->id)
+                ->where('role', User::ROLE_ADMIN)
+                ->orderBy('id')
+                ->value('id');
 
-            RecruitmentPosition::query()->updateOrCreate(
-                [
-                    'title' => $pos['title'],
-                    'department' => $department,
-                    'location' => $pos['location'],
-                ],
-                [
-                    'status' => $pos['status'],
-                    'created_by' => $createdBy,
-                ]
-            );
+            if (!$createdBy) {
+                $createdBy = User::query()->where('company_id', (int) $company->id)->orderBy('id')->value('id');
+            }
+
+            $departmentNameByCode = Department::query()
+                ->where('company_id', (int) $company->id)
+                ->pluck('name', 'code')
+                ->all();
+
+            foreach ($positions as $pos) {
+                $department = $departmentNameByCode[$pos['department_code']] ?? $pos['department_code'];
+
+                RecruitmentPosition::query()->updateOrCreate(
+                    [
+                        'company_id' => (int) $company->id,
+                        'title' => $pos['title'],
+                        'department' => $department,
+                        'location' => $pos['location'],
+                    ],
+                    [
+                        'status' => $pos['status'],
+                        'created_by' => $createdBy,
+                    ]
+                );
+            }
         }
     }
 }

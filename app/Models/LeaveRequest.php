@@ -2,18 +2,22 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToCompany;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 class LeaveRequest extends Model
 {
+    use BelongsToCompany;
+
     public const STATUS_PENDING = 'PENDING';
     public const STATUS_APPROVED = 'APPROVED';
     public const STATUS_DENIED = 'DENIED';
     public const STATUS_CANCELLED = 'CANCELLED';
 
     protected $casts = [
+        'company_id' => 'integer',
         'start_date' => 'date:Y-m-d',
         'end_date' => 'date:Y-m-d',
         'is_half_day' => 'boolean',

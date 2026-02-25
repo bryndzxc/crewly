@@ -45,6 +45,10 @@ class UserController extends Controller
             'role' => ['required', 'string', Rule::exists('roles', 'key')],
         ]);
 
+        $actor = $request->user();
+        abort_unless($actor && $actor->company_id, 403);
+        $validated['company_id'] = (int) $actor->company_id;
+
         $this->userService->create($validated);
 
         return redirect()->route('users.index')->with('success', 'User created successfully.');
@@ -52,6 +56,9 @@ class UserController extends Controller
 
     public function edit(User $user): Response
     {
+        $actor = request()->user();
+        abort_unless($actor && (int) $user->company_id === (int) $actor->company_id, 404);
+
         return Inertia::render('Users/Edit', [
             'userRecord' => $user->only(['id', 'name', 'email', 'role']),
             'roles' => $this->userService->rolesForSelect(),
@@ -60,6 +67,9 @@ class UserController extends Controller
 
     public function update(Request $request, User $user): RedirectResponse
     {
+        $actor = $request->user();
+        abort_unless($actor && (int) $user->company_id === (int) $actor->company_id, 404);
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)->whereNull('deleted_at')],
@@ -74,6 +84,9 @@ class UserController extends Controller
 
     public function destroy(User $user): RedirectResponse
     {
+        $actor = request()->user();
+        abort_unless($actor && (int) $user->company_id === (int) $actor->company_id, 404);
+
         $this->userService->delete($user);
 
         return redirect()->route('users.index')->with('success', 'User deleted successfully.');

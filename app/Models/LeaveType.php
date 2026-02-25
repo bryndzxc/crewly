@@ -2,12 +2,16 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToCompany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class LeaveType extends Model
 {
+    use BelongsToCompany;
+
     protected $casts = [
+        'company_id' => 'integer',
         'requires_approval' => 'boolean',
         'paid' => 'boolean',
         'allow_half_day' => 'boolean',

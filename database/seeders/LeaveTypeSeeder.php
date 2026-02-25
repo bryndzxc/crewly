@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Company;
 use App\Models\LeaveType;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -10,10 +11,17 @@ class LeaveTypeSeeder extends Seeder
 {
     public function run(): void
     {
-        $createdBy = User::query()
-            ->whereIn('role', [User::ROLE_ADMIN, User::ROLE_HR])
-            ->orderBy('id')
-            ->value('id');
+        $companies = Company::query()->orderBy('id')->get(['id']);
+        if ($companies->isEmpty()) {
+            $companies = collect([
+                Company::query()->create([
+                    'name' => 'Default Company',
+                    'slug' => 'default',
+                    'timezone' => (string) config('app.timezone', 'Asia/Manila'),
+                    'is_active' => true,
+                ]),
+            ]);
+        }
 
         $types = [
             [
@@ -54,11 +62,19 @@ class LeaveTypeSeeder extends Seeder
             ],
         ];
 
-        foreach ($types as $type) {
-            LeaveType::query()->updateOrCreate(
-                ['code' => $type['code']],
-                array_merge($type, ['created_by' => $createdBy])
-            );
+        foreach ($companies as $company) {
+            $createdBy = User::query()
+                ->where('company_id', (int) $company->id)
+                ->whereIn('role', [User::ROLE_ADMIN, User::ROLE_HR])
+                ->orderBy('id')
+                ->value('id');
+
+            foreach ($types as $type) {
+                LeaveType::query()->updateOrCreate(
+                    ['company_id' => (int) $company->id, 'code' => $type['code']],
+                    array_merge($type, ['company_id' => (int) $company->id, 'created_by' => $createdBy])
+                );
+            }
         }
     }
 }

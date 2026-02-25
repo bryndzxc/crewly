@@ -22,7 +22,6 @@ class MemoTemplateController extends Controller
     private function indexTemplates()
     {
         return MemoTemplate::query()
-            ->whereNull('company_id')
             ->orderByDesc('is_system')
             ->orderByDesc('is_active')
             ->orderBy('name')
@@ -73,7 +72,6 @@ class MemoTemplateController extends Controller
         }
 
         $template = MemoTemplate::create([
-            'company_id' => null,
             'name' => (string) $validated['name'],
             'slug' => $slug,
             'description' => $validated['description'] ?? null,
@@ -91,10 +89,6 @@ class MemoTemplateController extends Controller
     public function edit(MemoTemplate $template): Response
     {
         Gate::authorize('manage-memo-templates');
-
-        if ($template->company_id !== null) {
-            abort(404);
-        }
 
         return Inertia::render('Settings/MemoTemplates/Index', [
             'templates' => $this->indexTemplates(),
@@ -117,10 +111,6 @@ class MemoTemplateController extends Controller
     {
         Gate::authorize('manage-memo-templates');
 
-        if ($template->company_id !== null) {
-            abort(404);
-        }
-
         $validated = $request->validated();
 
         $slug = trim((string) ($validated['slug'] ?? ''));
@@ -142,10 +132,6 @@ class MemoTemplateController extends Controller
     public function toggle(Request $request, MemoTemplate $template): RedirectResponse
     {
         Gate::authorize('manage-memo-templates');
-
-        if ($template->company_id !== null) {
-            abort(404);
-        }
 
         $template->update([
             'is_active' => !$template->is_active,

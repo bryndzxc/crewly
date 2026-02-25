@@ -20,6 +20,7 @@ export default function Authenticated({ user, header, children, contentClassName
     const latest = useMemo(() => (Array.isArray(notifications.latest) ? notifications.latest : []), [notifications.latest]);
 
     const chat = usePage().props.chat || {};
+    const company = usePage().props?.auth?.company || null;
     const initialChatUnreadCount = Number(chat.unread_count || 0);
     const conversationIds = useMemo(() => (Array.isArray(chat.conversation_ids) ? chat.conversation_ids : []), [chat.conversation_ids]);
     const [chatUnreadCount, setChatUnreadCount] = useState(initialChatUnreadCount);
@@ -255,7 +256,10 @@ export default function Authenticated({ user, header, children, contentClassName
                                             <span className="text-xs font-semibold">{(user?.name || 'U').slice(0, 1).toUpperCase()}</span>
                                         )}
                                     </span>
-                                    <span className="hidden sm:inline-flex max-w-[14rem] truncate">{user.name}</span>
+                                    <div className="hidden sm:flex flex-col items-start max-w-[14rem] leading-tight">
+                                        <span className="truncate">{user.name}</span>
+                                        {!!company?.name && <span className="truncate text-xs text-slate-500">{company.name}</span>}
+                                    </div>
                                     <svg viewBox="0 0 20 20" className="h-4 w-4 text-slate-400" fill="currentColor" aria-hidden="true">
                                         <path
                                             fillRule="evenodd"

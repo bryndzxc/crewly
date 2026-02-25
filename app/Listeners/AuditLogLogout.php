@@ -9,6 +9,10 @@ class AuditLogLogout
 {
     public function handle(Logout $event): void
     {
+        if (app()->runningUnitTests()) {
+            return;
+        }
+
         app(AuditLogger::class)->log(
             'auth.logout',
             null,
