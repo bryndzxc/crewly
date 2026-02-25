@@ -64,7 +64,7 @@ export default function PayrollSummaryIndex({
                     <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800">{flash.error}</div>
                 )}
 
-                <Card className="relative z-40 p-6">
+                <Card className="relative p-6">
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <div>
