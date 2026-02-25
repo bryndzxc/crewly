@@ -13,6 +13,11 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule): void
     {
         $schedule->command('crewly:generate-notifications')->dailyAt('08:05');
+        $schedule->command('demo:cleanup')->daily()->withoutOverlapping();
+
+        if (config('crewly.demo.purge_enabled', false)) {
+            $schedule->command('demo:cleanup --purge --force')->daily()->withoutOverlapping();
+        }
     }
 
     /**

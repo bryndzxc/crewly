@@ -3,6 +3,11 @@
 return [
     'demo' => [
         'email' => env('CREWLY_DEMO_EMAIL', 'demo@crewly.test'),
+        // Max age (in days) before demo companies are expired/disabled.
+        'max_days' => (int) env('CREWLY_DEMO_MAX_DAYS', 3),
+        // Safety toggle: allow automated purging (deleting data/files) of expired demo companies.
+        // Keep false in production unless you're 100% sure.
+        'purge_enabled' => (bool) env('CREWLY_DEMO_PURGE_ENABLED', false),
     ],
 
     'leads' => [
