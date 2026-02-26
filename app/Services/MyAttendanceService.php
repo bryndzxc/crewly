@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\AttendanceRecord;
+use App\Models\Company;
 use App\Models\LeaveRequest;
 use Illuminate\Support\Carbon;
 
@@ -11,7 +12,7 @@ class MyAttendanceService
     /**
      * @return array{date:string,record:array<string,mixed>|null,metrics:array<string,int|null>,schedule:array{schedule_start:string,schedule_end:string,break_minutes:int,grace_minutes:int}}
      */
-    public function daily(int $employeeId, string $date): array
+    public function daily(int $employeeId, string $date, ?Company $company = null): array
     {
         $date = Carbon::parse($date)->toDateString();
 
@@ -20,7 +21,7 @@ class MyAttendanceService
             ->where('date', $date)
             ->first(['id', 'employee_id', 'date', 'status', 'time_in', 'time_out', 'remarks', 'updated_at']);
 
-        $schedule = $this->scheduleConfig();
+        $schedule = $this->scheduleConfig($company);
 
         $metrics = $this->computeMetrics(
             date: $date,
@@ -120,13 +121,24 @@ class MyAttendanceService
     /**
      * @return array{schedule_start:string,schedule_end:string,break_minutes:int,grace_minutes:int}
      */
-    private function scheduleConfig(): array
+    private function scheduleConfig(?Company $company): array
     {
-        return [
+        $fallback = [
             'schedule_start' => (string) config('crewly.attendance.schedule_start', '09:00'),
             'schedule_end' => (string) config('crewly.attendance.schedule_end', '18:00'),
             'break_minutes' => (int) config('crewly.attendance.break_minutes', 60),
             'grace_minutes' => (int) config('crewly.attendance.grace_minutes', 0),
+        ];
+
+        if (!$company) {
+            return $fallback;
+        }
+
+        return [
+            'schedule_start' => (string) ($company->attendance_schedule_start ?: $fallback['schedule_start']),
+            'schedule_end' => (string) ($company->attendance_schedule_end ?: $fallback['schedule_end']),
+            'break_minutes' => (int) (($company->attendance_break_minutes ?? $fallback['break_minutes'])),
+            'grace_minutes' => (int) (($company->attendance_grace_minutes ?? $fallback['grace_minutes'])),
         ];
     }
 

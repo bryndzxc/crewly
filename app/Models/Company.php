@@ -12,6 +12,10 @@ class Company extends Model
         'logo_path',
         'address',
         'timezone',
+        'attendance_schedule_start',
+        'attendance_schedule_end',
+        'attendance_break_minutes',
+        'attendance_grace_minutes',
         'is_active',
         'is_demo',
     ];
@@ -19,6 +23,8 @@ class Company extends Model
     protected $casts = [
         'is_active' => 'boolean',
         'is_demo' => 'boolean',
+        'attendance_break_minutes' => 'integer',
+        'attendance_grace_minutes' => 'integer',
     ];
 
     public function users(): HasMany

@@ -42,7 +42,7 @@ class CompanyController extends Controller
             'company.is_active' => ['nullable', 'boolean'],
 
             'user.name' => ['required', 'string', 'max:255'],
-            'user.email' => ['required', 'email', 'max:255'],
+            'user.email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
             'user.password' => ['required', 'string', 'min:8', 'max:255'],
             'user.role' => ['nullable', 'in:admin,hr,manager,employee'],
         ]);

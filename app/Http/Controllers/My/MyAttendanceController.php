@@ -24,7 +24,7 @@ class MyAttendanceController extends Controller
         $employee = $this->employeeResolver->requireCurrent($request->user());
         $date = (string) $request->query('date', Carbon::today()->toDateString());
 
-        return Inertia::render('My/Attendance/Daily', $this->myAttendanceService->daily((int) $employee->employee_id, $date));
+        return Inertia::render('My/Attendance/Daily', $this->myAttendanceService->daily((int) $employee->employee_id, $date, $request->user()?->company));
     }
 
     public function monthly(Request $request): Response

@@ -9,6 +9,9 @@ use App\Models\Employee;
 use App\Models\EmployeeIncident;
 use App\Models\EmployeeNote;
 use App\Models\Lead;
+use App\Models\LeaveBalance;
+use App\Models\LeaveRequest;
+use App\Models\LeaveType;
 use App\Models\Memo;
 use App\Models\MemoTemplate;
 use App\Models\User;
@@ -19,6 +22,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 class DeveloperLeadService extends Service
@@ -210,6 +214,140 @@ class DeveloperLeadService extends Service
         $incidents = $this->seedIncidents($company, $employees, $createdByUser);
         $this->seedNotes($company, $employees, $createdByUser);
         $this->seedMemosWithAttachedPdfs($company, $employees, $incidents, $createdByUser);
+        $this->seedLeaves($company, $employees, $createdByUser);
+    }
+
+    /**
+     * @param array<int, Employee> $employees
+     */
+    private function seedLeaves(Company $company, array $employees, User $createdByUser): void
+    {
+        $companyId = (int) $company->id;
+
+        $types = [
+            [
+                'code' => 'VL',
+                'name' => 'Vacation Leave',
+                'requires_approval' => true,
+                'paid' => true,
+                'allow_half_day' => true,
+                'default_annual_credits' => 15,
+                'is_active' => true,
+            ],
+            [
+                'code' => 'SL',
+                'name' => 'Sick Leave',
+                'requires_approval' => true,
+                'paid' => true,
+                'allow_half_day' => true,
+                'default_annual_credits' => 10,
+                'is_active' => true,
+            ],
+            [
+                'code' => 'EL',
+                'name' => 'Emergency Leave',
+                'requires_approval' => true,
+                'paid' => true,
+                'allow_half_day' => true,
+                'default_annual_credits' => 5,
+                'is_active' => true,
+            ],
+            [
+                'code' => 'UL',
+                'name' => 'Unpaid Leave',
+                'requires_approval' => true,
+                'paid' => false,
+                'allow_half_day' => true,
+                'default_annual_credits' => null,
+                'is_active' => true,
+            ],
+        ];
+
+        foreach ($types as $type) {
+            LeaveType::withoutCompanyScope()->updateOrCreate(
+                ['company_id' => $companyId, 'code' => $type['code']],
+                array_merge($type, ['company_id' => $companyId, 'created_by' => (int) $createdByUser->id])
+            );
+        }
+
+        $leaveTypes = LeaveType::withoutCompanyScope()
+            ->where('company_id', $companyId)
+            ->orderBy('code')
+            ->get(['id', 'code', 'default_annual_credits']);
+
+        $year = (int) Carbon::today()->format('Y');
+        foreach ($employees as $employee) {
+            $employeeId = (int) $employee->employee_id;
+            foreach ($leaveTypes as $lt) {
+                $credits = $lt->default_annual_credits !== null ? (float) $lt->default_annual_credits : 0.0;
+                LeaveBalance::withoutCompanyScope()->updateOrCreate(
+                    ['company_id' => $companyId, 'employee_id' => $employeeId, 'leave_type_id' => (int) $lt->id, 'year' => $year],
+                    ['company_id' => $companyId, 'credits' => $credits, 'used' => 0]
+                );
+            }
+        }
+
+        if (count($employees) === 0) {
+            return;
+        }
+
+        $vl = $leaveTypes->firstWhere('code', 'VL');
+        $sl = $leaveTypes->firstWhere('code', 'SL');
+
+        $empA = $employees[0] ?? null;
+        $empB = $employees[1] ?? $employees[0] ?? null;
+
+        if ($vl && $empA) {
+            $start = Carbon::today()->subDays(12)->toDateString();
+            $end = Carbon::today()->subDays(11)->toDateString();
+
+            LeaveRequest::withoutCompanyScope()->updateOrCreate(
+                ['company_id' => $companyId, 'employee_id' => (int) $empA->employee_id, 'leave_type_id' => (int) $vl->id, 'start_date' => $start, 'end_date' => $end],
+                [
+                    'company_id' => $companyId,
+                    'is_half_day' => false,
+                    'half_day_part' => null,
+                    'reason' => 'Family trip (sample data).',
+                    'status' => LeaveRequest::STATUS_APPROVED,
+                    'requested_by' => (int) $createdByUser->id,
+                    'approved_by' => (int) $createdByUser->id,
+                    'approved_at' => now(),
+                    'denied_by' => null,
+                    'denied_at' => null,
+                    'decision_notes' => 'Approved (sample).',
+                ]
+            );
+
+            // Mark some VL used for the year.
+            LeaveBalance::withoutCompanyScope()
+                ->where('company_id', $companyId)
+                ->where('employee_id', (int) $empA->employee_id)
+                ->where('leave_type_id', (int) $vl->id)
+                ->where('year', $year)
+                ->update(['used' => 2]);
+        }
+
+        if ($sl && $empB) {
+            $start = Carbon::today()->addDays(5)->toDateString();
+            $end = Carbon::today()->addDays(5)->toDateString();
+
+            LeaveRequest::withoutCompanyScope()->updateOrCreate(
+                ['company_id' => $companyId, 'employee_id' => (int) $empB->employee_id, 'leave_type_id' => (int) $sl->id, 'start_date' => $start, 'end_date' => $end],
+                [
+                    'company_id' => $companyId,
+                    'is_half_day' => true,
+                    'half_day_part' => 'AM',
+                    'reason' => 'Medical appointment (sample data).',
+                    'status' => LeaveRequest::STATUS_PENDING,
+                    'requested_by' => (int) $createdByUser->id,
+                    'approved_by' => null,
+                    'approved_at' => null,
+                    'denied_by' => null,
+                    'denied_at' => null,
+                    'decision_notes' => null,
+                ]
+            );
+        }
     }
 
     /**

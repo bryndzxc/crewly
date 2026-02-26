@@ -19,6 +19,7 @@ export default function Index() {
 
   const [showCreate, setShowCreate] = useState(false);
   const [createTab, setCreateTab] = useState('company');
+  const [showGeneratedPassword, setShowGeneratedPassword] = useState(false);
   const { data, setData, post, processing, errors, reset, clearErrors } = useForm({
     company: {
       name: '',
@@ -37,6 +38,7 @@ export default function Index() {
   const closeCreate = () => {
     setShowCreate(false);
     setCreateTab('company');
+    setShowGeneratedPassword(false);
     clearErrors();
     reset();
   };
@@ -44,6 +46,26 @@ export default function Index() {
   const openCreate = () => {
     setShowCreate(true);
     setCreateTab('company');
+    setShowGeneratedPassword(false);
+  };
+
+  const generatePassword = () => {
+    // 16 chars, URL-safe-ish.
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%';
+    const bytes = new Uint32Array(16);
+    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+      crypto.getRandomValues(bytes);
+    } else {
+      for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 1_000_000);
+    }
+
+    let out = '';
+    for (let i = 0; i < bytes.length; i++) {
+      out += alphabet[bytes[i] % alphabet.length];
+    }
+
+    setData('user', { ...data.user, password: out });
+    setShowGeneratedPassword(true);
   };
 
   const submitCreate = (e) => {
@@ -132,7 +154,7 @@ export default function Index() {
       <Modal show={showCreate} onClose={closeCreate} maxWidth="4xl">
         <div className="p-6">
           <h2 className="text-lg font-semibold text-slate-900">Add Company</h2>
-          <p className="mt-1 text-sm text-slate-600">Creates the company and an initial user.</p>
+          <p className="mt-1 text-sm text-slate-600">Creates the company and an initial user. Credentials are emailed to the initial user.</p>
 
               <div className="mt-5 flex items-center gap-2">
                 <button
@@ -236,13 +258,27 @@ export default function Index() {
 
                       <div>
                         <InputLabel value="Password" />
-                        <TextInput
-                          type="password"
-                          className="mt-1 block w-full"
-                          value={data.user.password}
-                          onChange={(e) => setData('user', { ...data.user, password: e.target.value })}
-                        />
+                        <div className="mt-1 flex items-center gap-2">
+                          <TextInput
+                            type={showGeneratedPassword ? 'text' : 'password'}
+                            className="block w-full"
+                            value={data.user.password}
+                            onChange={(e) => setData('user', { ...data.user, password: e.target.value })}
+                          />
+                          <SecondaryButton type="button" onClick={generatePassword}>
+                            Generate
+                          </SecondaryButton>
+                        </div>
                         <InputError className="mt-1" message={errors['user.password']} />
+                        <div className="mt-1 text-xs text-slate-500">User will be required to change this password on first login.</div>
+                        <label className="mt-2 inline-flex items-center gap-2 text-xs text-slate-700">
+                          <input
+                            type="checkbox"
+                            checked={showGeneratedPassword}
+                            onChange={(e) => setShowGeneratedPassword(e.target.checked)}
+                          />
+                          Show password
+                        </label>
                       </div>
 
                       <div>

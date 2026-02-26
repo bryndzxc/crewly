@@ -3,12 +3,15 @@
 namespace App\Services;
 
 use App\DTO\DeveloperCompanyWithUserCreateData;
+use App\Mail\CompanyAccountCreated;
 use App\Models\Company;
 use App\Models\User;
 use App\Repositories\CompanyRepository;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 class DeveloperCompanyService extends Service
@@ -78,7 +81,7 @@ class DeveloperCompanyService extends Service
 
     public function createCompanyWithInitialUser(DeveloperCompanyWithUserCreateData $data): Company
     {
-        return DB::transaction(function () use ($data) {
+        $result = DB::transaction(function () use ($data) {
             $companyAttributes = $data->company()->toArray();
 
             if (($companyAttributes['slug'] ?? '') === '') {
@@ -97,16 +100,46 @@ class DeveloperCompanyService extends Service
                 $role = User::ROLE_MANAGER;
             }
 
-            $this->companyRepository->createUserForCompany($company, [
+            $passwordPlain = (string) ($user['password'] ?? '');
+
+            $createdUser = $this->companyRepository->createUserForCompany($company, [
                 'name' => (string) $user['name'],
                 'email' => (string) $user['email'],
                 'role' => $role,
-                'password' => Hash::make((string) $user['password']),
+                'password' => Hash::make($passwordPlain),
+                'must_change_password' => true,
                 'email_verified_at' => now(),
             ]);
 
-            return $company;
+            return [$company, $createdUser, $passwordPlain];
         });
+
+        /** @var array{0:Company,1:User,2:string} $result */
+        [$company, $createdUser, $passwordPlain] = $result;
+
+        $this->sendCompanyAccountCreatedEmailBestEffort($company, $createdUser, $passwordPlain);
+
+        return $company;
+    }
+
+    private function sendCompanyAccountCreatedEmailBestEffort(Company $company, User $user, string $passwordPlain): void
+    {
+        try {
+            $loginUrl = rtrim((string) config('app.url', url('/')), '/').'/login';
+
+            Mail::to($user->email)->send(new CompanyAccountCreated(
+                company: $company,
+                user: $user,
+                passwordPlain: $passwordPlain,
+                loginUrl: $loginUrl,
+            ));
+        } catch (\Throwable $e) {
+            Log::warning('Failed sending company account created email.', [
+                'company_id' => (int) $company->id,
+                'user_id' => (int) $user->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

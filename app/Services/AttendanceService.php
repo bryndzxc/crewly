@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\DTO\AttendanceRecordUpsertData;
 use App\Models\AttendanceRecord;
+use App\Models\Company;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
 use App\Repositories\AttendanceRepository;
@@ -44,7 +45,7 @@ class AttendanceService extends Service
         $records = $this->attendanceRepository->recordsForDate($employeeIds, $date);
         $leaveMap = $this->approvedLeaveMap($employeeIds, $date, $date);
 
-        $schedule = $this->scheduleConfig();
+        $schedule = $this->scheduleConfig($user?->company);
 
         $rows = $employees->map(function (Employee $employee) use ($records, $leaveMap, $date, $schedule) {
             $record = $records->get((int) $employee->employee_id);
@@ -306,13 +307,24 @@ class AttendanceService extends Service
     /**
      * @return array{schedule_start:string, schedule_end:string, break_minutes:int, grace_minutes:int}
      */
-    private function scheduleConfig(): array
+    private function scheduleConfig(?Company $company): array
     {
-        return [
+        $fallback = [
             'schedule_start' => (string) config('crewly.attendance.schedule_start', '09:00'),
             'schedule_end' => (string) config('crewly.attendance.schedule_end', '18:00'),
             'break_minutes' => (int) config('crewly.attendance.break_minutes', 60),
             'grace_minutes' => (int) config('crewly.attendance.grace_minutes', 0),
+        ];
+
+        if (!$company) {
+            return $fallback;
+        }
+
+        return [
+            'schedule_start' => (string) ($company->attendance_schedule_start ?: $fallback['schedule_start']),
+            'schedule_end' => (string) ($company->attendance_schedule_end ?: $fallback['schedule_end']),
+            'break_minutes' => (int) (($company->attendance_break_minutes ?? $fallback['break_minutes'])),
+            'grace_minutes' => (int) (($company->attendance_grace_minutes ?? $fallback['grace_minutes'])),
         ];
     }
 

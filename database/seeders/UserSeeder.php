@@ -29,11 +29,6 @@ class UserSeeder extends Seeder
                 'email' => 'benosa.brynd18@gmail.com',
                 'role' => User::ROLE_ADMIN,
             ],
-            [
-                'name' => 'Joanna Rebote',
-                'email' => 'rebotejoanna05@gmail.com',
-                'role' => User::ROLE_ADMIN,
-            ],
         ];
 
         foreach ($users as $user) {

@@ -1,6 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
+import RichTextEditor from '@/Components/RichTextEditor';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
 
 export default function Create({ auth }) {
@@ -82,13 +83,13 @@ export default function Create({ auth }) {
 
                     <div>
                         <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600">Body HTML</label>
-                        <textarea
-                            rows={14}
-                            className="mt-1 w-full rounded-md border-slate-300 focus:border-amber-500 focus:ring-amber-500 font-mono text-xs"
-                            value={form.data.body_html}
-                            onChange={(e) => form.setData('body_html', e.target.value)}
-                            placeholder="<p><strong>{{company_name}}</strong></p>\n<p>Date: {{memo_date}}</p>\n..."
-                        />
+                        <div className="mt-1">
+                            <RichTextEditor
+                                value={form.data.body_html}
+                                onChange={(html) => form.setData('body_html', html)}
+                                placeholder="Write your memo template here…"
+                            />
+                        </div>
                         {form.errors.body_html && <div className="mt-1 text-sm text-red-600">{form.errors.body_html}</div>}
                         <div className="mt-2 rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
                             <div className="font-semibold text-slate-900">Placeholders</div>
