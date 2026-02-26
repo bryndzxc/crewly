@@ -54,10 +54,10 @@ export default function Landing() {
                             Built for PH SMEs
                         </div>
                         <h1 className="mt-4 text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl">
-                            Crewly — HR Case &amp; Documentation Management for PH SMEs
+                            Stop Losing HR Documents and Incident Records.
                         </h1>
                         <p className="mt-4 text-base text-slate-600 leading-relaxed">
-                            Generate memos, track incidents, and store employee records in one secure system.
+                            Generate memos, track incidents, and keep employee files audit-ready — without messy folders, spreadsheets, or scattered files.
                         </p>
 
                         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -65,13 +65,13 @@ export default function Landing() {
                                 href="#request-demo"
                                 className="inline-flex items-center justify-center rounded-xl bg-amber-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
                             >
-                                Request Demo
+                                Book a Demo
                             </a>
                             <Link
                                 href={route('login')}
                                 className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
                             >
-                                Login
+                                Try the Demo Environment
                             </Link>
                             <Link href={route('public.demo')} className="text-sm font-semibold text-amber-800 hover:text-amber-900">
                                 Or learn about the demo →
@@ -131,12 +131,38 @@ export default function Landing() {
                 </div>
             </section>
 
+            <section className="border-y border-slate-200/60 bg-slate-50/60">
+                <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
+                    <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-start">
+                        <div>
+                            <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Is your HR process still manual?</h2>
+                            <ul className="mt-4 space-y-2 text-sm text-slate-700">
+                                <li className="flex gap-2"><span className="text-amber-700">•</span>Creating NTEs and memos manually in Word</li>
+                                <li className="flex gap-2"><span className="text-amber-700">•</span>Storing employee documents in scattered folders</li>
+                                <li className="flex gap-2"><span className="text-amber-700">•</span>Tracking incidents in Excel sheets</li>
+                                <li className="flex gap-2"><span className="text-amber-700">•</span>Struggling to retrieve documents during audits</li>
+                                <li className="flex gap-2"><span className="text-amber-700">•</span>Losing follow-ups on HR cases</li>
+                            </ul>
+                            <p className="mt-5 text-sm font-semibold text-slate-900">
+                                Crewly centralizes HR case documentation into one structured, searchable system.
+                            </p>
+                        </div>
+
+                        <div className="rounded-2xl border border-slate-200/70 bg-white/80 backdrop-blur p-6 shadow-lg shadow-slate-900/5">
+                            <p className="text-sm text-slate-600 leading-relaxed">
+                                Crewly replaces scattered files with a consistent workflow for memos, incidents, and employee records — so your team can document faster, stay organized, and pull what you need when audits or investigations come up.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
                 <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-start">
                     <div>
                         <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Who it’s for</h2>
                         <p className="mt-2 text-sm text-slate-600 leading-relaxed">
-                            Crewly is designed for operations-heavy teams where documentation and incident handling must be consistent and searchable.
+                            Crewly is designed for operations-heavy teams where HR documentation, incident handling, and employee records must stay organized and audit-ready.
                         </p>
                         <div className="mt-4 flex flex-wrap gap-2">
                             {['Logistics', 'Warehouses', 'Construction', 'SMEs'].map((label) => (
@@ -144,6 +170,9 @@ export default function Landing() {
                                     {label}
                                 </span>
                             ))}
+                        </div>
+                        <div className="mt-3 text-sm text-slate-600">
+                            Best suited for teams with 20–150 employees still managing HR workflows manually.
                         </div>
                     </div>
                     <div className="rounded-2xl border border-slate-200/70 bg-white/80 backdrop-blur p-6 shadow-lg shadow-slate-900/5">
@@ -175,9 +204,29 @@ export default function Landing() {
                     <p className="mt-1 text-sm text-slate-600">Common questions from HR and ops teams.</p>
                 </div>
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-                    <FaqItem q="Do you support multi-branch companies?" a="Not in Phase 1. We’ll start with a single workspace and evolve from there." />
+                    <FaqItem q="Do you support multi-branch companies?" a="Multi-branch support is on our roadmap. Currently, each company operates within a single structured workspace." />
                     <FaqItem q="Is there a demo environment?" a="Yes. Demo access is shared and resets periodically." />
                     <FaqItem q="Can we migrate existing employee docs?" a="Yes — we can guide you on importing documents during onboarding." />
+                </div>
+            </section>
+
+            <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
+                <div className="mb-6">
+                    <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Why Teams Choose Crewly</h2>
+                </div>
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                    <FeatureCard
+                        title="Structured Workflow"
+                        body="Standardize HR cases from report to resolution."
+                    />
+                    <FeatureCard
+                        title="Audit-Ready Documentation"
+                        body="Keep memos, attachments, and incident timelines organized and searchable."
+                    />
+                    <FeatureCard
+                        title="Simple & Focused"
+                        body="No bloated features — just what SMEs actually use."
+                    />
                 </div>
             </section>
 

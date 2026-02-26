@@ -44,6 +44,101 @@ function Icon({ name, className }) {
                     />
                 </svg>
             );
+        case 'departments':
+            return (
+                <svg {...commonProps}>
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M3 21h18M6 21V5a2 2 0 012-2h8a2 2 0 012 2v16"
+                    />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 7h.01M9 11h.01M9 15h.01M12 7h.01M12 11h.01M12 15h.01M15 7h.01M15 11h.01M15 15h.01" />
+                </svg>
+            );
+        case 'leave':
+            return (
+                <svg {...commonProps}>
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M8 7V3m8 4V3M4 11h16"
+                    />
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M6 5h12a2 2 0 012 2v13a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2z"
+                    />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 15l2 2 4-4" />
+                </svg>
+            );
+        case 'leave_types':
+            return (
+                <svg {...commonProps}>
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M7 7h6l4 4v6a2 2 0 01-2 2H7a2 2 0 01-2-2V9a2 2 0 012-2z"
+                    />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 7v4h4" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.5 13h7M8.5 16h5" />
+                </svg>
+            );
+        case 'attendance':
+            return (
+                <svg {...commonProps}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v5l3 2" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            );
+        case 'payroll':
+            return (
+                <svg {...commonProps}>
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M3 10h18M6 6h12a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2z"
+                    />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 14h.01M12 14h.01M16 14h.01" />
+                </svg>
+            );
+        case 'chat':
+            return (
+                <svg {...commonProps}>
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M7 8h10M7 12h6"
+                    />
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M21 12a7 7 0 01-7 7H9l-4 3v-6a7 7 0 01-2-5 7 7 0 017-7h4a7 7 0 017 7z"
+                    />
+                </svg>
+            );
+        case 'settings':
+            return (
+                <svg {...commonProps}>
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M10.325 4.317a1 1 0 011.35-.436l.343.171a1 1 0 001.264-.289l.24-.3a1 1 0 011.556 0l.24.3a1 1 0 001.264.289l.343-.171a1 1 0 011.35.436l.12.367a1 1 0 00.95.69h.37a1 1 0 011 1v.4a1 1 0 00.293.707l.262.262a1 1 0 010 1.414l-.262.262A1 1 0 0021 11.43v.4a1 1 0 01-1 1h-.37a1 1 0 00-.95.69l-.12.367a1 1 0 01-1.35.436l-.343-.171a1 1 0 00-1.264.289l-.24.3a1 1 0 01-1.556 0l-.24-.3a1 1 0 00-1.264-.289l-.343.171a1 1 0 01-1.35-.436l-.12-.367a1 1 0 00-.95-.69H6a1 1 0 01-1-1v-.4a1 1 0 00-.293-.707l-.262-.262a1 1 0 010-1.414l.262-.262A1 1 0 005 8.77v-.4a1 1 0 011-1h.37a1 1 0 00.95-.69l.12-.367z"
+                    />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 10a2 2 0 100 4 2 2 0 000-4z" />
+                </svg>
+            );
+        case 'memo':
+            return (
+                <svg {...commonProps}>
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M7 3h7l3 3v15a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2z"
+                    />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M14 3v4h4" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 11h8M8 15h8M8 19h5" />
+                </svg>
+            );
         case 'account':
             return (
                 <svg {...commonProps}>

@@ -229,6 +229,6 @@ class CleanupDemoCompaniesCommand extends Command
             return (int) $value;
         }
 
-        return (int) config('crewly.demo.max_days', 3);
+        return (int) config('crewly.demo.max_days', 7);
     }
 }
