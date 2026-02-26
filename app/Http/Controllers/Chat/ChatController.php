@@ -264,7 +264,12 @@ class ChatController extends Controller
      */
     private function dmUserListFor(User $user): array
     {
-        $query = User::query()->select(['id', 'name', 'role'])->orderBy('name');
+        $query = User::query()->select(['id', 'name', 'role', 'company_id'])->orderBy('name');
+
+        // Enforce company isolation for DMs.
+        if ($user->company_id) {
+            $query->where('company_id', (int) $user->company_id);
+        }
 
         if ($user->isEmployee()) {
             $query->whereIn('role', [User::ROLE_HR, User::ROLE_MANAGER]);
@@ -283,6 +288,16 @@ class ChatController extends Controller
 
     private function canStartDm(User $actor, User $other): bool
     {
+        // Developer bypass (local/dev tooling) may allow broader access.
+        if ($actor->isDeveloper()) {
+            return true;
+        }
+
+        // Company isolation: do not allow DMs across companies.
+        if ($actor->company_id && $other->company_id && (int) $actor->company_id !== (int) $other->company_id) {
+            return false;
+        }
+
         if ($actor->isEmployee()) {
             return in_array($other->role(), [User::ROLE_HR, User::ROLE_MANAGER], true);
         }

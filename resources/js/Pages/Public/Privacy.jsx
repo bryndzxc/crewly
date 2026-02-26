@@ -14,7 +14,7 @@ export default function Privacy() {
         <PublicLayout
             title="Privacy Policy"
             description="Privacy policy for Crewly. Learn what data we collect via demo requests and how it’s used."
-            image="/storage-images/crewly_logo.png"
+            image="/favicon.png"
         >
             <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6">
                 <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Privacy Policy</h1>

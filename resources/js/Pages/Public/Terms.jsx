@@ -14,7 +14,7 @@ export default function Terms() {
         <PublicLayout
             title="Terms of Service"
             description="Terms of service for Crewly. Review demo usage, account access, and service disclaimers."
-            image="/storage-images/crewly_logo.png"
+            image="/favicon.png"
         >
             <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6">
                 <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Terms of Service</h1>

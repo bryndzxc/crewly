@@ -20,6 +20,13 @@ class ChatDmService extends Service
 
     public function openOrCreate(User $user, User $other): Conversation
     {
+        // Defense in depth: prevent cross-company DMs.
+        if (!$user->isDeveloper()) {
+            if ($user->company_id && $other->company_id && (int) $user->company_id !== (int) $other->company_id) {
+                throw new \DomainException('Cross-company direct messages are not allowed.');
+            }
+        }
+
         return DB::transaction(function () use ($user, $other) {
             $existing = $this->conversationRepository->findDmBetween((int) $user->id, (int) $other->id);
             if ($existing) {

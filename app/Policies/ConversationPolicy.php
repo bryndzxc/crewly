@@ -21,10 +21,36 @@ class ConversationPolicy
             return false;
         }
 
-        return $conversation
+        // DM rules: must be a participant AND must be within the same company.
+        $isParticipant = $conversation
             ->participants()
             ->where('user_id', $user->id)
             ->exists();
+
+        if (!$isParticipant) {
+            return false;
+        }
+
+        // Developer bypass may allow broader access (local/dev tooling).
+        if ($user->isDeveloper()) {
+            return true;
+        }
+
+        $other = $conversation
+            ->users()
+            ->where('users.id', '!=', $user->id)
+            ->select(['users.id', 'users.company_id'])
+            ->first();
+
+        if (!$other) {
+            return false;
+        }
+
+        if (!$user->company_id || !$other->company_id) {
+            return false;
+        }
+
+        return (int) $user->company_id === (int) $other->company_id;
     }
 
     public function sendMessage(User $user, Conversation $conversation): bool
@@ -49,11 +75,22 @@ class ConversationPolicy
         $other = $conversation
             ->users()
             ->where('users.id', '!=', $user->id)
-            ->select(['users.id', 'users.role'])
+            ->select(['users.id', 'users.role', 'users.company_id'])
             ->first();
 
         if (!$other) {
             return false;
+        }
+
+        // Enforce same-company messaging.
+        if (!$user->isDeveloper()) {
+            if (!$user->company_id || !$other->company_id) {
+                return false;
+            }
+
+            if ((int) $user->company_id !== (int) $other->company_id) {
+                return false;
+            }
         }
 
         // Employees can DM only HR or Managers (MVP allows any Manager)

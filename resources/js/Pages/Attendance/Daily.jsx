@@ -221,6 +221,8 @@ export default function Daily({ auth, date, rows = [], actions = {}, schedule = 
                                                     className="block w-full rounded-md border-gray-300 shadow-sm focus:border-amber-500 focus:ring-amber-500"
                                                     value={draft.time_in}
                                                     disabled={!canManage || disableTime}
+                                                    onFocus={(e) => e.currentTarget?.showPicker?.()}
+                                                    onClick={(e) => e.currentTarget?.showPicker?.()}
                                                     onChange={(e) => updateDraft(employeeId, { time_in: e.target.value })}
                                                 />
                                                 <InputError message={rowErrors?.time_in} className="mt-1" />
@@ -231,6 +233,8 @@ export default function Daily({ auth, date, rows = [], actions = {}, schedule = 
                                                     className="block w-full rounded-md border-gray-300 shadow-sm focus:border-amber-500 focus:ring-amber-500"
                                                     value={draft.time_out}
                                                     disabled={!canManage || disableTime}
+                                                    onFocus={(e) => e.currentTarget?.showPicker?.()}
+                                                    onClick={(e) => e.currentTarget?.showPicker?.()}
                                                     onChange={(e) => updateDraft(employeeId, { time_out: e.target.value })}
                                                 />
                                                 <InputError message={rowErrors?.time_out} className="mt-1" />

@@ -108,4 +108,26 @@ class DeveloperCompanyService extends Service
             return $company;
         });
     }
+
+    /**
+     * @param array{name?:string,email?:string,password?:string,role?:string} $user
+     */
+    public function createUserForCompany(Company $company, array $user): User
+    {
+        return DB::transaction(function () use ($company, $user) {
+            $role = (string) ($user['role'] ?? User::ROLE_EMPLOYEE);
+            if (!in_array($role, [User::ROLE_ADMIN, User::ROLE_HR, User::ROLE_MANAGER, User::ROLE_EMPLOYEE], true)) {
+                $role = User::ROLE_EMPLOYEE;
+            }
+
+            return $this->companyRepository->createUserForCompany($company, [
+                'name' => (string) ($user['name'] ?? ''),
+                'email' => strtolower(trim((string) ($user['email'] ?? ''))),
+                'role' => $role,
+                'password' => Hash::make((string) ($user['password'] ?? '')),
+                'must_change_password' => true,
+                'email_verified_at' => now(),
+            ]);
+        });
+    }
 }

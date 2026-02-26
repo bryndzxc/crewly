@@ -8,6 +8,7 @@ use App\Models\Company;
 use App\Services\DeveloperCompanyService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -52,6 +53,23 @@ class CompanyController extends Controller
         return redirect()
             ->route('developer.companies.index')
             ->with('success', "Company '{$company->name}' created.")
+            ->setStatusCode(303);
+    }
+
+    public function storeUser(Request $request, Company $company): RedirectResponse
+    {
+        $validated = $request->validate([
+            'user.name' => ['required', 'string', 'max:255'],
+            'user.email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
+            'user.password' => ['required', 'string', 'min:8', 'max:255'],
+            'user.role' => ['nullable', 'in:admin,hr,manager,employee'],
+        ]);
+
+        $user = $this->developerCompanyService->createUserForCompany($company, (array) ($validated['user'] ?? []));
+
+        return redirect()
+            ->route('developer.companies.show', $company)
+            ->with('success', "User '{$user->email}' added to '{$company->name}'.")
             ->setStatusCode(303);
     }
 }

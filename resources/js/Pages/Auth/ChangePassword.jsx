@@ -24,7 +24,7 @@ export default function ChangePassword() {
     };
 
     return (
-        <GuestLayout>
+        <GuestLayout showLogo={false}>
             <Head title="Change password" />
 
             <div className="space-y-4">
