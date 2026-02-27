@@ -12,6 +12,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 
 class NotificationService extends Service
 {
@@ -20,7 +21,25 @@ class NotificationService extends Service
      */
     public function hrAdminRecipients(): Collection
     {
+        $companyId = (int) (Auth::user()?->company_id ?? 0);
+        if ($companyId < 1) {
+            return collect();
+        }
+
+        return $this->hrAdminRecipientsForCompany($companyId);
+    }
+
+    /**
+     * @return Collection<int, User>
+     */
+    public function hrAdminRecipientsForCompany(int $companyId): Collection
+    {
+        if ($companyId < 1) {
+            return collect();
+        }
+
         return User::query()
+            ->where('company_id', $companyId)
             ->whereIn('role', [User::ROLE_ADMIN, User::ROLE_HR])
             ->orderBy('name')
             ->get();
@@ -32,6 +51,18 @@ class NotificationService extends Service
     public function hrAdminRecipientIds(): array
     {
         return $this->hrAdminRecipients()->pluck('id')->map(fn ($v) => (int) $v)->values()->all();
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    public function hrAdminRecipientIdsForCompany(int $companyId): array
+    {
+        return $this->hrAdminRecipientsForCompany($companyId)
+            ->pluck('id')
+            ->map(fn ($v) => (int) $v)
+            ->values()
+            ->all();
     }
 
     public function unreadCountFor(User $user): int
@@ -197,7 +228,8 @@ class NotificationService extends Service
 
     public function notifyLeaveSubmitted(LeaveRequest $leaveRequest): int
     {
-        $ids = $this->hrAdminRecipientIds();
+        $companyId = (int) ($leaveRequest->company_id ?? 0);
+        $ids = $this->hrAdminRecipientIdsForCompany($companyId);
         if (count($ids) === 0) {
             return 0;
         }
@@ -244,7 +276,8 @@ class NotificationService extends Service
 
     public function notifyDocumentExpiring(EmployeeDocument $doc, int $days): int
     {
-        $ids = $this->hrAdminRecipientIds();
+        $companyId = (int) ($doc->company_id ?? 0);
+        $ids = $this->hrAdminRecipientIdsForCompany($companyId);
         if (count($ids) === 0) {
             return 0;
         }
@@ -295,7 +328,8 @@ class NotificationService extends Service
 
     public function notifyProbationEnding(Employee $employee, int $days): int
     {
-        $ids = $this->hrAdminRecipientIds();
+        $companyId = (int) ($employee->company_id ?? 0);
+        $ids = $this->hrAdminRecipientIdsForCompany($companyId);
         if (count($ids) === 0) {
             return 0;
         }
@@ -341,7 +375,8 @@ class NotificationService extends Service
 
     public function notifyIncidentFollowup(EmployeeIncident $incident): int
     {
-        $ids = $this->hrAdminRecipientIds();
+        $companyId = (int) ($incident->company_id ?? 0);
+        $ids = $this->hrAdminRecipientIdsForCompany($companyId);
         if (count($ids) === 0) {
             return 0;
         }

@@ -45,6 +45,17 @@ return [
             'local_domain' => env('MAIL_EHLO_DOMAIN'),
         ],
 
+        'zoho' => [
+            'transport' => 'smtp',
+            'host' => env('ZOHO_MAIL_HOST', 'smtp.zoho.com'),
+            'port' => env('ZOHO_MAIL_PORT', 587),
+            'encryption' => env('ZOHO_MAIL_ENCRYPTION', 'tls'),
+            'username' => env('ZOHO_MAIL_USERNAME', env('MAIL_USERNAME')),
+            'password' => env('ZOHO_MAIL_PASSWORD', env('MAIL_PASSWORD')),
+            'timeout' => null,
+            'local_domain' => env('MAIL_EHLO_DOMAIN'),
+        ],
+
         'gmail' => [
             'transport' => 'smtp',
             'host' => env('MAIL_HOST', 'smtp.gmail.com'),

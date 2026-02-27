@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import Table from '@/Components/Table';
 import PrimaryButton from '@/Components/PrimaryButton';
@@ -15,6 +15,8 @@ export default function Index() {
     const leads = leadsPaginator?.data ?? (Array.isArray(leadsPaginator) ? leadsPaginator : []);
 
     const [perPage, setPerPage] = useState(filters.per_page ?? 10);
+    const [actionState, setActionState] = useState({ leadId: null, action: null });
+    const actionLockRef = useRef(false);
 
     const onPerPageChange = (nextPerPage) => {
         setPerPage(nextPerPage);
@@ -59,11 +61,39 @@ export default function Index() {
     };
 
     const approve = (leadId) => {
-        router.post(route('developer.demo_requests.approve', leadId), {}, { preserveScroll: true });
+        if (actionLockRef.current) return;
+        actionLockRef.current = true;
+
+        setActionState({ leadId, action: 'approve' });
+        router.post(
+            route('developer.demo_requests.approve', leadId),
+            {},
+            {
+                preserveScroll: true,
+                onFinish: () => {
+                    actionLockRef.current = false;
+                    setActionState({ leadId: null, action: null });
+                },
+            }
+        );
     };
 
     const decline = (leadId) => {
-        router.post(route('developer.demo_requests.decline', leadId), {}, { preserveScroll: true });
+        if (actionLockRef.current) return;
+        actionLockRef.current = true;
+
+        setActionState({ leadId, action: 'decline' });
+        router.post(
+            route('developer.demo_requests.decline', leadId),
+            {},
+            {
+                preserveScroll: true,
+                onFinish: () => {
+                    actionLockRef.current = false;
+                    setActionState({ leadId: null, action: null });
+                },
+            }
+        );
     };
 
     return (
@@ -131,24 +161,49 @@ export default function Index() {
                                     <div className="text-sm text-slate-700 whitespace-pre-wrap break-words max-w-2xl">{lead.message || '—'}</div>
                                 </td>
                                 <td className="px-4 py-3 text-right whitespace-nowrap">
+                                    {(() => {
+                                        const isPending = String(lead.status || 'pending').toLowerCase() === 'pending';
+                                        const isRowProcessing = actionState.leadId === lead.id;
+                                        const isApproving = isRowProcessing && actionState.action === 'approve';
+                                        const isDeclining = isRowProcessing && actionState.action === 'decline';
+
+                                        return (
                                     <div className="flex items-center justify-end gap-2">
                                         <PrimaryButton
                                             type="button"
                                             className="px-3 py-2"
                                             onClick={() => approve(lead.id)}
-                                            disabled={lead.status !== 'pending'}
+                                            disabled={!isPending || actionState.leadId !== null}
                                         >
-                                            Approve
+                                            <span className="inline-flex items-center gap-2">
+                                                {isApproving && (
+                                                    <span
+                                                        aria-hidden="true"
+                                                        className="h-4 w-4 rounded-full border-2 border-slate-900/30 border-t-slate-900 animate-spin"
+                                                    />
+                                                )}
+                                                {isApproving ? 'Approving…' : 'Approve'}
+                                            </span>
                                         </PrimaryButton>
                                         <DangerButton
                                             type="button"
                                             className="px-3 py-2"
                                             onClick={() => decline(lead.id)}
-                                            disabled={lead.status !== 'pending'}
+                                            disabled={!isPending || actionState.leadId !== null}
                                         >
-                                            Decline
+                                            <span className="inline-flex items-center gap-2">
+                                                {isDeclining && (
+                                                    <span
+                                                        aria-hidden="true"
+                                                        className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin"
+                                                    />
+                                                )}
+                                                {isDeclining ? 'Declining…' : 'Decline'}
+                                            </span>
                                         </DangerButton>
                                     </div>
+                                        );
+                                    })()}
                                 </td>
                             </tr>
                         )}

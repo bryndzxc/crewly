@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Jobs\SeedDemoCompanyDataJob;
 use App\Mail\DemoAccountApproved;
 use App\Models\Company;
 use App\Models\Department;
@@ -121,8 +122,6 @@ class DeveloperLeadService extends Service
                 'email_verified_at' => now(),
             ]);
 
-            $this->seedDemoCompanyData($company, $user);
-
             $lead->forceFill([
                 'status' => Lead::STATUS_APPROVED,
                 'approved_at' => now(),
@@ -136,6 +135,9 @@ class DeveloperLeadService extends Service
 
         /** @var array{0:Company,1:User,2:string} $result */
         [$company, $user, $passwordPlain] = $result;
+
+        SeedDemoCompanyDataJob::dispatch((int) $company->id, (int) $user->id)
+            ->afterResponse();
 
         $this->sendApprovalEmailBestEffort($company, $user, $passwordPlain);
 
@@ -196,7 +198,7 @@ class DeveloperLeadService extends Service
         }
     }
 
-    private function seedDemoCompanyData(Company $company, User $createdByUser): void
+    public function seedDemoCompanyData(Company $company, User $createdByUser): void
     {
         $companyId = (int) $company->id;
 

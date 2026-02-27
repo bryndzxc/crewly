@@ -20,7 +20,7 @@ class DocumentRemindersCommand extends Command
         $end = $today->copy()->addDays(7);
 
         $docs = EmployeeDocument::query()
-            ->select(['id', 'employee_id', 'type', 'expiry_date'])
+            ->select(['id', 'company_id', 'employee_id', 'type', 'expiry_date'])
             ->with([
                 'employee' => function ($query) {
                     $query->select([
@@ -43,18 +43,17 @@ class DocumentRemindersCommand extends Command
             return self::SUCCESS;
         }
 
-        $recipients = User::query()
-            ->whereIn('role', [User::ROLE_ADMIN, User::ROLE_HR])
-            ->get();
-
-        if ($recipients->isEmpty()) {
-            $this->warn('No HR/Admin users found to notify.');
-            return self::SUCCESS;
-        }
+        /** @var array<int, \Illuminate\Support\Collection<int, User>> $recipientsByCompany */
+        $recipientsByCompany = [];
 
         $count = 0;
 
         foreach ($docs as $doc) {
+            $companyId = (int) ($doc->company_id ?? 0);
+            if ($companyId < 1) {
+                continue;
+            }
+
             $doc->append(['days_to_expiry']);
 
             $employee = $doc->employee;
@@ -87,6 +86,18 @@ class DocumentRemindersCommand extends Command
                 'expiry_date' => $doc->expiry_date?->toDateString(),
                 'days_to_expiry' => $doc->days_to_expiry,
             ];
+
+            if (!array_key_exists($companyId, $recipientsByCompany)) {
+                $recipientsByCompany[$companyId] = User::query()
+                    ->where('company_id', $companyId)
+                    ->whereIn('role', [User::ROLE_ADMIN, User::ROLE_HR])
+                    ->get();
+            }
+
+            $recipients = $recipientsByCompany[$companyId];
+            if ($recipients->isEmpty()) {
+                continue;
+            }
 
             foreach ($recipients as $user) {
                 $user->notify(new DocumentExpiringSoon($payload));
