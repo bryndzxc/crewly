@@ -34,6 +34,14 @@ return [
     */
 
     'mailers' => [
+        'brevo' => [
+            'transport' => 'brevo',
+            'api_key' => env('BREVO_API_KEY'),
+            'endpoint' => env('BREVO_ENDPOINT', 'https://api.brevo.com/v3/smtp/email'),
+            'timeout' => env('BREVO_TIMEOUT', 10),
+            'log_channel' => env('BREVO_LOG_CHANNEL'),
+        ],
+
         'smtp' => [
             'transport' => 'smtp',
             'host' => env('MAIL_HOST', 'smtp.mailgun.org'),
