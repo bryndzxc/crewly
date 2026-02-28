@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Jobs\SeedDemoCompanyDataJob;
 use App\Mail\DemoAccountApproved;
 use App\Models\Company;
 use App\Models\Department;
@@ -136,8 +135,8 @@ class DeveloperLeadService extends Service
         /** @var array{0:Company,1:User,2:string} $result */
         [$company, $user, $passwordPlain] = $result;
 
-        SeedDemoCompanyDataJob::dispatch((int) $company->id, (int) $user->id)
-            ->afterResponse();
+        // Seed immediately so the demo is ready the moment the user logs in.
+        $this->seedDemoCompanyData($company, $user);
 
         $this->sendApprovalEmailBestEffort($company, $user, $passwordPlain);
 
