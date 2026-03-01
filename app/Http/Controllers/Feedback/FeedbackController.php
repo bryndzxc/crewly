@@ -33,6 +33,6 @@ class FeedbackController extends Controller
             'page_url' => $validated['page_url'] ?? null,
         ]);
 
-        return back(303)->with('success', 'Thanks — feedback sent.');
+        return back(303)->with('success', 'Feedback received — thank you.');
     }
 }

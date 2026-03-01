@@ -2,9 +2,10 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, usePage } from '@inertiajs/react';
 
 export default function FeedbackCreate({ auth, pageUrl = '' }) {
+    const flash = usePage().props.flash || {};
     const { data, setData, post, processing, errors } = useForm({
         message: '',
         page_url: String(pageUrl || window.location?.href || ''),
@@ -12,15 +13,25 @@ export default function FeedbackCreate({ auth, pageUrl = '' }) {
 
     const submit = (e) => {
         e.preventDefault();
-        post(route('feedback.store'));
+        post(route('feedback.store'), {
+            preserveScroll: true,
+            onSuccess: () => {
+                setData('message', '');
+            },
+        });
     };
 
     return (
         <AuthenticatedLayout user={auth.user} header="Feedback">
             <Head title="Feedback" />
 
-            <div className="max-w-2xl mx-auto">
+            <div className="max-w-4xl mx-auto">
                 <div className="bg-white border border-gray-200 rounded-lg p-6">
+                    {!!flash.success && (
+                        <div className="mb-4 rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
+                            {flash.success}
+                        </div>
+                    )}
                     <div className="text-sm text-slate-600">Share bugs, feature requests, or anything that would improve Crewly.</div>
 
                     <form onSubmit={submit} className="mt-5 space-y-5">

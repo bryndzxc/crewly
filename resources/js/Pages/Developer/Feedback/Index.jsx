@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import Card from '@/Components/UI/Card';
+import Table from '@/Components/Table';
 import { Head } from '@inertiajs/react';
 
 function formatDate(iso) {
@@ -14,43 +14,51 @@ function formatDate(iso) {
 export default function DeveloperFeedbackIndex({ auth, feedback }) {
     const data = feedback?.data || [];
 
+    const meta =
+        feedback?.meta ??
+        (feedback
+            ? {
+                  from: feedback.from ?? 0,
+                  to: feedback.to ?? 0,
+                  total: feedback.total ?? 0,
+                  current_page: feedback.current_page ?? 1,
+                  last_page: feedback.last_page ?? 1,
+              }
+            : null);
+
+    const links = Array.isArray(feedback?.links)
+        ? feedback.links
+        : Array.isArray(feedback?.meta?.links)
+          ? feedback.meta.links
+          : [];
+
     return (
-        <AuthenticatedLayout user={auth.user} header="Feedback Inbox">
+        <AuthenticatedLayout user={auth.user} header="Feedback Inbox" contentClassName="max-w-none">
             <Head title="Feedback Inbox" />
 
-            <div className="max-w-6xl mx-auto">
-                <Card>
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-slate-200">
-                            <thead className="bg-slate-50">
-                                <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Company</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">User</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Message</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Created</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100 bg-white">
-                                {data.length === 0 ? (
-                                    <tr>
-                                        <td className="px-4 py-6 text-sm text-slate-600" colSpan={4}>
-                                            No feedback yet.
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    data.map((f) => (
-                                        <tr key={f.id}>
-                                            <td className="px-4 py-3 text-sm text-slate-700">{f.company?.name || '-'}</td>
-                                            <td className="px-4 py-3 text-sm text-slate-700">{f.user?.name || '-'}</td>
-                                            <td className="px-4 py-3 text-sm text-slate-900 whitespace-pre-wrap max-w-[52rem]">{String(f.message || '')}</td>
-                                            <td className="px-4 py-3 text-sm text-slate-600">{formatDate(f.created_at)}</td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </Card>
+            <div className="w-full space-y-4">
+                <Table
+                    columns={[
+                        { key: 'company', label: 'Company' },
+                        { key: 'user', label: 'User' },
+                        { key: 'message', label: 'Message' },
+                        { key: 'created', label: 'Created' },
+                    ]}
+                    items={data}
+                    rowKey={(f) => f.id}
+                    emptyState="No feedback yet."
+                    pagination={meta ? { meta, links, perPage: feedback?.per_page ?? meta?.per_page } : null}
+                    renderRow={(f) => (
+                        <tr className="hover:bg-amber-50/40">
+                            <td className="px-4 py-3 text-sm text-slate-700">{f.company?.name || '-'}</td>
+                            <td className="px-4 py-3 text-sm text-slate-700">{f.user?.name || '-'}</td>
+                            <td className="px-4 py-3 text-sm text-slate-900 whitespace-pre-wrap">{String(f.message || '')}</td>
+                            <td className="px-4 py-3 text-sm text-slate-600 whitespace-nowrap">
+                                {formatDate(f.created_at)}
+                            </td>
+                        </tr>
+                    )}
+                />
             </div>
         </AuthenticatedLayout>
     );
