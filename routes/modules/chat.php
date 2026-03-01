@@ -4,7 +4,7 @@ use App\Http\Controllers\Chat\ChatController;
 use App\Http\Controllers\Chat\MessageController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'ensure.company'])->prefix('chat')->group(function () {
+Route::middleware(['auth', 'ensure.company_or_developer'])->prefix('chat')->group(function () {
     Route::get('/', [ChatController::class, 'index'])->name('chat.index');
     Route::get('/unread-count', [ChatController::class, 'unreadCount'])->name('chat.unread_count');
     Route::get('/conversations/{id}', [ChatController::class, 'show'])->whereNumber('id')->name('chat.conversations.show');

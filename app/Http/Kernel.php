@@ -64,6 +64,7 @@ class Kernel extends HttpKernel
         'can' => \Illuminate\Auth\Middleware\Authorize::class,
         'ensure.developer' => \App\Http\Middleware\EnsureDeveloper::class,
         'ensure.company' => \App\Http\Middleware\EnsureUserHasCompany::class,
+        'ensure.company_or_developer' => \App\Http\Middleware\EnsureCompanyOrDeveloper::class,
         'guest' => \App\Http\Middleware\RedirectIfAuthenticated::class,
         'password.confirm' => \Illuminate\Auth\Middleware\RequirePassword::class,
         'signed' => \App\Http\Middleware\ValidateSignature::class,

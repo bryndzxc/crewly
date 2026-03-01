@@ -266,9 +266,19 @@ class ChatController extends Controller
     {
         $query = User::query()->select(['id', 'name', 'role', 'company_id'])->orderBy('name');
 
-        // Enforce company isolation for DMs.
+        $developerEmails = array_values(array_filter(array_map(
+            static fn ($v) => strtolower(trim((string) $v)),
+            (array) config('app.developer_emails', [])
+        )));
+
+        // Enforce company isolation for DMs, but allow messaging Crewly developer/support accounts.
         if ($user->company_id) {
-            $query->where('company_id', (int) $user->company_id);
+            $query->where(function ($q) use ($user, $developerEmails) {
+                $q->where('company_id', (int) $user->company_id);
+                if (count($developerEmails) > 0) {
+                    $q->orWhereIn('email', $developerEmails);
+                }
+            });
         }
 
         if ($user->isEmployee()) {
@@ -291,6 +301,11 @@ class ChatController extends Controller
         // Developer bypass (local/dev tooling) may allow broader access.
         if ($actor->isDeveloper()) {
             return true;
+        }
+
+        // Allow any company user to DM developer/support accounts.
+        if ($other->isDeveloper()) {
+            return in_array($actor->role(), [User::ROLE_ADMIN, User::ROLE_HR, User::ROLE_MANAGER], true);
         }
 
         // Company isolation: do not allow DMs across companies.

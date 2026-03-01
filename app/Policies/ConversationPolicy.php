@@ -46,6 +46,11 @@ class ConversationPolicy
             return false;
         }
 
+        // Allow any participant to view DMs with developer/support accounts.
+        if ($other->isDeveloper()) {
+            return true;
+        }
+
         if (!$user->company_id || !$other->company_id) {
             return false;
         }
@@ -80,6 +85,11 @@ class ConversationPolicy
 
         if (!$other) {
             return false;
+        }
+
+        // Allow cross-company messaging only when DMing developer/support accounts.
+        if (!$user->isDeveloper() && $other->isDeveloper()) {
+            return in_array($user->role(), [User::ROLE_ADMIN, User::ROLE_HR, User::ROLE_MANAGER], true);
         }
 
         // Enforce same-company messaging.

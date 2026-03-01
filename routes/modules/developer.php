@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Developer\CompanyController;
 use App\Http\Controllers\Developer\DemoRequestController;
+use App\Http\Controllers\Developer\FeedbackController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'ensure.developer'])->prefix('developer')->name('developer.')->group(function () {
@@ -10,6 +11,8 @@ Route::middleware(['auth', 'ensure.developer'])->prefix('developer')->name('deve
     Route::post('companies', [CompanyController::class, 'store'])->name('companies.store');
     Route::get('companies/{company}', [CompanyController::class, 'show'])->name('companies.show');
     Route::post('companies/{company}/users', [CompanyController::class, 'storeUser'])->name('companies.users.store');
+
+    Route::get('feedback', [FeedbackController::class, 'index'])->name('feedback.index');
 
     Route::get('demo-requests', [DemoRequestController::class, 'index'])->name('demo_requests.index');
     Route::post('demo-requests/{lead}/approve', [DemoRequestController::class, 'approve'])->name('demo_requests.approve');
