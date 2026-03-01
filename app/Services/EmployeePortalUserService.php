@@ -11,10 +11,19 @@ class EmployeePortalUserService extends Service
 {
     public function ensureLinked(Employee $employee): ?User
     {
+        $result = $this->ensureLinkedWithPassword($employee);
+        return $result['user'];
+    }
+
+    /**
+     * @return array{user:?User,created_new:bool,password_plain:?string}
+     */
+    public function ensureLinkedWithPassword(Employee $employee): array
+    {
         if ($employee->user_id) {
             /** @var ?User $existing */
             $existing = $employee->user()->first();
-            return $existing;
+            return ['user' => $existing, 'created_new' => false, 'password_plain' => null];
         }
 
         $companyId = (int) ($employee->company_id ?? 0);
@@ -24,11 +33,10 @@ class EmployeePortalUserService extends Service
 
         $email = strtolower(trim((string) ($employee->email ?? '')));
         if ($email === '') {
-            return null;
+            return ['user' => null, 'created_new' => false, 'password_plain' => null];
         }
 
         $user = User::query()->where('email', $email)->first();
-        $createdNew = false;
 
         if ($user) {
             if ((int) ($user->company_id ?? 0) !== $companyId) {
@@ -47,29 +55,32 @@ class EmployeePortalUserService extends Service
             if (!$user->hasRole(User::ROLE_EMPLOYEE)) {
                 $user->forceFill(['role' => User::ROLE_EMPLOYEE])->save();
             }
-        } else {
-            $name = $this->employeeDisplayName($employee);
 
-            $configured = config('crewly.employee_portal.default_password');
-            $plainPassword = is_string($configured) && trim($configured) !== ''
-                ? (string) $configured
-                : Str::password(14);
+            $employee->forceFill(['user_id' => (int) $user->id])->save();
 
-            $user = User::query()->create([
-                'company_id' => $companyId,
-                'name' => $name,
-                'email' => $email,
-                'role' => User::ROLE_EMPLOYEE,
-                'password' => Hash::make($plainPassword),
-                'must_change_password' => true,
-            ]);
-
-            $createdNew = true;
+            return ['user' => $user, 'created_new' => false, 'password_plain' => null];
         }
+
+        $name = $this->employeeDisplayName($employee);
+
+        $configured = config('crewly.employee_portal.default_password');
+        $plainPassword = is_string($configured) && trim($configured) !== ''
+            ? (string) $configured
+            : Str::password(14);
+
+        /** @var User $user */
+        $user = User::query()->create([
+            'company_id' => $companyId,
+            'name' => $name,
+            'email' => $email,
+            'role' => User::ROLE_EMPLOYEE,
+            'password' => Hash::make($plainPassword),
+            'must_change_password' => true,
+        ]);
 
         $employee->forceFill(['user_id' => (int) $user->id])->save();
 
-        return $user;
+        return ['user' => $user, 'created_new' => true, 'password_plain' => $plainPassword];
     }
 
     private function employeeDisplayName(Employee $employee): string

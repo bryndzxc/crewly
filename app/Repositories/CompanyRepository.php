@@ -33,7 +33,7 @@ class CompanyRepository
     {
         return Company::query()
             ->orderBy('name')
-            ->paginate($perPage, ['id', 'name', 'slug', 'timezone', 'is_active'])
+            ->paginate($perPage, ['id', 'name', 'slug', 'timezone', 'is_active', 'is_demo'])
             ->withQueryString();
     }
 

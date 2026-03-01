@@ -36,6 +36,7 @@ class DeveloperCompanyService extends Service
                 'slug' => (string) $c->slug,
                 'timezone' => (string) ($c->timezone ?? ''),
                 'is_active' => (bool) $c->is_active,
+                'is_demo' => (bool) ($c->is_demo ?? false),
             ])
         );
 

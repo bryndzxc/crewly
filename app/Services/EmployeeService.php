@@ -72,8 +72,13 @@ class EmployeeService extends Service
             return $this->processEmployeeCreation($employeeData);
         });
 
+        $portalPasswordPlain = null;
+        $portalCreatedNew = false;
+
         try {
-            $this->employeePortalUserService->ensureLinked($employee);
+            $linked = $this->employeePortalUserService->ensureLinkedWithPassword($employee);
+            $portalCreatedNew = (bool) ($linked['created_new'] ?? false);
+            $portalPasswordPlain = is_string($linked['password_plain'] ?? null) ? (string) $linked['password_plain'] : null;
         } catch (\Throwable $e) {
             Log::warning('Employee portal user auto-link failed.', [
                 'employee_id' => (int) $employee->employee_id,
@@ -85,6 +90,12 @@ class EmployeeService extends Service
 
         $this->handleInitialDocumentsIfAny($employee, $validated);
         $this->handlePhotoIfAny($employee, $validated);
+
+        if ($portalCreatedNew && is_string($portalPasswordPlain) && trim($portalPasswordPlain) !== '') {
+            $reminder = "Portal account created. Default password: {$portalPasswordPlain}. The user must change it after logging in.";
+            $existing = (string) session()->get('success', 'Employee created successfully.');
+            session()->flash('success', trim($existing . ' ' . $reminder));
+        }
 
         return $employee;
     }

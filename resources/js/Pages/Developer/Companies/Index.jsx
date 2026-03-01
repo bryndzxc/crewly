@@ -94,6 +94,7 @@ export default function Index() {
       { key: 'name', label: 'Company', className: 'px-4 py-3' },
       { key: 'slug', label: 'Slug', className: 'px-4 py-3' },
       { key: 'timezone', label: 'Timezone', className: 'px-4 py-3' },
+      { key: 'demo', label: 'Demo', className: 'px-4 py-3' },
       { key: 'active', label: 'Active', className: 'px-4 py-3' },
       { key: 'actions', label: 'Actions', className: 'px-4 py-3 text-right whitespace-nowrap' },
     ],
@@ -137,6 +138,9 @@ export default function Index() {
               </td>
               <td className="px-4 py-3">
                 <div className="text-sm text-slate-700">{company.timezone || '—'}</div>
+              </td>
+              <td className="px-4 py-3">
+                <div className="text-sm text-slate-700">{company.is_demo ? 'Yes' : 'No'}</div>
               </td>
               <td className="px-4 py-3">
                 <div className="text-sm text-slate-700">{company.is_active ? 'Yes' : 'No'}</div>

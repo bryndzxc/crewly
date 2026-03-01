@@ -128,6 +128,15 @@ export default function Login({ status, canResetPassword }) {
                                     </PrimaryButton>
                                 </div>
 
+                                <div className="text-center">
+                                    <Link
+                                        href={route('home')}
+                                        className="text-sm font-medium text-slate-600 hover:text-slate-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500"
+                                    >
+                                        Back to home
+                                    </Link>
+                                </div>
+
                                 {/* <div className="text-center text-sm text-gray-600">
                                     <span>New to Crewly?</span>{' '}
                                     <Link

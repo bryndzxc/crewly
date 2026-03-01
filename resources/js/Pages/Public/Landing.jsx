@@ -1,6 +1,7 @@
 import PublicLayout from '@/Layouts/PublicLayout';
 import LeadForm from '@/Components/Public/LeadForm';
 import { Link } from '@inertiajs/react';
+import { useState } from 'react';
 
 function FeatureCard({ title, body }) {
     return (
@@ -11,19 +12,26 @@ function FeatureCard({ title, body }) {
     );
 }
 
-function ScreenshotCard({ title, src, alt }) {
+function ScreenshotCard({ title, src, alt, onZoom }) {
     return (
         <div className="rounded-2xl border border-slate-200/70 bg-white/70 p-6 shadow-lg shadow-slate-900/5">
             <div className="text-sm font-semibold text-slate-900">{title}</div>
             <div className="group mt-3 overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
-                <div className="aspect-[16/10] w-full">
-                    <img
-                        src={src}
-                        alt={alt || title}
-                        className="h-full w-full object-contain object-top transition-transform duration-200 ease-out group-hover:scale-[1.02]"
-                        loading="lazy"
-                    />
-                </div>
+                <button
+                    type="button"
+                    onClick={() => (typeof onZoom === 'function' ? onZoom({ src, alt: alt || title }) : null)}
+                    className="block w-full"
+                    aria-label={`Open ${title} screenshot`}
+                >
+                    <div className="aspect-[16/10] w-full">
+                        <img
+                            src={src}
+                            alt={alt || title}
+                            className="h-full w-full cursor-zoom-in object-contain object-top transition-transform duration-200 ease-out group-hover:scale-[1.02]"
+                            loading="lazy"
+                        />
+                    </div>
+                </button>
             </div>
         </div>
     );
@@ -40,6 +48,7 @@ function FaqItem({ q, a }) {
 
 export default function Landing() {
     const imageUrl = (filename) => `/storage-images/${encodeURIComponent(filename)}`;
+    const [zoom, setZoom] = useState(null);
 
     return (
         <PublicLayout
@@ -90,12 +99,19 @@ export default function Landing() {
                         </ul>
                         <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
                             <div className="aspect-[16/10] w-full sm:aspect-[16/9]">
-                                <img
-                                    src={imageUrl('product_preview.PNG')}
-                                    alt="Product preview"
-                                    className="h-full w-full object-contain object-top transition-transform duration-200 ease-out hover:scale-[1.02]"
-                                    loading="lazy"
-                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setZoom({ src: imageUrl('product_preview.PNG'), alt: 'Product preview' })}
+                                    className="block h-full w-full"
+                                    aria-label="Open product preview"
+                                >
+                                    <img
+                                        src={imageUrl('product_preview.PNG')}
+                                        alt="Product preview"
+                                        className="h-full w-full cursor-zoom-in object-contain object-top transition-transform duration-200 ease-out hover:scale-[1.02]"
+                                        loading="lazy"
+                                    />
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -192,9 +208,24 @@ export default function Landing() {
                     <p className="mt-1 text-sm text-slate-600"></p>
                 </div>
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-                    <ScreenshotCard title="Employee profile" src={imageUrl('employee_profile.PNG')} alt="Employee profile screenshot" />
-                    <ScreenshotCard title="Attendance summary" src={imageUrl('attendance_summary.PNG')} alt="Attendance summary screenshot" />
-                    <ScreenshotCard title="Recruitment pipeline" src={imageUrl('recruitment_pipeline.PNG')} alt="Recruitment pipeline screenshot" />
+                    <ScreenshotCard
+                        title="Employee profile"
+                        src={imageUrl('employee_profile.PNG')}
+                        alt="Employee profile screenshot"
+                        onZoom={setZoom}
+                    />
+                    <ScreenshotCard
+                        title="Attendance summary"
+                        src={imageUrl('attendance_summary.PNG')}
+                        alt="Attendance summary screenshot"
+                        onZoom={setZoom}
+                    />
+                    <ScreenshotCard
+                        title="Recruitment pipeline"
+                        src={imageUrl('recruitment_pipeline.PNG')}
+                        alt="Recruitment pipeline screenshot"
+                        onZoom={setZoom}
+                    />
                 </div>
             </section>
 
@@ -244,6 +275,29 @@ export default function Landing() {
                     <LeadForm sourcePage="/" />
                 </div>
             </section>
+
+            {!!zoom && (
+                <div className="fixed inset-0 z-50 bg-slate-900/60 p-4 sm:p-6">
+                    <div className="mx-auto flex h-full max-w-7xl items-center justify-center">
+                        <div className="relative w-full">
+                            <button
+                                type="button"
+                                onClick={() => setZoom(null)}
+                                className="absolute right-2 top-2 inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
+                            >
+                                Close
+                            </button>
+
+                            <img
+                                src={zoom.src}
+                                alt={zoom.alt || 'Zoomed image'}
+                                className="mx-auto max-h-[85vh] w-full rounded-2xl border border-slate-200 bg-white object-contain"
+                                loading="eager"
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
         </PublicLayout>
     );
 }

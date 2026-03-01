@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Public\LeadController;
 use App\Http\Controllers\Public\PublicPageController;
+use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
+use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/sitemap.xml', function () {
@@ -29,7 +31,19 @@ Route::get('/sitemap.xml', function () {
     return response($xml, 200)
         ->header('Content-Type', 'application/xml; charset=UTF-8')
         ->header('Cache-Control', 'public, max-age=3600');
-})->name('public.sitemap');
+})
+    ->withoutMiddleware([
+        // Sitemaps should be stateless and cacheable.
+        \App\Http\Middleware\EncryptCookies::class,
+        AddQueuedCookiesToResponse::class,
+        StartSession::class,
+        \Illuminate\View\Middleware\ShareErrorsFromSession::class,
+        \App\Http\Middleware\VerifyCsrfToken::class,
+        \App\Http\Middleware\HandleInertiaRequests::class,
+        \App\Http\Middleware\ForcePasswordChange::class,
+        \App\Http\Middleware\EnsureDemoSafe::class,
+    ])
+    ->name('public.sitemap');
 
 Route::get('/storage-images/{filename}', function (string $filename) {
     if (!preg_match('/\A[a-zA-Z0-9._-]+\z/', $filename)) {
