@@ -19,7 +19,7 @@ class CrewlyEmployeePortalUserCommand extends Command
         $employees = Employee::query()
             ->orderBy('employee_code')
             ->limit(500)
-            ->get(['employee_id', 'employee_code', 'first_name', 'middle_name', 'last_name', 'suffix', 'user_id']);
+            ->get(['employee_id', 'company_id', 'employee_code', 'first_name', 'middle_name', 'last_name', 'suffix', 'user_id']);
 
         if ($employees->count() === 0) {
             $this->components->error('No employees found.');
@@ -44,6 +44,12 @@ class CrewlyEmployeePortalUserCommand extends Command
 
         /** @var Employee $employee */
         $employee = Employee::query()->findOrFail($employeeId);
+
+        $companyId = (int) ($employee->company_id ?? 0);
+        if ($companyId < 1) {
+            $this->components->error('Employee company_id is missing; cannot create/link portal user.');
+            return self::FAILURE;
+        }
 
         if ($employee->user_id) {
             $ok = \Laravel\Prompts\confirm(
@@ -77,6 +83,11 @@ class CrewlyEmployeePortalUserCommand extends Command
                 return self::FAILURE;
             }
 
+            if ((int) ($user->company_id ?? 0) !== $companyId) {
+                $this->components->error("User '{$email}' belongs to another company.");
+                return self::FAILURE;
+            }
+
             if (!$user->hasRole(User::ROLE_EMPLOYEE)) {
                 $ok = \Laravel\Prompts\confirm(label: "User role is '{$user->role()}'. Set to Employee?", default: true);
                 if ($ok) {
@@ -102,6 +113,7 @@ class CrewlyEmployeePortalUserCommand extends Command
             $plainPassword = Str::password(14);
 
             $user = User::query()->create([
+                'company_id' => $companyId,
                 'name' => $name,
                 'email' => $email,
                 'role' => User::ROLE_EMPLOYEE,

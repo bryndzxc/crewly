@@ -67,8 +67,11 @@ class NotificationService extends Service
 
     public function unreadCountFor(User $user): int
     {
+        $companyId = (int) ($user->company_id ?? 0);
+
         return CrewlyNotification::query()
             ->where('user_id', (int) $user->id)
+            ->where('company_id', $companyId)
             ->whereNull('read_at')
             ->count();
     }
@@ -78,12 +81,16 @@ class NotificationService extends Service
      */
     public function latestFor(User $user, int $limit = 5): array
     {
+        $companyId = (int) ($user->company_id ?? 0);
+
         return CrewlyNotification::query()
             ->where('user_id', (int) $user->id)
+            ->where('company_id', $companyId)
             ->orderByDesc('created_at')
             ->limit($limit)
             ->get([
                 'id',
+                'company_id',
                 'type',
                 'title',
                 'body',
@@ -103,9 +110,11 @@ class NotificationService extends Service
     public function paginateFor(User $user, array $filters): LengthAwarePaginator
     {
         $perPage = min(max((int) ($filters['per_page'] ?? 15), 5), 100);
+        $companyId = (int) ($user->company_id ?? 0);
 
         $query = CrewlyNotification::query()
-            ->where('user_id', (int) $user->id);
+            ->where('user_id', (int) $user->id)
+            ->where('company_id', $companyId);
 
         if (($filters['status'] ?? '') === 'unread') {
             $query->whereNull('read_at');
@@ -129,6 +138,10 @@ class NotificationService extends Service
             abort(403);
         }
 
+        if ((int) ($notification->company_id ?? 0) !== (int) ($user->company_id ?? 0)) {
+            abort(403);
+        }
+
         if ($notification->read_at) {
             return;
         }
@@ -147,8 +160,11 @@ class NotificationService extends Service
 
     public function markAllReadForUser(User $user): int
     {
+        $companyId = (int) ($user->company_id ?? 0);
+
         $updated = CrewlyNotification::query()
             ->where('user_id', (int) $user->id)
+            ->where('company_id', $companyId)
             ->whereNull('read_at')
             ->update([
                 'read_at' => now(),
@@ -179,6 +195,7 @@ class NotificationService extends Service
      */
     public function createForUser(
         int $userId,
+        int $companyId,
         string $type,
         string $title,
         ?string $body,
@@ -189,6 +206,7 @@ class NotificationService extends Service
     ): ?CrewlyNotification {
         $payload = [
             'user_id' => $userId,
+            'company_id' => $companyId,
             'type' => $type,
             'title' => $title,
             'body' => $body,
@@ -203,7 +221,10 @@ class NotificationService extends Service
             $created = CrewlyNotification::query()->create($payload);
         } catch (QueryException $e) {
             // De-dupe via unique constraint.
-            if ($dedupeKey && ((string) $e->getCode() === '23000' || str_contains(strtolower($e->getMessage()), 'crewly_notifications_user_dedupe_unique'))) {
+            $msg = strtolower($e->getMessage());
+            if ($dedupeKey && ((string) $e->getCode() === '23000'
+                || str_contains($msg, 'crewly_notifications_user_company_dedupe_unique')
+                || str_contains($msg, 'crewly_notifications_user_dedupe_unique'))) {
                 return null;
             }
             throw $e;
@@ -251,6 +272,7 @@ class NotificationService extends Service
         foreach ($ids as $userId) {
             $n = $this->createForUser(
                 userId: (int) $userId,
+                companyId: $companyId,
                 type: 'LEAVE_PENDING',
                 title: $title,
                 body: $body,
@@ -276,7 +298,7 @@ class NotificationService extends Service
 
     public function notifyDocumentExpiring(EmployeeDocument $doc, int $days): int
     {
-        $companyId = (int) ($doc->company_id ?? 0);
+        $companyId = (int) ($doc->company_id ?? ($doc->employee?->company_id ?? 0));
         $ids = $this->hrAdminRecipientIdsForCompany($companyId);
         if (count($ids) === 0) {
             return 0;
@@ -302,6 +324,7 @@ class NotificationService extends Service
         foreach ($ids as $userId) {
             $n = $this->createForUser(
                 userId: (int) $userId,
+                companyId: $companyId,
                 type: 'DOC_EXPIRING',
                 title: $title,
                 body: $body,
@@ -351,6 +374,7 @@ class NotificationService extends Service
         foreach ($ids as $userId) {
             $n = $this->createForUser(
                 userId: (int) $userId,
+                companyId: $companyId,
                 type: 'PROBATION_ENDING',
                 title: $title,
                 body: $body,
@@ -375,7 +399,7 @@ class NotificationService extends Service
 
     public function notifyIncidentFollowup(EmployeeIncident $incident): int
     {
-        $companyId = (int) ($incident->company_id ?? 0);
+        $companyId = (int) ($incident->company_id ?? ($incident->employee?->company_id ?? 0));
         $ids = $this->hrAdminRecipientIdsForCompany($companyId);
         if (count($ids) === 0) {
             return 0;
@@ -407,6 +431,7 @@ class NotificationService extends Service
         foreach ($ids as $userId) {
             $n = $this->createForUser(
                 userId: (int) $userId,
+                companyId: $companyId,
                 type: 'INCIDENT_FOLLOWUP',
                 title: $title,
                 body: $body,

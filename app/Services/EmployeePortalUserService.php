@@ -17,6 +17,11 @@ class EmployeePortalUserService extends Service
             return $existing;
         }
 
+        $companyId = (int) ($employee->company_id ?? 0);
+        if ($companyId < 1) {
+            throw new \RuntimeException('Employee company_id is missing; cannot create portal user.');
+        }
+
         $email = strtolower(trim((string) ($employee->email ?? '')));
         if ($email === '') {
             return null;
@@ -26,6 +31,10 @@ class EmployeePortalUserService extends Service
         $createdNew = false;
 
         if ($user) {
+            if ((int) ($user->company_id ?? 0) !== $companyId) {
+                throw new \RuntimeException("User '{$email}' belongs to another company.");
+            }
+
             $linkedToAnother = Employee::query()
                 ->where('user_id', (int) $user->id)
                 ->where('employee_id', '!=', (int) $employee->employee_id)
@@ -47,6 +56,7 @@ class EmployeePortalUserService extends Service
                 : Str::password(14);
 
             $user = User::query()->create([
+                'company_id' => $companyId,
                 'name' => $name,
                 'email' => $email,
                 'role' => User::ROLE_EMPLOYEE,

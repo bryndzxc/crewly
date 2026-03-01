@@ -49,6 +49,7 @@ class CrewlyNotificationSeeder extends Seeder
 
         foreach ($items as $it) {
             CrewlyNotification::query()->create([
+                'company_id' => (int) $user->company_id,
                 'user_id' => (int) $user->id,
                 'type' => (string) $it['type'],
                 'title' => (string) $it['title'],

@@ -31,8 +31,8 @@ class GenerateCrewlyNotifications extends Command
             $target = $today->copy()->addDays($days)->toDateString();
 
             $docs = EmployeeDocument::query()
-                ->select(['id', 'employee_id', 'type', 'expiry_date'])
-                ->with(['employee:employee_id,employee_code'])
+                ->select(['id', 'company_id', 'employee_id', 'type', 'expiry_date'])
+                ->with(['employee:employee_id,company_id,employee_code'])
                 ->whereNotNull('expiry_date')
                 ->whereDate('expiry_date', $target)
                 ->orderBy('expiry_date', 'asc')
@@ -43,7 +43,7 @@ class GenerateCrewlyNotifications extends Command
             }
 
             $employees = Employee::query()
-                ->select(['employee_id', 'employee_code', 'regularization_date'])
+                ->select(['employee_id', 'company_id', 'employee_code', 'regularization_date'])
                 ->whereNotNull('regularization_date')
                 ->whereDate('regularization_date', $target)
                 ->orderBy('regularization_date', 'asc')
@@ -57,8 +57,8 @@ class GenerateCrewlyNotifications extends Command
         $incidentWindowEnd = $today->copy()->addDays(7)->toDateString();
 
         $incidents = EmployeeIncident::query()
-            ->select(['id', 'employee_id', 'category', 'status', 'follow_up_date'])
-            ->with(['employee:employee_id,employee_code'])
+            ->select(['id', 'company_id', 'employee_id', 'category', 'status', 'follow_up_date'])
+            ->with(['employee:employee_id,company_id,employee_code'])
             ->whereNotNull('follow_up_date')
             ->whereBetween('follow_up_date', [$today->toDateString(), $incidentWindowEnd])
             ->whereNotIn('status', [EmployeeIncident::STATUS_CLOSED])

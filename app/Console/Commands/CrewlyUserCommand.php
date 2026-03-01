@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Company;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Console\Command;
@@ -33,6 +34,23 @@ class CrewlyUserCommand extends Command
      */
     public function handle(): int
     {
+        $companyId = null;
+
+        if (Schema::hasTable('companies')) {
+            $companies = Company::query()->orderBy('name')->get(['id', 'name']);
+            if ($companies->count() > 0) {
+                $options = $companies->mapWithKeys(fn ($c) => [(string) $c->id => (string) $c->name])->toArray();
+
+                $selectedCompany = select(
+                    label: 'Company',
+                    options: $options,
+                    default: (string) $companies->first()->id,
+                );
+
+                $companyId = (int) $selectedCompany;
+            }
+        }
+
         $name = text(
             label: 'Name',
             required: true,
@@ -83,6 +101,7 @@ class CrewlyUserCommand extends Command
             : User::ROLE_ADMIN;
 
         $user = User::query()->create([
+            'company_id' => $companyId,
             'name' => $name,
             'email' => $email,
             'role' => $role,

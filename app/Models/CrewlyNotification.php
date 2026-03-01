@@ -12,6 +12,7 @@ class CrewlyNotification extends Model
     public const SEVERITY_SUCCESS = 'SUCCESS';
 
     protected $fillable = [
+        'company_id',
         'user_id',
         'type',
         'title',
@@ -26,7 +27,13 @@ class CrewlyNotification extends Model
     protected $casts = [
         'data' => 'array',
         'read_at' => 'datetime',
+        'company_id' => 'integer',
     ];
+
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
+    }
 
     public function user(): BelongsTo
     {
