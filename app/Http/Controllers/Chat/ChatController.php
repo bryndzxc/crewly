@@ -272,7 +272,7 @@ class ChatController extends Controller
         )));
 
         // Enforce company isolation for DMs, but allow messaging Crewly developer/support accounts.
-        if ($user->company_id) {
+        if (!$user->isDeveloper() && $user->company_id) {
             $query->where(function ($q) use ($user, $developerEmails) {
                 $q->where('company_id', (int) $user->company_id);
                 if (count($developerEmails) > 0) {
@@ -281,10 +281,12 @@ class ChatController extends Controller
             });
         }
 
-        if ($user->isEmployee()) {
-            $query->whereIn('role', [User::ROLE_HR, User::ROLE_MANAGER]);
-        } else {
-            $query->whereIn('role', [User::ROLE_ADMIN, User::ROLE_HR, User::ROLE_MANAGER, User::ROLE_EMPLOYEE]);
+        if (!$user->isDeveloper()) {
+            if ($user->isEmployee()) {
+                $query->whereIn('role', [User::ROLE_HR, User::ROLE_MANAGER]);
+            } else {
+                $query->whereIn('role', [User::ROLE_ADMIN, User::ROLE_HR, User::ROLE_MANAGER, User::ROLE_EMPLOYEE]);
+            }
         }
 
         $query->where('id', '!=', $user->id);
