@@ -139,6 +139,9 @@ class ChatController extends Controller
      */
     private function listConversationsFor(User $user): array
     {
+        // Ensure company-scoped channels exist (and the current user is a participant).
+        $this->ensureCompanyChannelsFor($user);
+
         $channels = Conversation::query()
             ->channels()
             ->whereIn('slug', $this->channelSlugsFor($user))
@@ -252,11 +255,57 @@ class ChatController extends Controller
      */
     private function channelSlugsFor(User $user): array
     {
-        $slugs = ['announcements'];
-        if ($user->isAdmin() || $user->isHR()) {
-            $slugs[] = 'hr-team';
+        $companyId = (int) ($user->company_id ?? 0);
+        if ($companyId < 1) {
+            return [];
         }
+
+        $slugs = [
+            $this->companyChannelSlug('announcements', $companyId),
+        ];
+
+        if ($user->isAdmin() || $user->isHR()) {
+            $slugs[] = $this->companyChannelSlug('hr-team', $companyId);
+        }
+
         return $slugs;
+    }
+
+    private function companyChannelSlug(string $baseSlug, int $companyId): string
+    {
+        return $baseSlug.'-'.$companyId;
+    }
+
+    private function ensureCompanyChannelsFor(User $user): void
+    {
+        $companyId = (int) ($user->company_id ?? 0);
+        if ($companyId < 1) {
+            return;
+        }
+
+        $annSlug = $this->companyChannelSlug('announcements', $companyId);
+        $ann = Conversation::query()->updateOrCreate(
+            ['type' => Conversation::TYPE_CHANNEL, 'slug' => $annSlug],
+            ['name' => 'Announcements', 'created_by' => (int) $user->id]
+        );
+
+        ConversationParticipant::query()->updateOrCreate(
+            ['conversation_id' => (int) $ann->id, 'user_id' => (int) $user->id],
+            ['role_in_conversation' => 'MEMBER']
+        );
+
+        if ($user->isAdmin() || $user->isHR()) {
+            $hrSlug = $this->companyChannelSlug('hr-team', $companyId);
+            $hr = Conversation::query()->updateOrCreate(
+                ['type' => Conversation::TYPE_CHANNEL, 'slug' => $hrSlug],
+                ['name' => 'HR Team', 'created_by' => (int) $user->id]
+            );
+
+            ConversationParticipant::query()->updateOrCreate(
+                ['conversation_id' => (int) $hr->id, 'user_id' => (int) $user->id],
+                ['role_in_conversation' => 'MEMBER']
+            );
+        }
     }
 
     /**

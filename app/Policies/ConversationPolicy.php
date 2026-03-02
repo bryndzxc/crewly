@@ -7,14 +7,48 @@ use App\Models\User;
 
 class ConversationPolicy
 {
+    /**
+     * @return array{base:string,company_id:int}|null
+     */
+    private function companyChannelFromSlug(?string $slug): ?array
+    {
+        $s = trim((string) ($slug ?? ''));
+        if ($s === '') {
+            return null;
+        }
+
+        if (preg_match('/^(announcements|hr-team)-(\d+)$/', $s, $m) !== 1) {
+            return null;
+        }
+
+        return [
+            'base' => (string) $m[1],
+            'company_id' => (int) $m[2],
+        ];
+    }
+
     public function view(User $user, Conversation $conversation): bool
     {
         if ($conversation->type === Conversation::TYPE_CHANNEL) {
-            if ($conversation->slug === 'announcements') {
+            $parsed = $this->companyChannelFromSlug($conversation->slug);
+            if (!$parsed) {
+                // Legacy/global channels are no longer accessible.
+                return false;
+            }
+
+            if ((int) ($user->company_id ?? 0) < 1) {
+                return false;
+            }
+
+            if ((int) $user->company_id !== (int) $parsed['company_id']) {
+                return false;
+            }
+
+            if ($parsed['base'] === 'announcements') {
                 return true;
             }
 
-            if ($conversation->slug === 'hr-team') {
+            if ($parsed['base'] === 'hr-team') {
                 return $user->isAdmin() || $user->isHR();
             }
 
@@ -65,11 +99,13 @@ class ConversationPolicy
         }
 
         if ($conversation->type === Conversation::TYPE_CHANNEL) {
-            if ($conversation->slug === 'announcements') {
-                return $user->isAdmin() || $user->isHR();
+            $parsed = $this->companyChannelFromSlug($conversation->slug);
+            if (!$parsed) {
+                return false;
             }
 
-            if ($conversation->slug === 'hr-team') {
+            // Announcements and HR Team are HR/Admin writable.
+            if (in_array($parsed['base'], ['announcements', 'hr-team'], true)) {
                 return $user->isAdmin() || $user->isHR();
             }
 
