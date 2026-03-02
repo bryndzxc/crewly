@@ -83,37 +83,39 @@ export default function PublicLayout({ title, description, image, children }) {
 
             <header className="sticky top-0 z-30 bg-white/70 backdrop-blur border-b border-slate-200">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6">
-                    <div className="h-16 flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                            <Link href={route('home')} className="flex items-center gap-2">
-                                <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white ring-1 ring-slate-200 shadow-sm">
-                                    <ApplicationLogo className="block h-6 w-6" />
-                                </span>
-                                <span className="font-semibold tracking-tight text-slate-900">Crewly</span>
-                            </Link>
+                    <div className="py-3 flex flex-col gap-3 md:h-16 md:flex-row md:items-center md:justify-between md:gap-4">
+                        <div className="flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-3">
+                                <Link href={route('home')} className="flex items-center gap-2">
+                                    <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white ring-1 ring-slate-200 shadow-sm">
+                                        <ApplicationLogo className="block h-6 w-6" />
+                                    </span>
+                                    <span className="font-semibold tracking-tight text-slate-900">Crewly</span>
+                                </Link>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <Link
+                                    href={route('login')}
+                                    className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
+                                >
+                                    Login
+                                </Link>
+                                <Link
+                                    href={route('public.demo')}
+                                    className="hidden sm:inline-flex items-center rounded-xl bg-amber-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
+                                >
+                                    Request demo
+                                </Link>
+                            </div>
                         </div>
 
-                        <nav className="hidden md:flex items-center gap-1">
+                        <nav className="flex items-center gap-1 overflow-x-auto md:overflow-visible">
                             <NavLink href={route('public.pricing')}>Pricing</NavLink>
                             <NavLink href={route('public.demo')}>Demo</NavLink>
                             <NavLink href={route('public.privacy')}>Privacy</NavLink>
                             <NavLink href={route('public.terms')}>Terms</NavLink>
                         </nav>
-
-                        <div className="flex items-center gap-2">
-                            <Link
-                                href={route('login')}
-                                className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
-                            >
-                                Login
-                            </Link>
-                            <Link
-                                href={route('public.demo')}
-                                className="hidden sm:inline-flex items-center rounded-xl bg-amber-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
-                            >
-                                Request demo
-                            </Link>
-                        </div>
                     </div>
                 </div>
             </header>

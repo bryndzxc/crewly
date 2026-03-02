@@ -16,8 +16,8 @@ export default function Authenticated({ user, header, children, contentClassName
         return v ? `${base}?v=${v}` : base;
     }, [user?.profile_photo_url, user?.updated_at]);
     const notifications = usePage().props.notifications || {};
-    const unreadCount = Number(notifications.unread_count || 0);
-    const latest = useMemo(() => (Array.isArray(notifications.latest) ? notifications.latest : []), [notifications.latest]);
+    const [unreadCount, setUnreadCount] = useState(Number(notifications.unread_count || 0));
+    const [latest, setLatest] = useState(Array.isArray(notifications.latest) ? notifications.latest : []);
 
     const chat = usePage().props.chat || {};
     const company = usePage().props?.auth?.company || null;
@@ -25,6 +25,52 @@ export default function Authenticated({ user, header, children, contentClassName
     const conversationIds = useMemo(() => (Array.isArray(chat.conversation_ids) ? chat.conversation_ids : []), [chat.conversation_ids]);
     const [chatUnreadCount, setChatUnreadCount] = useState(initialChatUnreadCount);
     const { play: playNotificationSound, unlock: unlockNotificationSound } = useNotificationSound(true);
+
+    useEffect(() => {
+        setUnreadCount(Number(notifications.unread_count || 0));
+        setLatest(Array.isArray(notifications.latest) ? notifications.latest : []);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [notifications.unread_count, Array.isArray(notifications.latest) ? notifications.latest.length : 0]);
+
+    // Realtime system notifications (bell dropdown).
+    useEffect(() => {
+        const echo = window.Echo;
+        const myId = Number(user?.id);
+        if (!echo || !myId) return;
+
+        const channelName = `App.Models.User.${myId}`;
+        const channel = echo.private(channelName);
+
+        const handler = (e) => {
+            const n = e?.notification;
+            if (!n) return;
+
+            setUnreadCount((prev) => {
+                const next = Number(e?.unread_count);
+                return Number.isFinite(next) && next >= 0 ? next : prev + 1;
+            });
+
+            setLatest((prev) => {
+                const next = [n, ...(Array.isArray(prev) ? prev : [])]
+                    .filter(Boolean)
+                    .filter((item, idx, arr) => arr.findIndex((x) => x?.id === item?.id) === idx)
+                    .slice(0, 5);
+                return next;
+            });
+        };
+
+        channel.listen('.NotificationCreated', handler);
+
+        return () => {
+            try {
+                channel.stopListening('.NotificationCreated');
+                echo.leave(channelName);
+            } catch {
+                // ignore
+            }
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?.id]);
 
     useEffect(() => {
         setChatUnreadCount(initialChatUnreadCount);

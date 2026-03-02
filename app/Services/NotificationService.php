@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\NotificationCreated;
 use App\Models\CrewlyNotification;
 use App\Models\Employee;
 use App\Models\EmployeeDocument;
@@ -243,6 +244,31 @@ class NotificationService extends Service
             ['user_id' => (int) $userId],
             'Notification created.'
         );
+
+        // Best-effort realtime broadcast (Reverb/Echo). Should not break the request if broadcasting is disabled.
+        try {
+            $unreadCount = CrewlyNotification::query()
+                ->where('user_id', (int) $userId)
+                ->where('company_id', (int) $companyId)
+                ->whereNull('read_at')
+                ->count();
+
+            $payload = [
+                'id' => (int) $created->id,
+                'type' => (string) $created->type,
+                'title' => (string) $created->title,
+                'body' => $created->body,
+                'url' => $created->url,
+                'severity' => (string) $created->severity,
+                'read_at' => $created->read_at ? $created->read_at->format('Y-m-d H:i:s') : null,
+                'created_at' => $created->created_at ? $created->created_at->format('Y-m-d H:i:s') : null,
+                'created_at_human' => $created->created_at ? $created->created_at->diffForHumans() : null,
+            ];
+
+            broadcast(new NotificationCreated((int) $userId, $payload, (int) $unreadCount));
+        } catch (\Throwable $e) {
+            // ignore
+        }
 
         return $created;
     }
