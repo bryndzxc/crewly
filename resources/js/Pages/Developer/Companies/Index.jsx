@@ -146,9 +146,26 @@ export default function Index() {
                 <div className="text-sm text-slate-700">{company.is_active ? 'Yes' : 'No'}</div>
               </td>
               <td className="px-4 py-3 text-right whitespace-nowrap">
-                <SecondaryButton type="button" onClick={() => router.get(route('developer.companies.show', company.id))}>
-                  View
-                </SecondaryButton>
+                <div className="flex justify-end gap-2">
+                  {company.is_demo ? (
+                    <SecondaryButton
+                      type="button"
+                      onClick={() => {
+                        if (!confirm(`Convert '${company.name}' from demo to a real account? This will delete demo data (employees, incidents, notes, memos, leaves, applicants, documents, etc.) for this company.`)) {
+                          return;
+                        }
+
+                        router.post(route('developer.companies.convert_from_demo', company.id), {}, { preserveScroll: true });
+                      }}
+                    >
+                      Convert to real
+                    </SecondaryButton>
+                  ) : null}
+
+                  <SecondaryButton type="button" onClick={() => router.get(route('developer.companies.show', company.id))}>
+                    View
+                  </SecondaryButton>
+                </div>
               </td>
             </tr>
           )}

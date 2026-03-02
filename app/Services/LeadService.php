@@ -8,11 +8,43 @@ use App\Models\CrewlyNotification;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class LeadService extends Service
 {
     public function submit(LeadCreateData $dto, ?string $actorEmail = null): Lead
     {
+        $submittedEmail = Str::lower(trim((string) ($dto->email ?? '')));
+        if ($submittedEmail !== '') {
+            // If a real user already exists, treat this as a login issue rather than a new lead.
+            if (User::withTrashed()->where('email', $submittedEmail)->exists()) {
+                throw ValidationException::withMessages([
+                    'email' => 'An account with this email already exists. Please log in instead.',
+                ]);
+            }
+
+            $existing = Lead::query()
+                ->where('email', $submittedEmail)
+                ->orderByDesc('id')
+                ->first();
+
+            if ($existing) {
+                $status = (string) ($existing->status ?? Lead::STATUS_PENDING);
+
+                if ($status === Lead::STATUS_PENDING) {
+                    throw ValidationException::withMessages([
+                        'email' => 'You have already requested access. Please wait for approval.',
+                    ]);
+                }
+
+                if ($status === Lead::STATUS_APPROVED) {
+                    throw ValidationException::withMessages([
+                        'email' => 'Your request has already been approved. Please check your email for login details.',
+                    ]);
+                }
+            }
+        }
+
         /** @var Lead $lead */
         $lead = Lead::create($dto->toCreateAttributes());
 

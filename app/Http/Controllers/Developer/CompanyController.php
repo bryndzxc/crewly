@@ -72,4 +72,21 @@ class CompanyController extends Controller
             ->with('success', "User '{$user->email}' added to '{$company->name}'.")
             ->setStatusCode(303);
     }
+
+    public function convertFromDemo(Company $company): RedirectResponse
+    {
+        try {
+            $this->developerCompanyService->convertDemoCompanyToReal($company);
+
+            return redirect()
+                ->back()
+                ->with('success', "Converted '{$company->name}' to a real account and cleared demo data.")
+                ->setStatusCode(303);
+        } catch (\Throwable $e) {
+            return redirect()
+                ->back()
+                ->with('error', $e->getMessage())
+                ->setStatusCode(303);
+        }
+    }
 }

@@ -20,6 +20,31 @@ class DeveloperCompanyService extends Service
     {
     }
 
+    public function convertDemoCompanyToReal(Company $company): void
+    {
+        if (!(bool) ($company->is_demo ?? false)) {
+            throw new \RuntimeException('Company is not a demo company.');
+        }
+
+        DB::transaction(function () use ($company) {
+            app(DemoCompanyCleanupService::class)->purgeCompanyData(
+                (int) $company->id,
+                (string) $company->slug,
+                [
+                    'delete_users' => false,
+                    'delete_leads' => false,
+                    'preserve_leave_types' => true,
+                    'preserve_memo_templates' => true,
+                ]
+            );
+
+            $company->forceFill([
+                'is_demo' => false,
+                'is_active' => true,
+            ])->save();
+        });
+    }
+
     public function index(Request $request): array
     {
         $perPage = (int) $request->query('per_page', 10);

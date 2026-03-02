@@ -75,4 +75,29 @@ class LeadSubmissionTest extends TestCase
 
         Mail::assertNotSent(NewLeadSubmitted::class);
     }
+
+    public function test_lead_submission_blocks_duplicate_pending_request_for_same_email(): void
+    {
+        $payload = [
+            'full_name' => 'Juan Dela Cruz',
+            'company_name' => 'ACME Logistics',
+            'email' => 'juan@example.com',
+            'phone' => '09171234567',
+            'company_size' => '11-50',
+            'message' => 'Please show incident workflow.',
+            'source_page' => '/demo',
+        ];
+
+        $this->from('/demo')->post('/leads', $payload)
+            ->assertStatus(303)
+            ->assertRedirect('/demo')
+            ->assertSessionHas('success');
+
+        $this->assertSame(1, (int) \App\Models\Lead::query()->where('email', 'juan@example.com')->count());
+
+        $this->from('/demo')->post('/leads', $payload)
+            ->assertSessionHasErrors(['email']);
+
+        $this->assertSame(1, (int) \App\Models\Lead::query()->where('email', 'juan@example.com')->count());
+    }
 }

@@ -11,6 +11,7 @@ Route::middleware(['auth', 'ensure.developer'])->prefix('developer')->name('deve
     Route::post('companies', [CompanyController::class, 'store'])->name('companies.store');
     Route::get('companies/{company}', [CompanyController::class, 'show'])->name('companies.show');
     Route::post('companies/{company}/users', [CompanyController::class, 'storeUser'])->name('companies.users.store');
+    Route::post('companies/{company}/convert-from-demo', [CompanyController::class, 'convertFromDemo'])->name('companies.convert_from_demo');
 
     Route::get('feedback', [FeedbackController::class, 'index'])->name('feedback.index');
 
