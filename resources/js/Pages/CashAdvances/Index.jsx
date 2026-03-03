@@ -5,7 +5,7 @@ import Badge from '@/Components/UI/Badge';
 import Card from '@/Components/UI/Card';
 import PageHeader from '@/Components/UI/PageHeader';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 function fullName(employee) {
     const parts = [employee?.first_name, employee?.middle_name, employee?.last_name, employee?.suffix]
@@ -33,6 +33,7 @@ export default function Index({ auth, cashAdvances, employees = [], filters = {}
     const [summaryYear, setSummaryYear] = useState(filters.summary_year ?? new Date().getFullYear());
     const [summaryMonth, setSummaryMonth] = useState(filters.summary_month ?? new Date().getMonth() + 1);
     const [isLoading, setIsLoading] = useState(false);
+    const didInit = useRef(false);
 
     const items = cashAdvances?.data ?? [];
 
@@ -64,6 +65,11 @@ export default function Index({ auth, cashAdvances, employees = [], filters = {}
     }, []);
 
     useEffect(() => {
+        if (!didInit.current) {
+            didInit.current = true;
+            return;
+        }
+
         const handler = setTimeout(() => {
             router.get(
                 route('cash_advances.index'),

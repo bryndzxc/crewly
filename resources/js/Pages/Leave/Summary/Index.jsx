@@ -3,7 +3,7 @@ import SecondaryButton from '@/Components/SecondaryButton';
 import TextInput from '@/Components/TextInput';
 import Table from '@/Components/Table';
 import { Head, router } from '@inertiajs/react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 function fullName(employee) {
     const parts = [employee?.first_name, employee?.middle_name, employee?.last_name, employee?.suffix]
@@ -36,6 +36,7 @@ export default function Index({ auth, summary, leaveTypes = [], filters = {} }) 
     const [leaveTypeId, setLeaveTypeId] = useState(filters.leave_type_id ?? '');
     const [perPage, setPerPage] = useState(filters.per_page ?? 25);
     const [isLoading, setIsLoading] = useState(false);
+    const didInit = useRef(false);
 
     const rows = summary?.data ?? [];
 
@@ -76,6 +77,11 @@ export default function Index({ auth, summary, leaveTypes = [], filters = {} }) 
     }, []);
 
     useEffect(() => {
+        if (!didInit.current) {
+            didInit.current = true;
+            return;
+        }
+
         const handler = setTimeout(() => {
             router.get(
                 route('leave.summary.index'),
