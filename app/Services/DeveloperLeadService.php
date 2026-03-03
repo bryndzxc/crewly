@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Mail\DemoAccountApproved;
+use App\Models\CashAdvance;
+use App\Models\CashAdvanceDeduction;
 use App\Models\Company;
 use App\Models\Department;
 use App\Models\Employee;
@@ -21,6 +23,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
@@ -216,6 +219,104 @@ class DeveloperLeadService extends Service
         $this->seedNotes($company, $employees, $createdByUser);
         $this->seedMemosWithAttachedPdfs($company, $employees, $incidents, $createdByUser);
         $this->seedLeaves($company, $employees, $createdByUser);
+        $this->seedCashAdvances($company, $employees, $createdByUser);
+    }
+
+    /**
+     * @param  array<int, Employee>  $employees
+     */
+    private function seedCashAdvances(Company $company, array $employees, User $createdByUser): void
+    {
+        if (!Schema::hasTable('cash_advances') || !Schema::hasTable('cash_advance_deductions')) {
+            return;
+        }
+
+        $companyId = (int) $company->id;
+
+        $e0 = $employees[0] ?? null;
+        if (!$e0) {
+            return;
+        }
+
+        $e1 = $employees[1] ?? $e0;
+        $e2 = $employees[2] ?? $e0;
+
+        $today = Carbon::today();
+
+        // Approved + partially paid (active).
+        $active = CashAdvance::withoutCompanyScope()->create([
+            'company_id' => $companyId,
+            'employee_id' => (int) $e0->employee_id,
+            'amount' => 5000,
+            'reason' => 'Emergency cash advance (sample data).',
+            'requested_at' => $today->copy()->subDays(12)->toDateString(),
+            'status' => CashAdvance::STATUS_APPROVED,
+            'requested_by' => (int) $createdByUser->id,
+            'approved_by' => (int) $createdByUser->id,
+            'approved_at' => $today->copy()->subDays(10)->startOfDay(),
+            'decision_remarks' => 'Approved for payroll deduction (seeded for demo).',
+            'installment_amount' => 1000,
+            'installments_count' => 5,
+        ]);
+
+        CashAdvanceDeduction::withoutCompanyScope()->create([
+            'company_id' => $companyId,
+            'cash_advance_id' => (int) $active->id,
+            'deducted_at' => $today->copy()->subDays(7)->toDateString(),
+            'amount' => 1000,
+            'notes' => 'Payroll deduction (sample).',
+            'payroll_run_id' => null,
+            'created_by' => (int) $createdByUser->id,
+        ]);
+
+        // Pending request (employee-side view sample).
+        CashAdvance::withoutCompanyScope()->create([
+            'company_id' => $companyId,
+            'employee_id' => (int) $e1->employee_id,
+            'amount' => 2500,
+            'reason' => 'Medical expense advance request (sample data).',
+            'requested_at' => $today->copy()->subDays(3)->toDateString(),
+            'status' => CashAdvance::STATUS_PENDING,
+            'requested_by' => (int) $createdByUser->id,
+        ]);
+
+        // Completed (fully paid) sample.
+        $completed = CashAdvance::withoutCompanyScope()->create([
+            'company_id' => $companyId,
+            'employee_id' => (int) $e2->employee_id,
+            'amount' => 3000,
+            'reason' => 'Uniform + tools (sample data).',
+            'requested_at' => $today->copy()->subDays(40)->toDateString(),
+            'status' => CashAdvance::STATUS_COMPLETED,
+            'requested_by' => (int) $createdByUser->id,
+            'approved_by' => (int) $createdByUser->id,
+            'approved_at' => $today->copy()->subDays(38)->startOfDay(),
+            'decision_remarks' => 'Approved and fully repaid (seeded for demo).',
+            'installment_amount' => 1500,
+            'installments_count' => 2,
+            'completed_by' => (int) $createdByUser->id,
+            'completed_at' => $today->copy()->subDays(8)->endOfDay(),
+        ]);
+
+        CashAdvanceDeduction::withoutCompanyScope()->create([
+            'company_id' => $companyId,
+            'cash_advance_id' => (int) $completed->id,
+            'deducted_at' => $today->copy()->subDays(30)->toDateString(),
+            'amount' => 1500,
+            'notes' => 'Payroll deduction (sample).',
+            'payroll_run_id' => null,
+            'created_by' => (int) $createdByUser->id,
+        ]);
+
+        CashAdvanceDeduction::withoutCompanyScope()->create([
+            'company_id' => $companyId,
+            'cash_advance_id' => (int) $completed->id,
+            'deducted_at' => $today->copy()->subDays(15)->toDateString(),
+            'amount' => 1500,
+            'notes' => 'Payroll deduction (sample).',
+            'payroll_run_id' => null,
+            'created_by' => (int) $createdByUser->id,
+        ]);
     }
 
     /**

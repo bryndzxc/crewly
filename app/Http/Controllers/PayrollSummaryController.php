@@ -79,6 +79,7 @@ class PayrollSummaryController extends Controller
                 'Late (mins)',
                 'Undertime (mins)',
                 'Overtime (mins)',
+                'Cash Advance Deductions',
             ]);
 
             foreach ($rows as $r) {
@@ -93,6 +94,7 @@ class PayrollSummaryController extends Controller
                     (int) ($r['late_minutes'] ?? 0),
                     (int) ($r['undertime_minutes'] ?? 0),
                     (int) ($r['overtime_minutes'] ?? 0),
+                    number_format((float) ($r['cash_advance_deductions'] ?? 0), 2, '.', ''),
                 ]);
             }
 

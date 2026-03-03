@@ -54,7 +54,7 @@ export default function PayrollSummaryIndex({
         <AuthenticatedLayout user={auth.user} header="Payroll Summary" contentClassName="max-w-none">
             <Head title="Payroll Summary" />
 
-            <PageHeader title="Payroll Summary" subtitle="Payroll input report (attendance + leave totals)." />
+            <PageHeader title="Payroll Summary" subtitle="Payroll input report (attendance + leave + cash advance deductions totals)." />
 
             <div className="w-full space-y-4">
                 {!!flash?.success && (
@@ -127,12 +127,13 @@ export default function PayrollSummaryIndex({
                                     <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Late</th>
                                     <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Undertime</th>
                                     <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Overtime</th>
+                                    <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Cash Advance</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-200 bg-white">
                                 {items.length === 0 && (
                                     <tr>
-                                        <td className="px-4 py-10" colSpan={10}>
+                                        <td className="px-4 py-10" colSpan={11}>
                                             <div className="mx-auto max-w-xl rounded-2xl border border-amber-200/60 bg-amber-50/40 p-6">
                                                 <div className="text-sm font-semibold text-slate-900">No data</div>
                                                 <div className="mt-1 text-sm text-slate-600">Generate a report to see results.</div>
@@ -153,6 +154,7 @@ export default function PayrollSummaryIndex({
                                         <td className="px-4 py-3 text-sm text-right text-slate-700 tabular-nums">{r.late_minutes}</td>
                                         <td className="px-4 py-3 text-sm text-right text-slate-700 tabular-nums">{r.undertime_minutes}</td>
                                         <td className="px-4 py-3 text-sm text-right text-slate-700 tabular-nums">{r.overtime_minutes}</td>
+                                        <td className="px-4 py-3 text-sm text-right text-slate-700 tabular-nums">{Number(r.cash_advance_deductions || 0).toFixed(2)}</td>
                                     </tr>
                                 ))}
                             </tbody>

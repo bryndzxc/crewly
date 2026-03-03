@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\AttendanceRecord;
+use App\Models\CashAdvanceDeduction;
 use App\Models\Company;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
@@ -27,6 +28,7 @@ class PayrollSummaryService extends Service
 
         $attendance = $this->attendanceRecords($employeeIds, $fromDate, $toDate);
         $leaves = $this->approvedLeaveDaysMap($employeeIds, $fromDate, $toDate);
+        $cashAdvanceDeductions = $this->cashAdvanceDeductionsSumMap($employeeIds, $fromDate, $toDate);
 
         $rows = [];
         $totals = [
@@ -38,6 +40,7 @@ class PayrollSummaryService extends Service
             'late_minutes' => 0,
             'undertime_minutes' => 0,
             'overtime_minutes' => 0,
+            'cash_advance_deductions' => 0,
         ];
 
         foreach ($employees as $employee) {
@@ -99,6 +102,8 @@ class PayrollSummaryService extends Service
 
             $workedHours = round($workedMinutes / 60, 2);
 
+            $cashAdvanceDeducted = (float) ($cashAdvanceDeductions[$employeeId] ?? 0);
+
             $rows[] = [
                 'employee_id' => $employeeId,
                 'employee_code' => $employee->employee_code,
@@ -112,6 +117,7 @@ class PayrollSummaryService extends Service
                 'late_minutes' => $lateMinutes,
                 'undertime_minutes' => $undertimeMinutes,
                 'overtime_minutes' => $overtimeMinutes,
+                'cash_advance_deductions' => $cashAdvanceDeducted,
             ];
 
             $totals['employees']++;
@@ -122,6 +128,7 @@ class PayrollSummaryService extends Service
             $totals['late_minutes'] += $lateMinutes;
             $totals['undertime_minutes'] += $undertimeMinutes;
             $totals['overtime_minutes'] += $overtimeMinutes;
+            $totals['cash_advance_deductions'] += $cashAdvanceDeducted;
         }
 
         $totals['worked_hours'] = round(((int) $totals['worked_minutes']) / 60, 2);
@@ -223,6 +230,41 @@ class PayrollSummaryService extends Service
                 $map[$employeeId][$day] = true;
                 $cursor->addDay();
             }
+        }
+
+        return $map;
+    }
+
+    /**
+     * Sum cash advance deductions per employee within the selected period.
+     *
+     * @param array<int, int> $employeeIds
+     * @return array<int, float>
+     */
+    private function cashAdvanceDeductionsSumMap(array $employeeIds, string $fromDate, string $toDate): array
+    {
+        if (count($employeeIds) === 0) {
+            return [];
+        }
+
+        $items = CashAdvanceDeduction::query()
+            ->from('cash_advance_deductions')
+            ->join('cash_advances', 'cash_advances.id', '=', 'cash_advance_deductions.cash_advance_id')
+            ->whereColumn('cash_advances.company_id', 'cash_advance_deductions.company_id')
+            ->whereIn('cash_advances.employee_id', $employeeIds)
+            ->whereBetween('cash_advance_deductions.deducted_at', [$fromDate, $toDate])
+            ->selectRaw('cash_advances.employee_id as employee_id, SUM(cash_advance_deductions.amount) as total_amount')
+            ->groupBy('cash_advances.employee_id')
+            ->get();
+
+        $map = [];
+        foreach ($items as $row) {
+            $employeeId = (int) ($row->employee_id ?? 0);
+            if ($employeeId <= 0) {
+                continue;
+            }
+
+            $map[$employeeId] = (float) ($row->total_amount ?? 0);
         }
 
         return $map;

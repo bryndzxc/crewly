@@ -28,7 +28,7 @@ class DemoRequestController extends Controller
 
             return redirect()
                 ->back()
-                ->with('success', "Approved. Created demo company '{$company->name}', seeded sample data, and emailed login details.")
+                ->with('success', "Approved. Created demo company '{$company->name}', seeded sample data (including cash advances), and emailed login details.")
                 ->setStatusCode(303);
         } catch (\Throwable $e) {
             return redirect()
