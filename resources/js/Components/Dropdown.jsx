@@ -43,12 +43,16 @@ const Content = ({ align = 'right', width = '48', contentClasses = 'py-1 bg-whit
 
     let widthClasses = '';
 
+    // Special-case wide dropdowns (e.g. notifications) to be viewport-safe on mobile.
+    // On small screens, anchor to the viewport with insets; on sm+ keep existing anchored positioning.
+    const isWide = width === '96';
+
     if (width === '48') {
         widthClasses = 'w-48';
     }
 
     if (width === '96') {
-        widthClasses = 'w-96';
+        widthClasses = 'sm:w-96';
     }
 
     return (
@@ -64,7 +68,11 @@ const Content = ({ align = 'right', width = '48', contentClasses = 'py-1 bg-whit
                 leaveTo="opacity-0 scale-95"
             >
                 <div
-                    className={`absolute z-50 mt-2 rounded-md shadow-lg ${alignmentClasses} ${widthClasses}`}
+                    className={`${
+                        isWide
+                            ? `fixed z-50 left-2 right-2 top-16 mt-2 rounded-md shadow-lg sm:absolute sm:left-auto sm:right-0 ${alignmentClasses} ${widthClasses}`
+                            : `absolute z-50 mt-2 rounded-md shadow-lg ${alignmentClasses} ${widthClasses}`
+                    }`}
                     onClick={() => setOpen(false)}
                 >
                     <div className={`rounded-md ring-1 ring-black ring-opacity-5 ` + contentClasses}>{children}</div>

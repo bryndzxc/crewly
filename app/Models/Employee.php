@@ -220,6 +220,11 @@ class Employee extends Model
         return $this->hasMany(EmployeeIncident::class, 'employee_id', 'employee_id');
     }
 
+    public function cashAdvances(): HasMany
+    {
+        return $this->hasMany(CashAdvance::class, 'employee_id', 'employee_id');
+    }
+
     /**
      * @return array<string, mixed>
      */

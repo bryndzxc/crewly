@@ -16,6 +16,7 @@ class AuthServiceProvider extends ServiceProvider
     protected $policies = [
         \App\Models\LeaveType::class => \App\Policies\LeaveTypePolicy::class,
         \App\Models\LeaveRequest::class => \App\Policies\LeaveRequestPolicy::class,
+        \App\Models\CashAdvance::class => \App\Policies\CashAdvancePolicy::class,
         \App\Models\Conversation::class => \App\Policies\ConversationPolicy::class,
     ];
 
@@ -179,6 +180,18 @@ class AuthServiceProvider extends ServiceProvider
         ], true));
 
         Gate::define('export-payroll-summary', fn (User $user) => in_array($user->role(), [
+            User::ROLE_ADMIN,
+            User::ROLE_HR,
+        ], true));
+
+        // Cash Advances (Authorization to Deduct)
+        Gate::define('access-cash-advances', fn (User $user) => in_array($user->role(), [
+            User::ROLE_ADMIN,
+            User::ROLE_HR,
+            User::ROLE_MANAGER,
+        ], true));
+
+        Gate::define('manage-cash-advances', fn (User $user) => in_array($user->role(), [
             User::ROLE_ADMIN,
             User::ROLE_HR,
         ], true));

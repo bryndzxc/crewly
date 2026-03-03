@@ -23,6 +23,7 @@ Route::group([], base_path('routes/modules/account.php'));
 Route::group([], base_path('routes/modules/leaves.php'));
 Route::group([], base_path('routes/modules/attendance.php'));
 Route::group([], base_path('routes/modules/payroll.php'));
+Route::group([], base_path('routes/modules/cash_advances.php'));
 Route::group([], base_path('routes/modules/audit_logs.php'));
 Route::group([], base_path('routes/modules/notifications.php'));
 Route::group([], base_path('routes/modules/my.php'));

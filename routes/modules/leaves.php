@@ -2,10 +2,15 @@
 
 use App\Http\Controllers\LeaveRequestApprovalController;
 use App\Http\Controllers\LeaveRequestController;
+use App\Http\Controllers\LeaveSummaryController;
 use App\Http\Controllers\LeaveTypeController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'ensure.company', 'can:access-leaves'])->group(function () {
+    Route::get('/leave/summary', [LeaveSummaryController::class, 'index'])->name('leave.summary.index');
+    Route::get('/leave/summary/data', [LeaveSummaryController::class, 'data'])->name('leave.summary.data');
+    Route::get('/leave/summary/export', [LeaveSummaryController::class, 'export'])->name('leave.summary.export');
+
     Route::get('/leave/requests', [LeaveRequestController::class, 'index'])->name('leave.requests.index');
     Route::get('/leave/requests/create', [LeaveRequestController::class, 'create'])
         ->middleware('can:create,App\\Models\\LeaveRequest')

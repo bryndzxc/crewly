@@ -254,17 +254,93 @@ export default function Sidebar({ chatUnreadCount: chatUnreadCountProp = null })
         return state;
     });
 
-    const topLinks = visibleNavigation.filter((i) => i.type === 'link');
-    const groups = visibleNavigation.filter((i) => i.type === 'group');
+    const coreItems = visibleNavigation.filter((i) => i.type === 'link' || (i.type === 'group' && i.section === 'core'));
+    const settingsGroups = visibleNavigation.filter((i) => i.type === 'group' && i.section !== 'core');
 
     return (
         <div className="px-3 py-5">
             <nav className="space-y-4">
-                {topLinks.length > 0 && (
+                {coreItems.length > 0 && (
                     <div>
                         <div className="px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Core</div>
                         <div className="mt-2 space-y-1">
-                            {topLinks.map((item) => {
+                            {coreItems.map((item) => {
+                                if (item.type === 'group') {
+                                    const open = Boolean(openGroups[item.label]);
+                                    const groupActive = (item.children || []).some((c) => isActive(url, c.activePatterns));
+
+                                    return (
+                                        <div key={item.label} className="rounded-xl">
+                                            <button
+                                                type="button"
+                                                onClick={() => setOpenGroups((prev) => ({ ...prev, [item.label]: !open }))}
+                                                className={
+                                                    'w-full flex items-center justify-between gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition ' +
+                                                    (groupActive
+                                                        ? 'bg-amber-50 text-slate-900 ring-1 ring-amber-200'
+                                                        : 'text-slate-700 hover:bg-amber-50/60 hover:text-slate-900')
+                                                }
+                                            >
+                                                <span className="flex items-center gap-3 min-w-0">
+                                                    <span
+                                                        className={
+                                                            'shrink-0 ' +
+                                                            (groupActive
+                                                                ? 'text-amber-600'
+                                                                : 'text-slate-400 group-hover:text-amber-600')
+                                                        }
+                                                        aria-hidden="true"
+                                                    >
+                                                        <Icon name={item.iconKey} className="h-5 w-5" />
+                                                    </span>
+                                                    <span className="truncate">{item.label}</span>
+                                                </span>
+                                                <Chevron open={open} />
+                                            </button>
+
+                                            {open && (
+                                                <div className="mt-2 space-y-1 pl-3">
+                                                    {(item.children || []).map((child) => {
+                                                        const active = isActive(url, child.activePatterns);
+
+                                                        return (
+                                                            <Link
+                                                                key={child.routeName}
+                                                                href={route(child.routeName)}
+                                                                className={
+                                                                    'group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition ' +
+                                                                    (active
+                                                                        ? 'bg-amber-50 text-slate-900 ring-1 ring-amber-200'
+                                                                        : 'text-slate-700 hover:bg-amber-50/60 hover:text-slate-900')
+                                                                }
+                                                            >
+                                                                <span
+                                                                    className={
+                                                                        'shrink-0 ' +
+                                                                        (active
+                                                                            ? 'text-amber-600'
+                                                                            : 'text-slate-400 group-hover:text-amber-600')
+                                                                    }
+                                                                    aria-hidden="true"
+                                                                >
+                                                                    <Icon name={child.iconKey} className="h-5 w-5" />
+                                                                </span>
+                                                                <span className="truncate">{child.label}</span>
+                                                                {active && (
+                                                                    <span
+                                                                        className="ml-auto h-2 w-2 rounded-full bg-amber-500"
+                                                                        aria-hidden="true"
+                                                                    />
+                                                                )}
+                                                            </Link>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                }
+
                                 const active = isActive(url, item.activePatterns);
                                 const isChat = item.routeName === 'chat.index';
                                 const showChatBadge = isChat && chatUnreadCount > 0;
@@ -309,11 +385,11 @@ export default function Sidebar({ chatUnreadCount: chatUnreadCountProp = null })
                     </div>
                 )}
 
-                {groups.length > 0 && (
+                {settingsGroups.length > 0 && (
                     <div>
                         <div className="px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Settings</div>
                         <div className="mt-2 space-y-2">
-                            {groups.map((item) => {
+                            {settingsGroups.map((item) => {
                                 const open = Boolean(openGroups[item.label]);
                                 const groupActive = (item.children || []).some((c) => isActive(url, c.activePatterns));
 

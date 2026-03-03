@@ -147,6 +147,8 @@ class HandleInertiaRequests extends Middleware
                 'manageAttendance' => $user ? Gate::forUser($user)->check('manage-attendance') : false,
                 'accessPayrollSummary' => $user ? Gate::forUser($user)->check('access-payroll-summary') : false,
                 'exportPayrollSummary' => $user ? Gate::forUser($user)->check('export-payroll-summary') : false,
+                'accessCashAdvances' => $user ? Gate::forUser($user)->check('access-cash-advances') : false,
+                'manageCashAdvances' => $user ? Gate::forUser($user)->check('manage-cash-advances') : false,
                 'viewAuditLogs' => $user ? Gate::forUser($user)->check('view-audit-logs') : false,
             ],
         ];
