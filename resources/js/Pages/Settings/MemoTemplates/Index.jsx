@@ -3,6 +3,7 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import Modal from '@/Components/Modal';
 import RichTextEditor from '@/Components/RichTextEditor';
+import EmptyState from '@/Components/UI/EmptyState';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { useEffect } from 'react';
 
@@ -99,7 +100,12 @@ export default function Index({ auth, templates = [], modal = null }) {
                                 {items.length === 0 && (
                                     <tr>
                                         <td colSpan={4} className="px-4 py-10 text-center text-sm text-slate-600">
-                                            No templates yet.
+                                            <EmptyState
+                                                title="No memo templates yet"
+                                                description="Create a template to generate consistent HR memo PDFs faster."
+                                                actionLabel="Create memo template"
+                                                actionHref={route('settings.memo_templates.create')}
+                                            />
                                         </td>
                                     </tr>
                                 )}

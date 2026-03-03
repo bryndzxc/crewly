@@ -9,6 +9,7 @@ import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import TextInput from '@/Components/TextInput';
 import DangerButton from '@/Components/DangerButton';
+import EmptyState from '@/Components/UI/EmptyState';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -53,7 +54,15 @@ export default function Index({ auth, types, filters = {} }) {
     };
 
     const emptyState = useMemo(() => {
-        if (typeItems.length === 0) return 'No leave types yet.';
+        if (typeItems.length === 0)
+            return (
+                <EmptyState
+                    title="No leave types yet"
+                    description="Add a leave type (e.g., VL/SL) so leave requests can be filed and approved."
+                    actionLabel="Add leave type"
+                    onAction={() => setCreateOpen(true)}
+                />
+            );
         return null;
     }, [typeItems.length]);
 

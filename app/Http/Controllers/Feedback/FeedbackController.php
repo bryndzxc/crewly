@@ -16,6 +16,7 @@ class FeedbackController extends Controller
     {
         return Inertia::render('Feedback/Create', [
             'pageUrl' => $request->fullUrl(),
+            'prefillMessage' => (string) $request->query('message', ''),
         ]);
     }
 

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Repositories\DashboardRepository;
+use App\Services\OnboardingChecklistService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Gate;
@@ -11,6 +12,7 @@ class DashboardService extends Service
 {
     public function __construct(
         private readonly DashboardRepository $dashboardRepository,
+        private readonly OnboardingChecklistService $onboardingChecklistService,
     ) {}
 
     public function data(Request $request): array
@@ -69,6 +71,8 @@ class DashboardService extends Service
             $attendanceUnmarkedTodayTop5 = $this->dashboardRepository->attendanceUnmarkedTodayTopPayload($today, 5);
         }
 
+        $onboardingChecklist = $this->onboardingChecklistService->forUser($user);
+
         return [
             'employees_count' => $employeesCount,
             'expiring_30_count' => $expiring30Count,
@@ -87,6 +91,8 @@ class DashboardService extends Service
             'can_manage_attendance' => $canManageAttendance,
             'attendance_unmarked_today_count' => $attendanceUnmarkedTodayCount,
             'attendance_unmarked_today_top5' => $attendanceUnmarkedTodayTop5,
+            'onboarding_checklist' => $onboardingChecklist,
         ];
     }
 }
+

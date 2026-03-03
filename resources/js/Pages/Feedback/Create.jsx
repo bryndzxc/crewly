@@ -4,10 +4,10 @@ import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import { Head, useForm, usePage } from '@inertiajs/react';
 
-export default function FeedbackCreate({ auth, pageUrl = '' }) {
+export default function FeedbackCreate({ auth, pageUrl = '', prefillMessage = '' }) {
     const flash = usePage().props.flash || {};
     const { data, setData, post, processing, errors } = useForm({
-        message: '',
+        message: String(prefillMessage || ''),
         page_url: String(pageUrl || window.location?.href || ''),
     });
 

@@ -3,6 +3,7 @@ import Card from '@/Components/UI/Card';
 import PageHeader from '@/Components/UI/PageHeader';
 import StatCard from '@/Components/UI/StatCard';
 import Badge from '@/Components/UI/Badge';
+import OnboardingChecklistCard from '@/Components/OnboardingChecklistCard';
 import { Head, Link } from '@inertiajs/react';
 
 function fullName(employee) {
@@ -32,6 +33,7 @@ export default function Dashboard({
     can_manage_attendance = false,
     attendance_unmarked_today_count = 0,
     attendance_unmarked_today_top5 = [],
+    onboarding_checklist = null,
 }) {
     const isDemo = Boolean(auth?.company?.is_demo);
     const demoCompanyName = String(auth?.company?.name || '').trim();
@@ -176,6 +178,8 @@ export default function Dashboard({
             )}
 
             <PageHeader title="Dashboard" subtitle="Your people operations snapshot." />
+
+            <OnboardingChecklistCard auth={auth} checklist={onboarding_checklist} />
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
                 {stats.map((stat) => (

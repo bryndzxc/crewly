@@ -45,6 +45,8 @@ class ChatController extends Controller
         $user = $request->user();
         abort_unless($user, 401);
 
+        $prefillMessage = trim((string) $request->query('message', ''));
+
         $conversations = $this->listConversationsFor($user);
         $selectedId = (int) $request->input('conversation_id', 0);
         $selected = $selectedId > 0 ? Conversation::query()->find($selectedId) : null;
@@ -64,6 +66,49 @@ class ChatController extends Controller
             'messages' => $selectedPayload ? $selectedPayload['messages'] : [],
             'hasMore' => $selectedPayload ? $selectedPayload['has_more'] : false,
             'dmUsers' => $this->dmUserListFor($user),
+            'prefillMessage' => $prefillMessage,
+        ]);
+    }
+
+    public function support(Request $request)
+    {
+        $user = $request->user();
+        abort_unless($user, 401);
+
+        $message = trim((string) $request->query('message', ''));
+        if ($message === '') {
+            $message = 'Hi! I need help completing the Quick Setup checklist.';
+        }
+
+        $developerEmails = array_values(array_filter(array_map(
+            static fn ($v) => strtolower(trim((string) $v)),
+            (array) config('app.developer_emails', [])
+        )));
+
+        $developer = null;
+        if (count($developerEmails) > 0) {
+            $developer = User::query()
+                ->whereIn('email', $developerEmails)
+                ->orderBy('id')
+                ->first();
+        }
+
+        if (!$developer) {
+            $developer = User::query()->find(1);
+        }
+
+        abort_unless($developer, 404);
+        abort_unless((int) $developer->id !== (int) $user->id, 404);
+
+        if (!$this->canStartDm($user, $developer)) {
+            abort(403);
+        }
+
+        $conversation = $this->chatDmService->openOrCreate($user, $developer);
+
+        return redirect()->route('chat.index', [
+            'conversation_id' => $conversation->id,
+            'message' => $message,
         ]);
     }
 
@@ -355,7 +400,16 @@ class ChatController extends Controller
         }
 
         // Allow any company user to DM developer/support accounts.
-        if ($other->isDeveloper()) {
+        $developerEmails = array_values(array_filter(array_map(
+            static fn ($v) => strtolower(trim((string) $v)),
+            (array) config('app.developer_emails', [])
+        )));
+        $otherEmail = strtolower(trim((string) ($other->email ?? '')));
+
+        if (
+            $other->isDeveloper()
+            || ($otherEmail !== '' && count($developerEmails) > 0 && in_array($otherEmail, $developerEmails, true))
+        ) {
             return in_array($actor->role(), [User::ROLE_ADMIN, User::ROLE_HR, User::ROLE_MANAGER], true);
         }
 

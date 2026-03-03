@@ -5,6 +5,7 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import TextInput from '@/Components/TextInput';
 import Table from '@/Components/Table';
+import EmptyState from '@/Components/UI/EmptyState';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -133,7 +134,15 @@ export default function Index({ auth, employees, departments = [], filters = {} 
 
     const emptyState = useMemo(() => {
         if (employeeItems.length === 0 && (query ?? '') !== '') return 'No employees match your search.';
-        if (employeeItems.length === 0) return 'No employees yet.';
+        if (employeeItems.length === 0)
+            return (
+                <EmptyState
+                    title="No employees yet"
+                    description="Add your first employee to start using HR modules."
+                    actionLabel="Add your first employee"
+                    actionHref={route('employees.create')}
+                />
+            );
         return null;
     }, [employeeItems.length, query]);
 

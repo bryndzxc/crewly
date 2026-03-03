@@ -7,6 +7,7 @@ import TextInput from '@/Components/TextInput';
 import Table from '@/Components/Table';
 import DepartmentCreate from '@/Pages/Departments/Create';
 import DepartmentEdit from '@/Pages/Departments/Edit';
+import EmptyState from '@/Components/UI/EmptyState';
 import { Head, router } from '@inertiajs/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -140,7 +141,15 @@ export default function Index({ auth, departments, filters = {} }) {
 
     const emptyState = useMemo(() => {
         if (departmentItems.length === 0 && (query ?? '') !== '') return 'No departments match your search.';
-        if (departmentItems.length === 0) return 'No departments yet.';
+        if (departmentItems.length === 0)
+            return (
+                <EmptyState
+                    title="No departments yet"
+                    description="Create a department to organize employees by team/unit."
+                    actionLabel="Create department"
+                    onAction={openCreate}
+                />
+            );
         return null;
     }, [departmentItems.length, query]);
 

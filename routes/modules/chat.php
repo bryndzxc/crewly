@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'ensure.company_or_developer'])->prefix('chat')->group(function () {
     Route::get('/', [ChatController::class, 'index'])->name('chat.index');
+    Route::get('/support', [ChatController::class, 'support'])->name('chat.support');
     Route::get('/unread-count', [ChatController::class, 'unreadCount'])->name('chat.unread_count');
     Route::get('/conversations/{id}', [ChatController::class, 'show'])->whereNumber('id')->name('chat.conversations.show');
     Route::post('/dm', [ChatController::class, 'createOrOpenDm'])->name('chat.dm');

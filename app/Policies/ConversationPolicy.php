@@ -7,6 +7,21 @@ use App\Models\User;
 
 class ConversationPolicy
 {
+    private function isSupportEmail(string $email): bool
+    {
+        $email = strtolower(trim($email));
+        if ($email === '') {
+            return false;
+        }
+
+        $developerEmails = array_values(array_filter(array_map(
+            static fn ($v) => strtolower(trim((string) $v)),
+            (array) config('app.developer_emails', [])
+        )));
+
+        return count($developerEmails) > 0 && in_array($email, $developerEmails, true);
+    }
+
     /**
      * @return array{base:string,company_id:int}|null
      */
@@ -73,7 +88,7 @@ class ConversationPolicy
         $other = $conversation
             ->users()
             ->where('users.id', '!=', $user->id)
-            ->select(['users.id', 'users.company_id'])
+            ->select(['users.id', 'users.company_id', 'users.email'])
             ->first();
 
         if (!$other) {
@@ -81,7 +96,7 @@ class ConversationPolicy
         }
 
         // Allow any participant to view DMs with developer/support accounts.
-        if ($other->isDeveloper()) {
+        if ($other->isDeveloper() || $this->isSupportEmail((string) ($other->email ?? ''))) {
             return true;
         }
 
@@ -124,7 +139,7 @@ class ConversationPolicy
         }
 
         // Allow cross-company messaging only when DMing developer/support accounts.
-        if (!$user->isDeveloper() && $other->isDeveloper()) {
+        if (!$user->isDeveloper() && ($other->isDeveloper() || $this->isSupportEmail((string) ($other->email ?? '')))) {
             return in_array($user->role(), [User::ROLE_ADMIN, User::ROLE_HR, User::ROLE_MANAGER], true);
         }
 

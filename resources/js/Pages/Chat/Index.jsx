@@ -23,14 +23,15 @@ function isNearBottom(el, thresholdPx = 160) {
     return remaining < thresholdPx;
 }
 
-export default function ChatIndex({ auth, crewly, conversations = [], selectedConversation, messages: initialMessages = [], hasMore = false, dmUsers = [] }) {
+export default function ChatIndex({ auth, crewly, conversations = [], selectedConversation, messages: initialMessages = [], hasMore = false, dmUsers = [], prefillMessage = '' }) {
     const [query, setQuery] = useState('');
     const [items, setItems] = useState(Array.isArray(conversations) ? conversations : []);
     const [active, setActive] = useState(selectedConversation || null);
     const [messages, setMessages] = useState(Array.isArray(initialMessages) ? initialMessages : []);
     const [hasMoreState, setHasMoreState] = useState(Boolean(hasMore));
     const [loading, setLoading] = useState(false);
-    const [composer, setComposer] = useState('');
+    const [composer, setComposer] = useState(String(prefillMessage || ''));
+    const didApplyPrefillRef = useRef(false);
     const [showDmModal, setShowDmModal] = useState(false);
     const [dmSearch, setDmSearch] = useState('');
     const [startingDm, setStartingDm] = useState(false);
@@ -57,6 +58,14 @@ export default function ChatIndex({ auth, crewly, conversations = [], selectedCo
         setMessages(Array.isArray(initialMessages) ? initialMessages : []);
         setHasMoreState(Boolean(hasMore));
     }, [selectedConversation?.id, hasMore]);
+
+    useEffect(() => {
+        const msg = String(prefillMessage || '').trim();
+        if (!msg) return;
+        if (didApplyPrefillRef.current) return;
+        didApplyPrefillRef.current = true;
+        setComposer((prev) => (String(prev || '').trim() ? prev : msg));
+    }, [prefillMessage]);
 
     const channels = useMemo(() => items.filter((c) => c.type === 'CHANNEL'), [items]);
     const dms = useMemo(() => items.filter((c) => c.type === 'DM'), [items]);

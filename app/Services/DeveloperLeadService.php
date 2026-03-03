@@ -368,7 +368,8 @@ class DeveloperLeadService extends Service
         foreach ($types as $type) {
             LeaveType::withoutCompanyScope()->updateOrCreate(
                 ['company_id' => $companyId, 'code' => $type['code']],
-                array_merge($type, ['company_id' => $companyId, 'created_by' => (int) $createdByUser->id])
+                // Seeded demo data should not count as a user-completed onboarding action.
+                array_merge($type, ['company_id' => $companyId, 'created_by' => null])
             );
         }
 
@@ -518,7 +519,8 @@ class DeveloperLeadService extends Service
                     'regularization_date' => now()->addDays(60)->toDateString(),
                     'employment_type' => 'Full-Time',
                     'notes' => null,
-                    'created_by' => (int) $createdByUser->id,
+                    // Seeded demo data should not count as a user-completed onboarding action.
+                    'created_by' => null,
                 ]);
 
                 $i++;
@@ -701,7 +703,8 @@ HTML;
                                 'body_html' => $nteBody,
                                 'is_active' => true,
                                 'is_system' => false,
-                                'created_by_user_id' => (int) $createdByUser->id,
+                        // Seeded demo data should not count as a user-completed onboarding action.
+                        'created_by_user_id' => null,
                         ]
                 );
 
@@ -715,7 +718,8 @@ HTML;
                                 'body_html' => $warningBody,
                                 'is_active' => true,
                                 'is_system' => false,
-                                'created_by_user_id' => (int) $createdByUser->id,
+                        // Seeded demo data should not count as a user-completed onboarding action.
+                        'created_by_user_id' => null,
                         ]
                 );
 
