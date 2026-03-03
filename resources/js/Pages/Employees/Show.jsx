@@ -356,6 +356,10 @@ export default function Show({
                                     <div className="mt-1 text-sm font-medium text-gray-900">{employee?.employment_type ?? '-'}</div>
                                 </div>
                                 <div>
+                                    <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Monthly Rate</div>
+                                    <div className="mt-1 text-sm font-medium text-gray-900">{employee?.monthly_rate ?? '0.00'}</div>
+                                </div>
+                                <div>
                                     <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Email</div>
                                     <div className="mt-1 text-sm font-medium text-gray-900">{employee?.email ?? '-'}</div>
                                 </div>

@@ -19,6 +19,8 @@ class StoreFeedbackRequest extends FormRequest
         return [
             'message' => ['required', 'string', 'min:5', 'max:4000'],
             'page_url' => ['nullable', 'string', 'max:255'],
+            'attachments' => ['nullable', 'array', 'max:5'],
+            'attachments.*' => ['file', 'mimetypes:image/jpeg,image/png,image/webp,image/gif', 'max:5120'],
         ];
     }
 }

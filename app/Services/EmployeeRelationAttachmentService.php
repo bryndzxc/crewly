@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\EmployeeIncident;
 use App\Models\EmployeeNote;
 use App\Models\EmployeeRelationAttachment;
+use App\Models\Feedback;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -84,6 +85,7 @@ class EmployeeRelationAttachmentService extends Service
         return match (true) {
             $attachable instanceof EmployeeNote => 'note',
             $attachable instanceof EmployeeIncident => 'incident',
+            $attachable instanceof Feedback => 'feedback',
             default => throw new \InvalidArgumentException('Unsupported attachable type.'),
         };
     }

@@ -39,7 +39,7 @@ export default function Demo() {
                         <LeadForm sourcePage="/demo" />
                         <div className="mt-4 text-xs text-slate-500">
                             Looking for pricing? See{' '}
-                            <Link href={route('public.pricing')} className="font-semibold text-amber-800 hover:text-amber-900">
+                               <Link href={route('pricing.index')} className="font-semibold text-amber-800 hover:text-amber-900">
                                 /pricing
                             </Link>
                             .

@@ -39,12 +39,46 @@ class DeveloperLeadService extends Service
      */
     public function index(Request $request): array
     {
+        return $this->indexDemoRequests($request);
+    }
+
+    /**
+     * @return array{filters:array{per_page:int},leads:mixed}
+     */
+    public function indexDemoRequests(Request $request): array
+    {
+        // Backwards compatibility: older demo requests may have lead_type = NULL.
+        return $this->indexForLeadType($request, Lead::TYPE_DEMO, includeNullType: true);
+    }
+
+    /**
+     * @return array{filters:array{per_page:int},leads:mixed}
+     */
+    public function indexAccessRequests(Request $request): array
+    {
+        return $this->indexForLeadType($request, Lead::TYPE_ACCESS, includeNullType: false);
+    }
+
+    /**
+     * @return array{filters:array{per_page:int},leads:mixed}
+     */
+    private function indexForLeadType(Request $request, string $leadType, bool $includeNullType): array
+    {
         $perPage = (int) $request->query('per_page', 10);
         if (!in_array($perPage, [10, 25, 50, 100], true)) {
             $perPage = 10;
         }
 
-        $leads = Lead::query()
+        $query = Lead::query();
+        if ($includeNullType) {
+            $query->where(function ($q) use ($leadType) {
+                $q->whereNull('lead_type')->orWhere('lead_type', $leadType);
+            });
+        } else {
+            $query->where('lead_type', $leadType);
+        }
+
+        $leads = $query
             ->orderByDesc('created_at')
             ->paginate($perPage)
             ->withQueryString();
@@ -58,10 +92,16 @@ class DeveloperLeadService extends Service
                 'email' => (string) ($lead->email ?? ''),
                 'phone' => (string) ($lead->phone ?? ''),
                 'company_size' => (string) ($lead->company_size ?? ''),
+                'employee_count_range' => (string) ($lead->employee_count_range ?? ''),
+                'requested_plan' => (string) ($lead->requested_plan ?? ''),
+                'industry' => (string) ($lead->industry ?? ''),
+                'current_process' => (string) ($lead->current_process ?? ''),
+                'biggest_pain' => (string) ($lead->biggest_pain ?? ''),
                 'message' => (string) ($lead->message ?? ''),
                 'status' => (string) ($lead->status ?? Lead::STATUS_PENDING),
                 'company_id' => $lead->company_id ? (int) $lead->company_id : null,
                 'user_id' => $lead->user_id ? (int) $lead->user_id : null,
+                'lead_type' => (string) ($lead->lead_type ?? ''),
             ])
         );
 
@@ -75,6 +115,11 @@ class DeveloperLeadService extends Service
 
     public function approve(Lead $lead): Company
     {
+        $leadType = (string) ($lead->lead_type ?? Lead::TYPE_DEMO);
+        if ($leadType !== '' && $leadType !== Lead::TYPE_DEMO) {
+            throw new \RuntimeException('This request is not a demo request.');
+        }
+
         /** @var string $status */
         $status = (string) ($lead->status ?? Lead::STATUS_PENDING);
         if ($status === Lead::STATUS_APPROVED && $lead->company_id) {
@@ -148,10 +193,125 @@ class DeveloperLeadService extends Service
 
     public function decline(Lead $lead): void
     {
+        $leadType = (string) ($lead->lead_type ?? Lead::TYPE_DEMO);
+        if ($leadType !== '' && $leadType !== Lead::TYPE_DEMO) {
+            throw new \RuntimeException('This request is not a demo request.');
+        }
+
         /** @var string $status */
         $status = (string) ($lead->status ?? Lead::STATUS_PENDING);
         if ($status !== Lead::STATUS_PENDING) {
             throw new \RuntimeException('This demo request is already processed.');
+        }
+
+        $lead->forceFill([
+            'status' => Lead::STATUS_DECLINED,
+            'declined_at' => now(),
+            'approved_at' => null,
+            'company_id' => null,
+            'user_id' => null,
+        ])->save();
+    }
+
+    public function approveAccessRequest(Lead $lead): Company
+    {
+        $leadType = (string) ($lead->lead_type ?? '');
+        if ($leadType !== Lead::TYPE_ACCESS) {
+            throw new \RuntimeException('This request is not an access request.');
+        }
+
+        /** @var string $status */
+        $status = (string) ($lead->status ?? Lead::STATUS_PENDING);
+        if ($status === Lead::STATUS_APPROVED && $lead->company_id) {
+            /** @var Company $company */
+            $company = Company::query()->findOrFail($lead->company_id);
+
+            return $company;
+        }
+
+        if ($status !== Lead::STATUS_PENDING) {
+            throw new \RuntimeException('This access request is already processed.');
+        }
+
+        $email = strtolower(trim((string) ($lead->email ?? '')));
+        if ($email === '') {
+            throw new \RuntimeException('Access request is missing an email.');
+        }
+
+        if (User::withTrashed()->where('email', $email)->exists()) {
+            throw new \RuntimeException('A user with this email already exists.');
+        }
+
+        $result = DB::transaction(function () use ($lead) {
+            $companyName = trim((string) ($lead->company_name ?? ''));
+            if ($companyName === '') {
+                $companyName = 'New Company';
+            }
+
+            $requestedPlan = strtolower(trim((string) ($lead->requested_plan ?? '')));
+            if (!in_array($requestedPlan, [Company::PLAN_STARTER, Company::PLAN_GROWTH, Company::PLAN_PRO], true)) {
+                $requestedPlan = Company::PLAN_STARTER;
+            }
+
+            $maxEmployees = match ($requestedPlan) {
+                Company::PLAN_GROWTH => 50,
+                Company::PLAN_PRO => 100,
+                default => 20,
+            };
+
+            $companyAttributes = [
+                'name' => $companyName,
+                'slug' => $this->generateUniqueCompanySlug($companyName),
+                'timezone' => (string) config('app.timezone', 'Asia/Manila'),
+                'is_active' => true,
+                'is_demo' => false,
+                'plan_name' => $requestedPlan,
+                'max_employees' => $maxEmployees,
+            ];
+
+            $company = $this->companyRepository->createCompany($companyAttributes);
+
+            $passwordPlain = Str::random(16);
+
+            $user = $this->companyRepository->createUserForCompany($company, [
+                'name' => trim((string) ($lead->full_name ?? '')) ?: 'HR',
+                'email' => strtolower(trim((string) ($lead->email ?? ''))),
+                'role' => User::ROLE_HR,
+                'password' => Hash::make($passwordPlain),
+                'must_change_password' => true,
+                'email_verified_at' => now(),
+            ]);
+
+            $lead->forceFill([
+                'status' => Lead::STATUS_APPROVED,
+                'approved_at' => now(),
+                'declined_at' => null,
+                'company_id' => (int) $company->id,
+                'user_id' => (int) $user->id,
+            ])->save();
+
+            return [$company, $user, $passwordPlain];
+        });
+
+        /** @var array{0:Company,1:User,2:string} $result */
+        [$company, $user, $passwordPlain] = $result;
+
+        $this->sendAccessApprovalEmailBestEffort($company, $user, $passwordPlain);
+
+        return $company;
+    }
+
+    public function declineAccessRequest(Lead $lead): void
+    {
+        $leadType = (string) ($lead->lead_type ?? '');
+        if ($leadType !== Lead::TYPE_ACCESS) {
+            throw new \RuntimeException('This request is not an access request.');
+        }
+
+        /** @var string $status */
+        $status = (string) ($lead->status ?? Lead::STATUS_PENDING);
+        if ($status !== Lead::STATUS_PENDING) {
+            throw new \RuntimeException('This access request is already processed.');
         }
 
         $lead->forceFill([
@@ -193,6 +353,26 @@ class DeveloperLeadService extends Service
             ));
         } catch (\Throwable $e) {
             Log::warning('Failed sending demo approval email.', [
+                'company_id' => (int) $company->id,
+                'user_id' => (int) $user->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function sendAccessApprovalEmailBestEffort(Company $company, User $user, string $passwordPlain): void
+    {
+        try {
+            $loginUrl = rtrim((string) config('app.url', url('/')), '/').'/login';
+
+            Mail::to($user->email)->send(new \App\Mail\AccessAccountApproved(
+                company: $company,
+                user: $user,
+                passwordPlain: $passwordPlain,
+                loginUrl: $loginUrl,
+            ));
+        } catch (\Throwable $e) {
+            Log::warning('Failed sending access approval email.', [
                 'company_id' => (int) $company->id,
                 'user_id' => (int) $user->id,
                 'error' => $e->getMessage(),

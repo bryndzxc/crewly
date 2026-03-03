@@ -5,6 +5,7 @@ import Dropdown from '@/Components/Dropdown';
 import { Link, router, usePage } from '@inertiajs/react';
 import axios from 'axios';
 import useNotificationSound from '@/hooks/useNotificationSound';
+import Badge from '@/Components/UI/Badge';
 
 export default function Authenticated({ user, header, children, contentClassName = 'max-w-7xl mx-auto' }) {
     const [showingSidebar, setShowingSidebar] = useState(false);
@@ -21,6 +22,7 @@ export default function Authenticated({ user, header, children, contentClassName
 
     const chat = usePage().props.chat || {};
     const company = usePage().props?.auth?.company || null;
+    const employeeUsage = usePage().props?.usage?.employees || null;
     const initialChatUnreadCount = Number(chat.unread_count || 0);
     const conversationIds = useMemo(() => (Array.isArray(chat.conversation_ids) ? chat.conversation_ids : []), [chat.conversation_ids]);
     const [chatUnreadCount, setChatUnreadCount] = useState(initialChatUnreadCount);
@@ -347,6 +349,58 @@ export default function Authenticated({ user, header, children, contentClassName
                         <Sidebar chatUnreadCount={chatUnreadCount} />
                     </div>
                 )}
+
+                {String(company?.subscription_status || '').toLowerCase() === 'past_due' ? (
+                    <div className="border-b border-amber-200 bg-amber-50">
+                        <div className="py-3 px-4 sm:px-6 lg:px-8 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="flex items-start gap-3">
+                                <Badge tone="amber">Past due</Badge>
+                                <div className="text-sm text-amber-900">
+                                    Billing is past due. Please coordinate payment to avoid suspension.
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                className="text-sm font-semibold text-amber-900 hover:text-amber-950"
+                                onClick={() => {
+                                    router.visit(
+                                        route('chat.support', {
+                                            message: "Hi! Our account is past due. Please send our invoice/payment details.",
+                                        })
+                                    );
+                                }}
+                            >
+                                Contact support
+                            </button>
+                        </div>
+                    </div>
+                ) : null}
+
+                {employeeUsage?.near_limit ? (
+                    <div className="border-b border-amber-200 bg-amber-50">
+                        <div className="py-3 px-4 sm:px-6 lg:px-8 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="flex items-start gap-3">
+                                <Badge tone="amber">Near limit</Badge>
+                                <div className="text-sm text-amber-900">
+                                    You're approaching your plan limit ({Number(employeeUsage?.used || 0)}/{Number(employeeUsage?.max || 0)} active employees).
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                className="text-sm font-semibold text-amber-900 hover:text-amber-950"
+                                onClick={() => {
+                                    router.visit(
+                                        route('chat.support', {
+                                            message: `Hi! We're nearing our plan limit (${Number(employeeUsage?.used || 0)}/${Number(employeeUsage?.max || 0)} active employees). Please help us upgrade.`,
+                                        })
+                                    );
+                                }}
+                            >
+                                Upgrade
+                            </button>
+                        </div>
+                    </div>
+                ) : null}
 
                 <main className="flex-1 bg-slate-50">
                     <div className="py-8 px-4 sm:px-6 lg:px-8">

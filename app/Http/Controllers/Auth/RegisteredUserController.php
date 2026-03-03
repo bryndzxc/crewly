@@ -3,26 +3,32 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\DTO\LeadCreateData;
+use App\Http\Requests\StoreAccessRequestRequest;
 use App\Models\Company;
-use App\Models\User;
-use App\Providers\RouteServiceProvider;
-use Illuminate\Auth\Events\Registered;
+use App\Services\LeadService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class RegisteredUserController extends Controller
 {
+    public function __construct(private readonly LeadService $leadService)
+    {
+    }
+
     /**
      * Display the registration view.
      */
-    public function create(): Response
+    public function create(Request $request): Response
     {
-        return Inertia::render('Auth/Register');
+        $plan = strtolower(trim((string) $request->query('plan', '')));
+        $allowed = [Company::PLAN_STARTER, Company::PLAN_GROWTH, Company::PLAN_PRO];
+
+        return Inertia::render('Auth/Register', [
+            'requested_plan_default' => in_array($plan, $allowed, true) ? $plan : '',
+        ]);
     }
 
     /**
@@ -30,34 +36,17 @@ class RegisteredUserController extends Controller
      *
      * @throws \Illuminate\Validation\ValidationException
      */
-    public function store(Request $request): RedirectResponse
+    public function store(StoreAccessRequestRequest $request): RedirectResponse
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
-        ]);
+        $validated = $request->validated();
+        $validated['source_page'] = $validated['source_page'] ?? 'register';
 
-        $defaultCompany = Company::query()->firstOrCreate(
-            ['slug' => 'default-company'],
-            [
-                'name' => 'Default Company',
-                'timezone' => (string) config('app.timezone', 'Asia/Manila'),
-                'is_active' => true,
-            ]
-        );
+        $dto = LeadCreateData::fromArray($validated);
+        $this->leadService->submitAccessRequest($dto, $request->user()?->email);
 
-        $user = User::create([
-            'company_id' => (int) $defaultCompany->id,
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
-
-        event(new Registered($user));
-
-        Auth::login($user);
-
-        return redirect(RouteServiceProvider::HOME);
+        return redirect()
+            ->route('register')
+            ->with('success', 'Thanks — we received your request. We’ll email you once your access is approved.')
+            ->setStatusCode(303);
     }
 }

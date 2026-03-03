@@ -171,7 +171,7 @@ export const navigation = [
     },
     {
         type: 'link',
-        label: 'Feedback',
+        label: 'Concerns',
         routeName: 'feedback.create',
         iconKey: 'settings',
         activePatterns: ['/feedback'],
@@ -226,6 +226,14 @@ export const navigation = [
         iconKey: 'lock',
         children: [
             {
+                label: 'Admin Billing',
+                routeName: 'admin.billing.companies.index',
+                iconKey: 'lock',
+                activePatterns: ['/admin/billing'],
+                ability: 'accessDeveloper',
+                roles: ['admin', 'hr', 'manager', 'employee'],
+            },
+            {
                 label: 'Audit Logs',
                 routeName: 'developer.audit-logs.index',
                 iconKey: 'lock',
@@ -250,7 +258,15 @@ export const navigation = [
                 roles: ['admin', 'hr', 'manager', 'employee'],
             },
             {
-                label: 'Feedback',
+                label: 'Access requests',
+                routeName: 'developer.access_requests.index',
+                iconKey: 'lock',
+                activePatterns: ['/developer/access-requests'],
+                ability: 'accessDeveloper',
+                roles: ['admin', 'hr', 'manager', 'employee'],
+            },
+            {
+                label: 'Concerns',
                 routeName: 'developer.feedback.index',
                 iconKey: 'lock',
                 activePatterns: ['/developer/feedback'],

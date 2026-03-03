@@ -5,7 +5,86 @@ import Modal from '@/Components/Modal';
 import RichTextEditor from '@/Components/RichTextEditor';
 import EmptyState from '@/Components/UI/EmptyState';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+
+const TEMPLATE_PRESETS = [
+        {
+                id: 'nte',
+                label: 'Notice to Explain (NTE)',
+                name: 'Notice to Explain (NTE)',
+                slug: 'notice-to-explain',
+                description: 'Asks an employee to explain an incident.',
+                body_html: `
+<h2>Notice to Explain (NTE)</h2>
+<p><strong>Date:</strong> {{memo_date}}</p>
+<p><strong>To:</strong> {{employee_name}} ({{employee_id}}), {{employee_position}}</p>
+<p><strong>Company:</strong> {{company_name}}</p>
+<hr />
+<p>
+This is to inform you that an incident has been reported with the following details:
+</p>
+<ul>
+    <li><strong>Incident date:</strong> {{incident_date}}</li>
+    <li><strong>Category:</strong> {{incident_category}}</li>
+    <li><strong>Description:</strong> {{incident_description}}</li>
+</ul>
+<p>
+You are required to submit a written explanation within <strong>48 hours</strong> from receipt of this notice.
+</p>
+<p>
+Failure to submit your explanation within the given period may result in appropriate action based on company policy.
+</p>
+<p><strong>HR:</strong> {{hr_signatory_name}}</p>
+                `.trim(),
+        },
+        {
+                id: 'written-warning',
+                label: 'Written Warning',
+                name: 'Written Warning',
+                slug: 'written-warning',
+                description: 'Formal warning memo for a documented incident.',
+                body_html: `
+<h2>Written Warning</h2>
+<p><strong>Date:</strong> {{memo_date}}</p>
+<p><strong>Employee:</strong> {{employee_name}} ({{employee_id}})</p>
+<p><strong>Position:</strong> {{employee_position}}</p>
+<p><strong>Company:</strong> {{company_name}}</p>
+<hr />
+<p>
+This memo serves as a formal written warning regarding the incident below:
+</p>
+<ul>
+    <li><strong>Incident date:</strong> {{incident_date}}</li>
+    <li><strong>Category:</strong> {{incident_category}}</li>
+    <li><strong>Description:</strong> {{incident_description}}</li>
+</ul>
+<p>
+Please be reminded that you are expected to comply with company rules and standards. Repetition of similar incidents may lead to further disciplinary action.
+</p>
+<p><strong>HR:</strong> {{hr_signatory_name}}</p>
+                `.trim(),
+        },
+        {
+                id: 'incident-report',
+                label: 'Incident Report Summary',
+                name: 'Incident Report Summary',
+                slug: 'incident-report-summary',
+                description: 'Internal memo summarizing an incident for records.',
+                body_html: `
+<h2>Incident Report Summary</h2>
+<p><strong>Date:</strong> {{memo_date}}</p>
+<p><strong>Company:</strong> {{company_name}}</p>
+<hr />
+<p><strong>Employee:</strong> {{employee_name}} ({{employee_id}}), {{employee_position}}</p>
+<ul>
+    <li><strong>Incident date:</strong> {{incident_date}}</li>
+    <li><strong>Category:</strong> {{incident_category}}</li>
+    <li><strong>Description:</strong> {{incident_description}}</li>
+</ul>
+<p><strong>Prepared by:</strong> {{hr_signatory_name}}</p>
+                `.trim(),
+        },
+];
 
 export default function Index({ auth, templates = [], modal = null }) {
     const flash = usePage().props.flash;
@@ -14,6 +93,8 @@ export default function Index({ auth, templates = [], modal = null }) {
     const mode = modal?.mode || null;
     const editingTemplate = modal?.template || null;
     const showModal = mode === 'create' || mode === 'edit';
+
+    const [presetId, setPresetId] = useState('');
 
     const form = useForm({
         name: '',
@@ -26,6 +107,8 @@ export default function Index({ auth, templates = [], modal = null }) {
     useEffect(() => {
         if (!showModal) return;
 
+        setPresetId('');
+
         form.setData({
             name: editingTemplate?.name ?? '',
             slug: editingTemplate?.slug ?? '',
@@ -36,6 +119,20 @@ export default function Index({ auth, templates = [], modal = null }) {
         form.clearErrors();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [mode, editingTemplate?.id]);
+
+    const applyPreset = (nextPresetId) => {
+        const preset = TEMPLATE_PRESETS.find((p) => p.id === nextPresetId);
+        if (!preset) return;
+
+        form.setData({
+            ...form.data,
+            name: preset.name,
+            slug: preset.slug,
+            description: preset.description,
+            body_html: preset.body_html,
+        });
+        form.clearErrors();
+    };
 
     const toggle = (id) => {
         router.patch(route('settings.memo_templates.toggle', id), {}, { preserveScroll: true });
@@ -181,6 +278,32 @@ export default function Index({ auth, templates = [], modal = null }) {
                 </div>
 
                 <form onSubmit={submit} className="p-6 space-y-4">
+                    {mode === 'create' ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600">Template preset</label>
+                                <select
+                                    className="mt-1 w-full rounded-md border-slate-300 focus:border-amber-500 focus:ring-amber-500"
+                                    value={presetId}
+                                    onChange={(e) => {
+                                        const next = e.target.value;
+                                        setPresetId(next);
+                                        applyPreset(next);
+                                    }}
+                                >
+                                    <option value="">Custom (blank)</option>
+                                    {TEMPLATE_PRESETS.map((p) => (
+                                        <option key={p.id} value={p.id}>
+                                            {p.label}
+                                        </option>
+                                    ))}
+                                </select>
+                                <div className="mt-1 text-xs text-slate-500">Selecting a preset will overwrite the fields below.</div>
+                            </div>
+                            <div />
+                        </div>
+                    ) : null}
+
                     <div>
                         <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600">Name</label>
                         <input

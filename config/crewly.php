@@ -66,4 +66,13 @@ return [
         // Leave null in production and rely on reset/invite links instead.
         'default_password' => env('CREWLY_EMPLOYEE_DEFAULT_PASSWORD', null),
     ],
+
+    'billing' => [
+        // Default payment options used when a company has no billing notes yet.
+        // You can override these via env vars.
+        'account_name' => env('CREWLY_BILLING_ACCOUNT_NAME', ''),
+        'gcash_number' => env('CREWLY_BILLING_GCASH_NUMBER', '09298367446'),
+        'maya_number' => env('CREWLY_BILLING_MAYA_NUMBER', '09298367446'),
+        'bank_note' => env('CREWLY_BILLING_BANK_NOTE', 'Bank transfer: coming soon'),
+    ],
 ];

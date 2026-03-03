@@ -106,6 +106,8 @@ class ChatController extends Controller
 
         $conversation = $this->chatDmService->openOrCreate($user, $developer);
 
+        $request->session()->put('support_conversation_id', (int) $conversation->id);
+
         return redirect()->route('chat.index', [
             'conversation_id' => $conversation->id,
             'message' => $message,

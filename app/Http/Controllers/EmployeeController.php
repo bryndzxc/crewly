@@ -12,8 +12,11 @@ use App\Models\Memo;
 use App\Models\MemoTemplate;
 use App\Resources\EmployeeResource;
 use App\Services\EmployeeService;
+use App\Services\PlanLimitService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -50,12 +53,57 @@ class EmployeeController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(EmployeeRequest $request): RedirectResponse
+    public function store(EmployeeRequest $request, PlanLimitService $planLimitService): RedirectResponse
     {
-        
         $validated = $request->validated();
 
-        $this->employeeService->create($validated);
+        $user = $request->user();
+        $companyId = (int) ($user?->company_id ?? 0);
+
+        if ($companyId > 0 && $user && !$user->isDeveloper()) {
+            $usage = $planLimitService->employeeUsage($companyId);
+
+            if (($usage['max'] ?? 0) > 0 && (int) ($usage['used'] ?? 0) >= (int) ($usage['max'] ?? 0)) {
+                $max = (int) ($usage['max'] ?? 0);
+                $msg = "You've reached your plan limit of {$max} active employees. Set an employee to Inactive/Terminated/Resigned, or contact support to upgrade.";
+
+                session()->flash('error', $msg);
+                session()->flash('upgrade_url', route('chat.support', [
+                    'message' => "Hi! We reached our plan limit ({$max} active employees). Please help us upgrade.",
+                ]));
+                session()->flash('upgrade_label', 'Contact support to upgrade');
+
+                return back()->setStatusCode(303);
+            }
+        }
+
+        $portalCreatedNew = false;
+        $portalPasswordPlain = null;
+
+        try {
+            $employee = DB::transaction(function () use ($validated, &$portalCreatedNew, &$portalPasswordPlain) {
+                $result = $this->employeeService->createEmployeeAndPortalUser($validated);
+                $portalCreatedNew = (bool) ($result['portal_created_new'] ?? false);
+                $portalPasswordPlain = is_string($result['portal_password_plain'] ?? null) ? (string) $result['portal_password_plain'] : null;
+                return $result['employee'];
+            });
+
+            $this->employeeService->finalizeEmployeeCreation($employee, $validated, $portalCreatedNew, $portalPasswordPlain);
+        } catch (\Throwable $e) {
+            Log::warning('Employee create failed.', [
+                'company_id' => $companyId,
+                'user_id' => (int) ($user?->id ?? 0),
+                'error' => $e->getMessage(),
+            ]);
+
+            session()->flash('error', 'Could not create employee. Please verify the email is unique to your company, or contact support.');
+            session()->flash('upgrade_url', route('chat.support', [
+                'message' => 'Hi! We are having trouble creating an employee portal user. Can you help?',
+            ]));
+            session()->flash('upgrade_label', 'Contact support');
+
+            return back()->withInput()->setStatusCode(303);
+        }
 
         return to_route('employees.index')->setStatusCode(303);
     }
@@ -229,6 +277,7 @@ class EmployeeController extends Controller
             'status',
             'position_title',
             'employment_type',
+            'monthly_rate',
             'notes',
         ]);
 

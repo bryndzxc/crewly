@@ -45,6 +45,7 @@ export default function Create({ auth, departments = [], inModal = false, onCanc
         date_hired: '',
         regularization_date: '',
         employment_type: 'Full-Time',
+        monthly_rate: 0,
         notes: '',
 
         document_type: '',
@@ -204,7 +205,14 @@ export default function Create({ auth, departments = [], inModal = false, onCanc
                 )}
                 {!!flash?.error && (
                     <div className="mb-6 rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800">
-                        {flash.error}
+                        <div>{flash.error}</div>
+                        {!!flash?.upgrade_url && (
+                            <div className="mt-2">
+                                <Link href={flash.upgrade_url} className="font-semibold underline">
+                                    {flash?.upgrade_label || 'Upgrade'}
+                                </Link>
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -438,6 +446,21 @@ export default function Create({ auth, departments = [], inModal = false, onCanc
                                         onChange={(e) => setData('position_title', e.target.value)}
                                     />
                                     <InputError message={errors.position_title} className="mt-2" />
+                                </div>
+
+                                <div>
+                                    <InputLabel htmlFor="monthly_rate" value="Monthly Rate" />
+                                    <TextInput
+                                        id="monthly_rate"
+                                        name="monthly_rate"
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={data.monthly_rate}
+                                        className="mt-1 block w-full"
+                                        onChange={(e) => setData('monthly_rate', e.target.value)}
+                                    />
+                                    <InputError message={errors.monthly_rate} className="mt-2" />
                                 </div>
 
                                 <div className="grid grid-cols-1 gap-6 lg:gap-8 sm:grid-cols-2">

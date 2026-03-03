@@ -18,6 +18,7 @@ class AuthServiceProvider extends ServiceProvider
         \App\Models\LeaveRequest::class => \App\Policies\LeaveRequestPolicy::class,
         \App\Models\CashAdvance::class => \App\Policies\CashAdvancePolicy::class,
         \App\Models\Conversation::class => \App\Policies\ConversationPolicy::class,
+        \App\Models\Company::class => \App\Policies\CompanyBillingPolicy::class,
     ];
 
     /**

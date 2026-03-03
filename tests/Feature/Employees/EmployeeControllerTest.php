@@ -63,6 +63,7 @@ class EmployeeControllerTest extends TestCase
             'date_hired' => '2026-02-01',
             'regularization_date' => '2026-08-01',
             'employment_type' => 'Full-Time',
+            'monthly_rate' => 12345.67,
             'notes' => 'Test notes',
         ];
 
@@ -82,6 +83,7 @@ class EmployeeControllerTest extends TestCase
 
         $this->assertSame($payload['first_name'], $createdEmployee->first_name);
         $this->assertSame($payload['last_name'], $createdEmployee->last_name);
+        $this->assertSame('12345.67', $createdEmployee->monthly_rate);
 
         $this->assertDatabaseHas('activity_logs', [
             'actor_id' => auth()->id(),
@@ -163,6 +165,7 @@ class EmployeeControllerTest extends TestCase
         $payload = [
             'first_name' => 'Janet',
             'position_title' => 'Senior Developer',
+            'monthly_rate' => 999.99,
         ];
 
         $response = $this->patch("/employees/{$employee->employee_id}", $payload);
@@ -177,6 +180,7 @@ class EmployeeControllerTest extends TestCase
         ]);
 
         $this->assertSame('Janet', $employee->refresh()->first_name);
+        $this->assertSame('999.99', $employee->monthly_rate);
 
         $this->assertDatabaseHas('activity_logs', [
             'actor_id' => auth()->id(),

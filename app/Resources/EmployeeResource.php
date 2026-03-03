@@ -18,6 +18,7 @@ class EmployeeResource extends JsonResource
 			'employee_id' => $this->employee_id,
 			'department_id' => $this->department_id,
 			'employee_code' => $this->employee_code,
+			'monthly_rate' => $this->monthly_rate,
 			'has_photo' => (bool) $this->has_photo,
 			'photo_url' => $this->photo_url,
 			'first_name' => $this->first_name,

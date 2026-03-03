@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Public\LeadController;
 use App\Http\Controllers\Public\PublicPageController;
+use App\Http\Controllers\PricingController;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
@@ -61,8 +62,8 @@ Route::get('/storage-images/{filename}', function (string $filename) {
 Route::get('/', [PublicPageController::class, 'landing'])
     ->name('home');
 
-Route::get('/pricing', [PublicPageController::class, 'pricing'])
-    ->name('public.pricing');
+Route::get('/pricing', [PricingController::class, 'index'])
+    ->name('pricing.index');
 
 Route::get('/demo', [PublicPageController::class, 'demo'])
     ->name('public.demo');

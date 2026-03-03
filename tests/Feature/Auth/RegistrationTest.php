@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Http\Middleware\VerifyCsrfToken;
+use App\Models\Lead;
 use App\Providers\RouteServiceProvider;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -9,6 +11,13 @@ use Tests\TestCase;
 class RegistrationTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->withoutMiddleware(VerifyCsrfToken::class);
+    }
 
     public function test_registration_screen_can_be_rendered(): void
     {
@@ -20,13 +29,23 @@ class RegistrationTest extends TestCase
     public function test_new_users_can_register(): void
     {
         $response = $this->post('/register', [
-            'name' => 'Test User',
+            'full_name' => 'Test User',
+            'company_name' => 'Test Company',
             'email' => 'test@example.com',
-            'password' => 'password',
-            'password_confirmation' => 'password',
+            'phone' => '+63 900 000 0000',
+            'employee_count_range' => '1-20',
+            'industry' => 'Construction',
+            'current_process' => 'Mostly spreadsheets and paper forms.',
+            'biggest_pain' => 'Tracking employee incidents and attendance.',
         ]);
 
-        $this->assertAuthenticated();
-        $response->assertRedirect(RouteServiceProvider::HOME);
+        $this->assertGuest();
+        $response->assertRedirect('/register');
+
+        $this->assertDatabaseHas('leads', [
+            'email' => 'test@example.com',
+            'lead_type' => Lead::TYPE_ACCESS,
+            'status' => Lead::STATUS_PENDING,
+        ]);
     }
 }

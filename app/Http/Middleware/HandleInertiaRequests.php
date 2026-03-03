@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\ConversationParticipant;
+use App\Services\PlanLimitService;
 use App\Services\NotificationService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -70,14 +71,42 @@ class HandleInertiaRequests extends Middleware
                     ? $this->safeOnlyAttributes($user, ['id', 'name', 'email', 'role', 'company_id'])
                     : null,
                 'company' => fn () => $user && $user->company_id
-                    ? (($company = $user->company()->select(['id', 'name', 'slug', 'is_active', 'is_demo'])->first())
-                        ? $this->safeOnlyAttributes($company, ['id', 'name', 'slug', 'is_active', 'is_demo'])
+                    ? (($company = $user->company()->select([
+                        'id',
+                        'name',
+                        'slug',
+                        'is_active',
+                        'is_demo',
+                        'plan_name',
+                        'max_employees',
+                        'subscription_status',
+                        'trial_ends_at',
+                        'next_billing_at',
+                        'last_payment_at',
+                        'grace_days',
+                    ])->first())
+                        ? $this->safeOnlyAttributes($company, [
+                            'id',
+                            'name',
+                            'slug',
+                            'is_active',
+                            'is_demo',
+                            'plan_name',
+                            'max_employees',
+                            'subscription_status',
+                            'trial_ends_at',
+                            'next_billing_at',
+                            'last_payment_at',
+                            'grace_days',
+                        ])
                         : null)
                     : null,
             ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
+                'upgrade_url' => fn () => $request->session()->get('upgrade_url'),
+                'upgrade_label' => fn () => $request->session()->get('upgrade_label'),
             ],
         ];
 
@@ -87,6 +116,11 @@ class HandleInertiaRequests extends Middleware
 
         return [
             ...$base,
+            'usage' => [
+                'employees' => fn () => $user && $user->company_id
+                    ? app(PlanLimitService::class)->employeeUsage((int) $user->company_id)
+                    : null,
+            ],
             'chat' => [
                 'unread_count' => fn () => $user
                     ? ConversationParticipant::query()

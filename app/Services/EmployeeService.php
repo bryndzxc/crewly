@@ -65,29 +65,43 @@ class EmployeeService extends Service
      */
     public function create(array $validated): Employee
     {
-        $employeeData = EmployeeData::fromArray($validated);
-
-        $employee = DB::transaction(function () use ($employeeData) {
-            // return $this->employeeRepository->createEmployee($employeeData);
-            return $this->processEmployeeCreation($employeeData);
-        });
-
         $portalPasswordPlain = null;
         $portalCreatedNew = false;
 
-        try {
-            $linked = $this->employeePortalUserService->ensureLinkedWithPassword($employee);
-            $portalCreatedNew = (bool) ($linked['created_new'] ?? false);
-            $portalPasswordPlain = is_string($linked['password_plain'] ?? null) ? (string) $linked['password_plain'] : null;
-        } catch (\Throwable $e) {
-            Log::warning('Employee portal user auto-link failed.', [
-                'employee_id' => (int) $employee->employee_id,
-                'email' => (string) ($employee->email ?? ''),
-                'error' => $e->getMessage(),
-            ]);
-            session()->flash('error', 'Employee created, but the portal account could not be created automatically.');
-        }
+        /** @var Employee $employee */
+        $employee = DB::transaction(function () use ($validated, &$portalPasswordPlain, &$portalCreatedNew) {
+            $result = $this->createEmployeeAndPortalUser($validated);
+            $portalCreatedNew = (bool) ($result['portal_created_new'] ?? false);
+            $portalPasswordPlain = is_string($result['portal_password_plain'] ?? null) ? (string) $result['portal_password_plain'] : null;
+            return $result['employee'];
+        });
 
+        $this->finalizeEmployeeCreation($employee, $validated, $portalCreatedNew, $portalPasswordPlain);
+
+        return $employee;
+    }
+
+    /**
+     * @return array{employee:Employee,portal_created_new:bool,portal_password_plain:?string}
+     */
+    public function createEmployeeAndPortalUser(array $validated): array
+    {
+        $employeeData = EmployeeData::fromArray($validated);
+        $employee = $this->processEmployeeCreation($employeeData);
+
+        $linked = $this->employeePortalUserService->ensureLinkedWithPassword($employee);
+        $portalCreatedNew = (bool) ($linked['created_new'] ?? false);
+        $portalPasswordPlain = is_string($linked['password_plain'] ?? null) ? (string) $linked['password_plain'] : null;
+
+        return [
+            'employee' => $employee,
+            'portal_created_new' => $portalCreatedNew,
+            'portal_password_plain' => $portalPasswordPlain,
+        ];
+    }
+
+    public function finalizeEmployeeCreation(Employee $employee, array $validated, bool $portalCreatedNew, ?string $portalPasswordPlain): void
+    {
         $this->handleInitialDocumentsIfAny($employee, $validated);
         $this->handlePhotoIfAny($employee, $validated);
 
@@ -96,8 +110,6 @@ class EmployeeService extends Service
             $existing = (string) session()->get('success', 'Employee created successfully.');
             session()->flash('success', trim($existing . ' ' . $reminder));
         }
-
-        return $employee;
     }
 
     private function handlePhotoIfAny(Employee $employee, array $validated): void
@@ -364,6 +376,7 @@ class EmployeeService extends Service
             'date_hired',
             'regularization_date',
             'employment_type',
+            'monthly_rate',
             'notes',
         ]);
 

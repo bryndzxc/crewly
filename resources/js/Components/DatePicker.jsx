@@ -47,10 +47,26 @@ export default function DatePicker({ id, name, value, onChange, placeholder = 'd
         }
     }, [value]);
 
-    const monthLabel = useMemo(() => {
-        const dtf = new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' });
-        return dtf.format(viewMonth);
-    }, [viewMonth]);
+    const monthOptions = useMemo(() => {
+        const dtf = new Intl.DateTimeFormat(undefined, { month: 'long' });
+        return Array.from({ length: 12 }).map((_, idx) => ({
+            value: idx,
+            label: dtf.format(new Date(2000, idx, 1)),
+        }));
+    }, []);
+
+    const yearOptions = useMemo(() => {
+        const nowYear = new Date().getFullYear();
+        const anchorYear = selectedDate?.getFullYear() ?? nowYear;
+        const viewYear = viewMonth.getFullYear();
+
+        const startYear = Math.min(anchorYear, viewYear) - 80;
+        const endYear = Math.max(anchorYear, viewYear) + 10;
+
+        const years = [];
+        for (let y = startYear; y <= endYear; y++) years.push(y);
+        return years;
+    }, [selectedDate, viewMonth]);
 
     const days = useMemo(() => {
         const first = startOfMonth(viewMonth);
@@ -98,7 +114,39 @@ export default function DatePicker({ id, name, value, onChange, placeholder = 'd
                                 >
                                     ‹
                                 </button>
-                                <div className="text-sm font-semibold text-gray-900">{monthLabel}</div>
+                                <div className="flex items-center gap-2">
+                                    <select
+                                        className="rounded-md border border-gray-200 bg-white px-2 py-1 text-sm font-semibold text-gray-900 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30"
+                                        value={viewMonth.getMonth()}
+                                        onChange={(e) => {
+                                            const nextMonth = Number(e.target.value);
+                                            if (!Number.isFinite(nextMonth)) return;
+                                            setViewMonth((m) => new Date(m.getFullYear(), nextMonth, 1));
+                                        }}
+                                    >
+                                        {monthOptions.map((m) => (
+                                            <option key={m.value} value={m.value}>
+                                                {m.label}
+                                            </option>
+                                        ))}
+                                    </select>
+
+                                    <select
+                                        className="rounded-md border border-gray-200 bg-white px-2 py-1 text-sm font-semibold text-gray-900 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30"
+                                        value={viewMonth.getFullYear()}
+                                        onChange={(e) => {
+                                            const nextYear = Number(e.target.value);
+                                            if (!Number.isFinite(nextYear)) return;
+                                            setViewMonth((m) => new Date(nextYear, m.getMonth(), 1));
+                                        }}
+                                    >
+                                        {yearOptions.map((y) => (
+                                            <option key={y} value={y}>
+                                                {y}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
                                 <button
                                     type="button"
                                     className="rounded-md px-2 py-1 text-sm text-gray-600 hover:text-gray-900"

@@ -41,6 +41,13 @@ class EmployeeRequest extends FormRequest
         if ($this->has('last_name')) {
             $this->merge($this->buildNameIndexes('last_name', (string) $this->input('last_name')));
         }
+        
+        if ($this->exists('monthly_rate')) {
+            $raw = $this->input('monthly_rate');
+            if ($raw === '' || $raw === null) {
+                $this->merge(['monthly_rate' => 0]);
+            }
+        }
     }
 
     /**
@@ -158,6 +165,11 @@ class EmployeeRequest extends FormRequest
                 'nullable',
                 'string',
             ],
+            'monthly_rate' => [
+                'sometimes',
+                'numeric',
+                'min:0',
+            ],
             // Allow larger uploads; image is optimized before encryption anyway.
             'photo' => [$isCreate ? 'nullable' : 'sometimes', 'nullable', 'file', 'max:10240', 'mimes:jpg,jpeg,png'],
             // Client-side hint: used to detect when a selected photo fails to reach the server
@@ -222,6 +234,7 @@ class EmployeeRequest extends FormRequest
             'document_items.*.type' => 'Document Type',
             'document_items.*.issue_date' => 'Document Issue Date',
             'document_items.*.expiry_date' => 'Document Expiry Date',
+            'monthly_rate' => 'Monthly Rate',
         ];
     }
 

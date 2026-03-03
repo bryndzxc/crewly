@@ -12,8 +12,47 @@ use Illuminate\Validation\ValidationException;
 
 class LeadService extends Service
 {
-    public function submit(LeadCreateData $dto, ?string $actorEmail = null): Lead
+    public function submitDemoRequest(LeadCreateData $dto, ?string $actorEmail = null): Lead
     {
+        return $this->submitLead(
+            $dto,
+            leadType: Lead::TYPE_DEMO,
+            actorEmail: $actorEmail,
+            pendingMessage: 'You have already requested a demo. Please wait for approval.',
+            approvedMessage: 'Your demo request has already been approved. Please check your email for login details.',
+            notificationType: 'demo_request',
+            notificationTitle: 'New demo request',
+            notificationUrl: route('developer.demo_requests.index'),
+            ignoreEmailForNotifications: Str::lower((string) config('crewly.demo.email', 'demo@crewly.test')),
+        );
+    }
+
+    public function submitAccessRequest(LeadCreateData $dto, ?string $actorEmail = null): Lead
+    {
+        return $this->submitLead(
+            $dto,
+            leadType: Lead::TYPE_ACCESS,
+            actorEmail: $actorEmail,
+            pendingMessage: 'You have already requested access. Please wait for approval.',
+            approvedMessage: 'Your access request has already been approved. Please check your email for login details.',
+            notificationType: 'access_request',
+            notificationTitle: 'New access request',
+            notificationUrl: route('developer.access_requests.index'),
+            ignoreEmailForNotifications: null,
+        );
+    }
+
+    private function submitLead(
+        LeadCreateData $dto,
+        string $leadType,
+        ?string $actorEmail,
+        string $pendingMessage,
+        string $approvedMessage,
+        string $notificationType,
+        string $notificationTitle,
+        string $notificationUrl,
+        ?string $ignoreEmailForNotifications,
+    ): Lead {
         $submittedEmail = Str::lower(trim((string) ($dto->email ?? '')));
         if ($submittedEmail !== '') {
             // If a real user already exists, treat this as a login issue rather than a new lead.
@@ -23,95 +62,101 @@ class LeadService extends Service
                 ]);
             }
 
-            $existing = Lead::query()
-                ->where('email', $submittedEmail)
-                ->orderByDesc('id')
-                ->first();
+            $existingQuery = Lead::query()->where('email', $submittedEmail);
+            if ($leadType === Lead::TYPE_DEMO) {
+                // Backwards compatibility: older demo leads may have lead_type = NULL.
+                $existingQuery->where(function ($q) {
+                    $q->whereNull('lead_type')->orWhere('lead_type', Lead::TYPE_DEMO);
+                });
+            } else {
+                $existingQuery->where('lead_type', $leadType);
+            }
+
+            $existing = $existingQuery->orderByDesc('id')->first();
 
             if ($existing) {
                 $status = (string) ($existing->status ?? Lead::STATUS_PENDING);
 
                 if ($status === Lead::STATUS_PENDING) {
                     throw ValidationException::withMessages([
-                        'email' => 'You have already requested access. Please wait for approval.',
+                        'email' => $pendingMessage,
                     ]);
                 }
 
                 if ($status === Lead::STATUS_APPROVED) {
                     throw ValidationException::withMessages([
-                        'email' => 'Your request has already been approved. Please check your email for login details.',
+                        'email' => $approvedMessage,
                     ]);
                 }
             }
         }
 
+        $createAttributes = $dto->toCreateAttributes();
+        $createAttributes['lead_type'] = $leadType;
+
         /** @var Lead $lead */
-        $lead = Lead::create($dto->toCreateAttributes());
+        $lead = Lead::create($createAttributes);
 
+        // In-app developer notification (bell icon) for new requests.
+        if (config('app.developer_bypass', false)) {
+            $developerEmails = array_values(array_filter(array_map(
+                fn ($v) => Str::lower(trim((string) $v)),
+                (array) config('app.developer_emails', [])
+            )));
 
+            if (count($developerEmails) > 0) {
+                $leadEmail = Str::lower((string) ($lead->email ?? ''));
+                $actorEmail = Str::lower((string) ($actorEmail ?? ''));
 
+                // Avoid noisy notifications when seeding/testing with a known ignored email.
+                $shouldIgnore = $ignoreEmailForNotifications !== null
+                    && $ignoreEmailForNotifications !== ''
+                    && ($leadEmail === $ignoreEmailForNotifications || $actorEmail === $ignoreEmailForNotifications);
 
-            // In-app developer notification (bell icon) for new demo requests.
-            if (config('app.developer_bypass', false)) {
-                $developerEmails = array_values(array_filter(array_map(
-                    fn ($v) => Str::lower(trim((string) $v)),
-                    (array) config('app.developer_emails', [])
-                )));
+                if (!$shouldIgnore) {
+                    $devUsers = User::query()
+                        ->whereIn('email', $developerEmails)
+                        ->get(['id', 'company_id', 'email']);
 
-                if (count($developerEmails) > 0) {
-                    $demoEmail = Str::lower((string) config('crewly.demo.email', 'demo@crewly.test'));
-                    $submittedEmail = Str::lower((string) ($lead->email ?? ''));
-                    $actorEmail = Str::lower((string) ($actorEmail ?? ''));
+                    if ($devUsers->count() === 0) {
+                        Log::warning('Lead saved but no developer users found for configured developer_emails.', [
+                            'lead_id' => (int) $lead->id,
+                        ]);
+                    }
 
-                    // Avoid noisy notifications when seeding/testing with the demo account.
-                    $isDemo = $demoEmail !== ''
-                        && ($submittedEmail === $demoEmail || $actorEmail === $demoEmail);
+                    $body = trim(implode(' — ', array_values(array_filter([
+                        trim((string) ($lead->company_name ?? '')),
+                        trim((string) ($lead->full_name ?? '')),
+                        trim((string) ($lead->email ?? '')),
+                    ]))));
 
-                    if (!$isDemo) {
-                        $devUsers = User::query()
-                            ->whereIn('email', $developerEmails)
-                            ->get(['id', 'company_id', 'email']);
+                    $dedupeKey = hash('sha256', $notificationType.'|'.$lead->id);
 
-                        if ($devUsers->count() === 0) {
-                            Log::warning('Lead saved but no developer users found for configured developer_emails.', [
+                    foreach ($devUsers as $dev) {
+                        $companyId = (int) ($dev->company_id ?? 0);
+                        if ($companyId < 1) {
+                            continue;
+                        }
+
+                        app(NotificationService::class)->createForUser(
+                            (int) $dev->id,
+                            $companyId,
+                            $notificationType,
+                            $notificationTitle,
+                            $body !== '' ? $body : null,
+                            $notificationUrl,
+                            CrewlyNotification::SEVERITY_INFO,
+                            [
                                 'lead_id' => (int) $lead->id,
-                            ]);
-                        }
-
-                        $title = 'New demo request';
-                        $body = trim(implode(' — ', array_values(array_filter([
-                            trim((string) ($lead->company_name ?? '')),
-                            trim((string) ($lead->full_name ?? '')),
-                            trim((string) ($lead->email ?? '')),
-                        ]))));
-
-                        $url = route('developer.demo_requests.index');
-                        $dedupeKey = hash('sha256', 'demo_request|'.$lead->id);
-
-                        foreach ($devUsers as $dev) {
-                            $companyId = (int) ($dev->company_id ?? 0);
-                            if ($companyId < 1) {
-                                continue;
-                            }
-
-                            app(NotificationService::class)->createForUser(
-                                (int) $dev->id,
-                                $companyId,
-                                'demo_request',
-                                $title,
-                                $body !== '' ? $body : null,
-                                $url,
-                                CrewlyNotification::SEVERITY_INFO,
-                                [
-                                    'lead_id' => (int) $lead->id,
-                                    'source_page' => (string) ($lead->source_page ?? ''),
-                                ],
-                                $dedupeKey,
-                            );
-                        }
+                                'lead_type' => $leadType,
+                                'source_page' => (string) ($lead->source_page ?? ''),
+                            ],
+                            $dedupeKey,
+                        );
                     }
                 }
             }
+        }
 
         return $lead;
     }

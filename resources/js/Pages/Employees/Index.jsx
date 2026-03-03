@@ -187,6 +187,7 @@ export default function Index({ auth, employees, departments = [], filters = {} 
                         { key: 'name', label: 'Name' },
                         { key: 'email', label: 'Email' },
                         { key: 'department', label: 'Department' },
+                        { key: 'monthly_rate', label: 'Monthly Rate' },
                         { key: 'status', label: 'Status' },
                         { key: 'action', label: 'Action', align: 'right' },
                     ]}
@@ -227,6 +228,7 @@ export default function Index({ auth, employees, departments = [], filters = {} 
                             <td className="px-4 py-3 text-sm text-slate-700">
                                 {departmentNameById.get(Number(employee.department_id)) ?? employee.department_id}
                             </td>
+                            <td className="px-4 py-3 text-sm text-slate-700">{employee.monthly_rate ?? '0.00'}</td>
                             <td className="px-4 py-3 text-sm text-slate-700">{employee.status ?? '-'}</td>
                             <td className="px-4 py-3 text-right text-sm">
                                 <div className="flex items-center justify-end gap-3">

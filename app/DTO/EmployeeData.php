@@ -19,6 +19,7 @@ class EmployeeData
         public readonly ?string $date_hired,
         public readonly ?string $regularization_date,
         public readonly string $employment_type,
+        public readonly float $monthly_rate,
         public readonly ?string $notes,
     ) {}
 
@@ -39,6 +40,7 @@ class EmployeeData
             date_hired: $data['date_hired'] ?? null,
             regularization_date: $data['regularization_date'] ?? null,
             employment_type: $data['employment_type'] ?? 'Full-Time',
+            monthly_rate: array_key_exists('monthly_rate', $data) ? (float) $data['monthly_rate'] : 0.0,
             notes: $data['notes'] ?? null
         );
     }
@@ -60,6 +62,7 @@ class EmployeeData
             'date_hired' => $this->date_hired,
             'regularization_date' => $this->regularization_date,
             'employment_type' => $this->employment_type,
+            'monthly_rate' => $this->monthly_rate,
             'notes' => $this->notes,
         ];
     }

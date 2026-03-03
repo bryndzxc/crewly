@@ -30,6 +30,7 @@ export default function Edit({ auth, employee, departments = [], inModal = false
         date_hired: employee?.date_hired ?? '',
         regularization_date: employee?.regularization_date ?? '',
         employment_type: employee?.employment_type ?? 'Full-Time',
+        monthly_rate: employee?.monthly_rate ?? 0,
         notes: employee?.notes ?? '',
     });
 
@@ -248,6 +249,21 @@ export default function Edit({ auth, employee, departments = [], inModal = false
                             onChange={(e) => setData('position_title', e.target.value)}
                         />
                         <InputError message={errors.position_title} className="mt-2" />
+                    </div>
+
+                    <div>
+                        <InputLabel htmlFor="monthly_rate" value="Monthly Rate" />
+                        <TextInput
+                            id="monthly_rate"
+                            name="monthly_rate"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={data.monthly_rate}
+                            className="mt-1 block w-full"
+                            onChange={(e) => setData('monthly_rate', e.target.value)}
+                        />
+                        <InputError message={errors.monthly_rate} className="mt-2" />
                     </div>
 
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

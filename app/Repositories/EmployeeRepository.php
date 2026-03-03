@@ -31,6 +31,7 @@ class EmployeeRepository extends BaseRepository
             'date_hired' => $data['date_hired'] ?? null,
             'regularization_date' => $data['regularization_date'] ?? null,
             'employment_type' => $data['employment_type'] ?? 'Full-Time',
+            'monthly_rate' => array_key_exists('monthly_rate', $data) ? (float) $data['monthly_rate'] : 0.0,
             'notes' => $data['notes'] ?? null,
             'created_by' => Auth::id(),
             'updated_by' => Auth::id(),
@@ -58,6 +59,7 @@ class EmployeeRepository extends BaseRepository
             'date_hired' => $data['date_hired'] ?? null,
             'regularization_date' => $data['regularization_date'] ?? null,
             'employment_type' => $data['employment_type'] ?? $employee->employment_type,
+            'monthly_rate' => array_key_exists('monthly_rate', $data) ? (float) $data['monthly_rate'] : (float) ($employee->monthly_rate ?? 0),
             'notes' => $data['notes'] ?? null,
             'updated_by' => Auth::id(),
         ]);

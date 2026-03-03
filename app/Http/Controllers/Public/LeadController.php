@@ -20,7 +20,7 @@ class LeadController extends Controller
         $validated = $request->validated();
 
         $dto = LeadCreateData::fromArray($validated);
-        $this->leadService->submit($dto, $request->user()?->email);
+        $this->leadService->submitDemoRequest($dto, $request->user()?->email);
 
         if ($request->expectsJson()) {
             return response()->json(['ok' => true]);

@@ -46,6 +46,7 @@ class Employee extends Model
         'date_hired',
         'regularization_date',
         'employment_type',
+        'monthly_rate',
         'notes',
         'created_by',
         'updated_by',
@@ -100,6 +101,7 @@ class Employee extends Model
         'notes' => 'encrypted',
         'date_hired' => 'date:Y-m-d',
         'regularization_date' => 'date:Y-m-d',
+        'monthly_rate' => 'decimal:2',
         'first_name_prefix_bi' => 'array',
         'last_name_prefix_bi' => 'array',
     ];
