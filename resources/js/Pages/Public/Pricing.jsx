@@ -27,6 +27,7 @@ import { useMemo } from 'react';
  * @property {string} badge
  * @property {string} currency
  * @property {string} billing_interval
+ * @property {number=} trial_days
  * @property {string} recommended_plan_id
  * @property {string[]} features
  * @property {PricingPlan[]} plans
@@ -42,7 +43,7 @@ function formatPhp(amount) {
     }
 }
 
-function PricingPlanCard({ plan, features, isRecommended, ctaHref }) {
+function PricingPlanCard({ plan, features, isRecommended, ctaHref, trialDays }) {
     return (
         <Card
             className={
@@ -64,6 +65,7 @@ function PricingPlanCard({ plan, features, isRecommended, ctaHref }) {
                     <div className="pb-1 text-sm text-slate-600">/ month</div>
                 </div>
                 <div className="mt-1 text-xs text-slate-500">Manual billing (invoice-based)</div>
+                <div className="mt-1 text-xs text-slate-500">Includes a free {trialDays}-day trial after approval</div>
             </div>
 
             <div className="mt-6">
@@ -100,6 +102,11 @@ export default function PricingPage() {
     /** @type {PricingPayload} */
     const pricing = page.props.pricing;
 
+    const trialDays = useMemo(() => {
+        const v = Number.parseInt(String(pricing?.trial_days ?? ''), 10);
+        return Number.isFinite(v) && v > 0 ? v : 30;
+    }, [pricing?.trial_days]);
+
     const ctaHrefForPlan = useMemo(() => {
         const isLoggedIn = Boolean(auth.user);
         if (isLoggedIn) {
@@ -128,6 +135,9 @@ export default function PricingPage() {
                     <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">Founder Access</h1>
                     <p className="mt-3 text-sm text-slate-600">
                         {pricing?.label || 'Founder Access (Limited Early Partners)'}
+                    </p>
+                    <p className="mt-2 text-sm text-slate-600">
+                        Includes a free <span className="font-semibold text-slate-900">{trialDays}-day trial</span> after approval.
                     </p>
 
                     <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -163,6 +173,7 @@ export default function PricingPage() {
                             features={features}
                             isRecommended={String(plan.id) === recommendedId}
                             ctaHref={ctaHrefForPlan ?? route('register', { plan: String(plan.id || '') })}
+                            trialDays={trialDays}
                         />
                     ))}
                 </div>

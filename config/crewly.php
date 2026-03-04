@@ -70,6 +70,7 @@ return [
     'billing' => [
         // Default payment options used when a company has no billing notes yet.
         // You can override these via env vars.
+        'trial_days' => (int) env('CREWLY_BILLING_TRIAL_DAYS', 30),
         'account_name' => env('CREWLY_BILLING_ACCOUNT_NAME', ''),
         'gcash_number' => env('CREWLY_BILLING_GCASH_NUMBER', '09298367446'),
         'maya_number' => env('CREWLY_BILLING_MAYA_NUMBER', '09298367446'),

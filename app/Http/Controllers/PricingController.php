@@ -18,6 +18,7 @@ class PricingController extends Controller
                 'badge' => 'Founder Pricing – Limited Slots',
                 'currency' => 'PHP',
                 'billing_interval' => 'month',
+                'trial_days' => max(1, (int) config('crewly.billing.trial_days', 30)),
                 'recommended_plan_id' => 'growth',
                 'features' => [
                     'Employee records (Digital 201 files)',

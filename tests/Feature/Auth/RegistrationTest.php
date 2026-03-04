@@ -4,7 +4,6 @@ namespace Tests\Feature\Auth;
 
 use App\Http\Middleware\VerifyCsrfToken;
 use App\Models\Lead;
-use App\Providers\RouteServiceProvider;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -34,9 +33,11 @@ class RegistrationTest extends TestCase
             'email' => 'test@example.com',
             'phone' => '+63 900 000 0000',
             'employee_count_range' => '1-20',
+            'requested_plan' => 'starter',
             'industry' => 'Construction',
             'current_process' => 'Mostly spreadsheets and paper forms.',
             'biggest_pain' => 'Tracking employee incidents and attendance.',
+            'agree_to_terms' => true,
         ]);
 
         $this->assertGuest();

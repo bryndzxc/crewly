@@ -253,6 +253,9 @@ class DeveloperLeadService extends Service
                 $requestedPlan = Company::PLAN_STARTER;
             }
 
+            $trialDays = max(1, (int) config('crewly.billing.trial_days', 30));
+            $trialEndsAt = now()->addDays($trialDays);
+
             $maxEmployees = match ($requestedPlan) {
                 Company::PLAN_GROWTH => 50,
                 Company::PLAN_PRO => 100,
@@ -267,6 +270,9 @@ class DeveloperLeadService extends Service
                 'is_demo' => false,
                 'plan_name' => $requestedPlan,
                 'max_employees' => $maxEmployees,
+                'subscription_status' => Company::SUB_TRIAL,
+                'trial_ends_at' => $trialEndsAt,
+                'next_billing_at' => $trialEndsAt,
             ];
 
             $company = $this->companyRepository->createCompany($companyAttributes);
