@@ -51,6 +51,9 @@ class CompanyBillingController extends Controller
 
         $query = Company::query()->selectedFields();
 
+        // Demo companies are not billable and tend to create noise in billing screens.
+        $query->where('is_demo', false);
+
         if ($q !== '') {
             $query->where(function ($builder) use ($q) {
                 $builder->where('name', 'like', "%{$q}%")

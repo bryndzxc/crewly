@@ -8,6 +8,20 @@ return [
         // Safety toggle: allow automated purging (deleting data/files) of expired demo companies.
         // Keep false in production unless you're 100% sure.
         'purge_enabled' => (bool) env('CREWLY_DEMO_PURGE_ENABLED', false),
+
+        // Shared live demo environment (Option A)
+        // A single demo company + HR user reused by everyone.
+        'shared' => [
+            'enabled' => (bool) env('CREWLY_DEMO_SHARED_ENABLED', true),
+            'company_name' => env('CREWLY_DEMO_SHARED_COMPANY_NAME', 'Crewly Demo'),
+            'company_slug' => env('CREWLY_DEMO_SHARED_COMPANY_SLUG', 'crewly-demo'),
+            'user_name' => env('CREWLY_DEMO_SHARED_USER_NAME', 'Demo HR'),
+            'user_email' => env('CREWLY_DEMO_SHARED_EMAIL', 'demo-hr@crewly.test'),
+            'user_password' => env('CREWLY_DEMO_SHARED_PASSWORD', null),
+
+            // Keep this aligned with the founder tiers (requested: up to 100 employees).
+            'max_employees' => (int) env('CREWLY_DEMO_SHARED_MAX_EMPLOYEES', 100),
+        ],
     ],
 
     'leads' => [

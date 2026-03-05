@@ -68,6 +68,10 @@ Route::get('/pricing', [PricingController::class, 'index'])
 Route::get('/demo', [PublicPageController::class, 'demo'])
     ->name('public.demo');
 
+Route::get('/demo/login', [PublicPageController::class, 'demoLogin'])
+    ->middleware(['throttle:30,1'])
+    ->name('public.demo.login');
+
 Route::get('/privacy', [PublicPageController::class, 'privacy'])
     ->name('public.privacy');
 

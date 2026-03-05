@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Mail\DemoAccountApproved;
+use App\Mail\SharedDemoAccessEmail;
 use App\Models\CashAdvance;
 use App\Models\CashAdvanceDeduction;
 use App\Models\Company;
@@ -120,13 +121,26 @@ class DeveloperLeadService extends Service
             throw new \RuntimeException('This request is not a demo request.');
         }
 
+        $sharedEnabled = (bool) config('crewly.demo.shared.enabled', true);
+
         /** @var string $status */
         $status = (string) ($lead->status ?? Lead::STATUS_PENDING);
-        if ($status === Lead::STATUS_APPROVED && $lead->company_id) {
-            /** @var Company $company */
-            $company = Company::query()->findOrFail($lead->company_id);
+        if ($status === Lead::STATUS_APPROVED) {
+            if ($sharedEnabled) {
+                $sharedSlug = trim((string) config('crewly.demo.shared.company_slug', ''));
+                if ($sharedSlug !== '') {
+                    $sharedCompany = Company::query()->where('slug', $sharedSlug)->first();
+                    if ($sharedCompany) {
+                        return $sharedCompany;
+                    }
+                }
+            }
 
-            return $company;
+            if ($lead->company_id) {
+                /** @var Company $company */
+                $company = Company::query()->findOrFail($lead->company_id);
+                return $company;
+            }
         }
 
         if ($status !== Lead::STATUS_PENDING) {
@@ -140,6 +154,10 @@ class DeveloperLeadService extends Service
 
         if (User::withTrashed()->where('email', $email)->exists()) {
             throw new \RuntimeException('A user with this email already exists.');
+        }
+
+        if ($sharedEnabled) {
+            return $this->approveSharedDemoAccess($lead);
         }
 
         $result = DB::transaction(function () use ($lead) {
@@ -187,6 +205,58 @@ class DeveloperLeadService extends Service
         $this->seedDemoCompanyData($company, $user);
 
         $this->sendApprovalEmailBestEffort($company, $user, $passwordPlain);
+
+        return $company;
+    }
+
+    private function approveSharedDemoAccess(Lead $lead): Company
+    {
+        $sharedSlug = trim((string) config('crewly.demo.shared.company_slug', ''));
+        $sharedEmail = Str::lower(trim((string) config('crewly.demo.shared.user_email', '')));
+        $sharedPassword = (string) (config('crewly.demo.shared.user_password') ?? '');
+
+        if ($sharedSlug === '' || $sharedEmail === '' || trim($sharedPassword) === '') {
+            throw new \RuntimeException('Shared demo is not configured. Set CREWLY_DEMO_SHARED_COMPANY_SLUG, CREWLY_DEMO_SHARED_EMAIL, and CREWLY_DEMO_SHARED_PASSWORD, then run: php artisan demo:ensure-shared --seed');
+        }
+
+        /** @var Company|null $company */
+        $company = Company::query()->where('slug', $sharedSlug)->first();
+        if (! $company) {
+            throw new \RuntimeException('Shared demo company not found. Run: php artisan demo:ensure-shared --seed');
+        }
+
+        /** @var User|null $user */
+        $user = User::query()->where('email', $sharedEmail)->first();
+        if (! $user) {
+            throw new \RuntimeException('Shared demo user not found. Run: php artisan demo:ensure-shared --seed');
+        }
+
+        $lead->forceFill([
+            'status' => Lead::STATUS_APPROVED,
+            'approved_at' => now(),
+            'declined_at' => null,
+            'company_id' => (int) $company->id,
+            'user_id' => (int) $user->id,
+        ])->save();
+
+        try {
+            $loginUrlBase = rtrim((string) config('app.url', url('/')), '/').'/login';
+            $loginUrl = $loginUrlBase.'?email='.urlencode($sharedEmail);
+            $recipientName = trim((string) ($lead->full_name ?? '')) ?: 'there';
+            $recipientEmail = strtolower(trim((string) ($lead->email ?? '')));
+
+            Mail::to($recipientEmail)->send(new SharedDemoAccessEmail(
+                name: $recipientName,
+                email: $sharedEmail,
+                password: $sharedPassword,
+                loginUrl: $loginUrl,
+            ));
+        } catch (\Throwable $e) {
+            Log::warning('Failed sending shared demo access email.', [
+                'lead_id' => (int) $lead->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         return $company;
     }

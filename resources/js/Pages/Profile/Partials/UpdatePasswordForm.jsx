@@ -3,10 +3,13 @@ import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
-import { useForm } from '@inertiajs/react';
+import { useForm, usePage } from '@inertiajs/react';
 import { Transition } from '@headlessui/react';
 
 export default function UpdatePasswordForm({ className = '' }) {
+    const props = usePage().props;
+    const isSharedDemoUser = Boolean(props?.auth?.is_shared_demo_user);
+
     const passwordInput = useRef();
     const currentPasswordInput = useRef();
 
@@ -45,6 +48,12 @@ export default function UpdatePasswordForm({ className = '' }) {
                     Ensure your account is using a long, random password to stay secure.
                 </p>
             </header>
+
+            {isSharedDemoUser ? (
+                <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                    Password updates are temporarily disabled in the shared demo account.
+                </div>
+            ) : (
 
             <form onSubmit={updatePassword} className="mt-6 space-y-6">
                 <div>
@@ -108,6 +117,7 @@ export default function UpdatePasswordForm({ className = '' }) {
                     </Transition>
                 </div>
             </form>
+            )}
         </section>
     );
 }

@@ -60,6 +60,8 @@ class HandleInertiaRequests extends Middleware
 
         $user = $request->user();
         $isMinimalAuth = in_array($routeName, $minimalAuthRoutes, true);
+        $sharedDemoEmail = trim((string) config('crewly.demo.shared.user_email', ''));
+        $isSharedDemoUser = (bool) ($user && $sharedDemoEmail !== '' && strcasecmp((string) $user->email, $sharedDemoEmail) === 0);
 
         $base = [
             ...parent::share($request),
@@ -70,6 +72,7 @@ class HandleInertiaRequests extends Middleware
                 'user' => fn () => $user
                     ? $this->safeOnlyAttributes($user, ['id', 'name', 'email', 'role', 'company_id'])
                     : null,
+                'is_shared_demo_user' => fn () => $isSharedDemoUser,
                 'company' => fn () => $user && $user->company_id
                     ? (($company = $user->company()->select([
                         'id',

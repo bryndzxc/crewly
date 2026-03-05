@@ -38,11 +38,18 @@ class CleanupDemoCompaniesCommand extends Command
 
         $cutoff = Carbon::now()->subDays($maxDays);
 
+        $sharedSlug = trim((string) config('crewly.demo.shared.company_slug', ''));
+
         $companiesQuery = Company::query()
             ->select(['id', 'name', 'slug', 'is_active', 'created_at'])
             ->where('is_demo', true)
             ->where('created_at', '<=', $cutoff)
             ->orderBy('created_at');
+
+        // Never auto-expire the shared live demo company.
+        if ($sharedSlug !== '') {
+            $companiesQuery->where('slug', '!=', $sharedSlug);
+        }
 
         // If we're only expiring (disable), process only currently-active demo companies.
         // If purging, allow cleanup even if they were previously expired/disabled.

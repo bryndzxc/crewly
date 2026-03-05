@@ -1,7 +1,6 @@
 import PublicLayout from '@/Layouts/PublicLayout';
-import LeadForm from '@/Components/Public/LeadForm';
-import { Link } from '@inertiajs/react';
-import { useState } from 'react';
+import { Link, usePage } from '@inertiajs/react';
+import { useMemo, useState } from 'react';
 
 function FeatureCard({ title, body }) {
     return (
@@ -47,6 +46,15 @@ function FaqItem({ q, a }) {
 }
 
 export default function Landing() {
+    const props = usePage().props;
+    const sharedDemo = props.shared_demo ?? {};
+    const demoEnabled = Boolean(sharedDemo?.enabled);
+    const demoEmail = useMemo(() => String(sharedDemo?.email || '').trim(), [sharedDemo?.email]);
+
+    const demoLoginHref = useMemo(() => {
+        if (!demoEnabled || !demoEmail) return route('login');
+        return route('public.demo.login');
+    }, [demoEnabled, demoEmail]);
     const imageUrl = (filename) => `/storage-images/${encodeURIComponent(filename)}`;
     const [zoom, setZoom] = useState(null);
 
@@ -70,14 +78,8 @@ export default function Landing() {
                         </p>
 
                         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-                            <a
-                                href="#request-demo"
-                                className="inline-flex items-center justify-center rounded-xl bg-amber-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
-                            >
-                                Book a Demo
-                            </a>
                             <Link
-                                href={route('login')}
+                                href={demoLoginHref}
                                 className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
                             >
                                 Try the Demo Environment
@@ -258,21 +260,6 @@ export default function Landing() {
                         title="Simple & Focused"
                         body="No bloated features — just what SMEs actually use."
                     />
-                </div>
-            </section>
-
-            <section id="request-demo" className="mx-auto max-w-7xl px-4 py-14 sm:px-6">
-                <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-start">
-                    <div>
-                        <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Request a demo</h2>
-                        <p className="mt-2 text-sm text-slate-600 leading-relaxed">
-                            We’ll walk you through your workflows — HR cases, memo templates, employee records, attendance &amp; payroll, and hiring pipeline — and answer questions about fit for your team.
-                        </p>
-                        <div className="mt-4 text-sm text-slate-600">
-                            Prefer details first? Visit <Link href={route('public.demo')} className="font-semibold text-amber-800 hover:text-amber-900">/demo</Link>.
-                        </div>
-                    </div>
-                    <LeadForm sourcePage="/" />
                 </div>
             </section>
 

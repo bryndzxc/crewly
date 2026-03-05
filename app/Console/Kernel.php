@@ -14,6 +14,11 @@ class Kernel extends ConsoleKernel
     {
         $schedule->command('crewly:generate-notifications')->dailyAt('08:05');
         $schedule->command('billing:sync-subscriptions')->dailyAt('08:10')->withoutOverlapping();
+
+        if (config('crewly.demo.shared.enabled', true) && trim((string) config('crewly.demo.shared.user_password', '')) !== '') {
+            $schedule->command('demo:ensure-shared')->daily()->withoutOverlapping();
+        }
+
         $schedule->command('demo:cleanup')->daily()->withoutOverlapping();
 
         if (config('crewly.demo.purge_enabled', false)) {
