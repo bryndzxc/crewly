@@ -5,9 +5,12 @@ namespace App\Http\Controllers;
 use App\Http\Requests\EmployeeRequest;
 use App\Models\Department;
 use App\Models\Employee;
+use App\Models\EmployeeAllowance;
+use App\Models\EmployeeCompensation;
 use App\Models\EmployeeDocument;
 use App\Models\EmployeeIncident;
 use App\Models\EmployeeNote;
+use App\Models\EmployeeSalaryHistory;
 use App\Models\Memo;
 use App\Models\MemoTemplate;
 use App\Resources\EmployeeResource;
@@ -134,6 +137,52 @@ class EmployeeController extends Controller
                 'created_at',
             ]);
 
+        $compensation = EmployeeCompensation::query()
+            ->where('employee_id', (int) $employee->employee_id)
+            ->first([
+                'id',
+                'employee_id',
+                'salary_type',
+                'base_salary',
+                'pay_frequency',
+                'effective_date',
+                'notes',
+                'created_at',
+                'updated_at',
+            ]);
+
+        $allowances = EmployeeAllowance::query()
+            ->where('employee_id', (int) $employee->employee_id)
+            ->orderBy('allowance_name')
+            ->orderBy('id')
+            ->get([
+                'id',
+                'employee_id',
+                'allowance_name',
+                'amount',
+                'frequency',
+                'taxable',
+                'created_at',
+                'updated_at',
+            ]);
+
+        $salaryHistory = EmployeeSalaryHistory::query()
+            ->where('employee_id', (int) $employee->employee_id)
+            ->with('approvedBy:id,name')
+            ->orderByDesc('effective_date')
+            ->orderByDesc('id')
+            ->get([
+                'id',
+                'employee_id',
+                'previous_salary',
+                'new_salary',
+                'effective_date',
+                'reason',
+                'approved_by',
+                'created_at',
+                'updated_at',
+            ]);
+
         $user = $request->user();
         $canViewRelations = $user ? Gate::forUser($user)->check('employees-relations-view') : false;
         $canGenerateMemos = $user ? Gate::forUser($user)->check('generate-memos') : false;
@@ -251,6 +300,38 @@ class EmployeeController extends Controller
             'departments' => Department::query()
                 ->orderBy('name')
                 ->get(['department_id', 'name', 'code']),
+            'compensation' => $compensation ? [
+                'id' => $compensation->id,
+                'employee_id' => $compensation->employee_id,
+                'salary_type' => $compensation->salary_type,
+                'base_salary' => $compensation->base_salary,
+                'pay_frequency' => $compensation->pay_frequency,
+                'effective_date' => $compensation->effective_date?->format('Y-m-d'),
+                'notes' => $compensation->notes,
+                'created_at' => $compensation->created_at?->format('Y-m-d H:i:s'),
+                'updated_at' => $compensation->updated_at?->format('Y-m-d H:i:s'),
+            ] : null,
+            'allowances' => $allowances->map(fn (EmployeeAllowance $allowance) => [
+                'id' => $allowance->id,
+                'employee_id' => $allowance->employee_id,
+                'allowance_name' => $allowance->allowance_name,
+                'amount' => $allowance->amount,
+                'frequency' => $allowance->frequency,
+                'taxable' => (bool) $allowance->taxable,
+                'created_at' => $allowance->created_at?->format('Y-m-d H:i:s'),
+                'updated_at' => $allowance->updated_at?->format('Y-m-d H:i:s'),
+            ])->values()->all(),
+            'salaryHistory' => $salaryHistory->map(fn (EmployeeSalaryHistory $history) => [
+                'id' => $history->id,
+                'employee_id' => $history->employee_id,
+                'previous_salary' => $history->previous_salary,
+                'new_salary' => $history->new_salary,
+                'effective_date' => $history->effective_date?->format('Y-m-d'),
+                'reason' => $history->reason,
+                'approved_by' => $history->approvedBy ? $history->approvedBy->only(['id', 'name']) : null,
+                'created_at' => $history->created_at?->format('Y-m-d H:i:s'),
+                'updated_at' => $history->updated_at?->format('Y-m-d H:i:s'),
+            ])->values()->all(),
             'documents' => $documents,
             'notes' => $notesPayload,
             'incidents' => $incidentsPayload,

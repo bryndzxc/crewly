@@ -1,7 +1,11 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import AllowancePanel from '@/Components/Employees/AllowancePanel';
+import CompensationPanel from '@/Components/Employees/CompensationPanel';
 import PrimaryButton from '@/Components/PrimaryButton';
+import SalaryHistoryPanel from '@/Components/Employees/SalaryHistoryPanel';
 import SecondaryButton from '@/Components/SecondaryButton';
 import DatePicker from '@/Components/DatePicker';
+import Tabs from '@/Components/UI/Tabs';
 import GenerateMemoModal from '@/Components/Employees/GenerateMemoModal';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
@@ -18,6 +22,9 @@ export default function Show({
     auth,
     employee,
     departments = [],
+    compensation = null,
+    allowances = [],
+    salaryHistory = [],
     documents = [],
     notes = [],
     incidents = [],
@@ -31,8 +38,25 @@ export default function Show({
         return found?.name ?? employee?.department_id;
     }, [departments, employee?.department_id]);
 
-    const [activeTab, setActiveTab] = useState('details');
+    const [activeTab, setActiveTab] = useState('profile');
     const photoInputRef = useRef(null);
+
+    const employeeTabs = useMemo(() => {
+        const items = [
+            { key: 'profile', label: 'Profile' },
+            { key: 'employment', label: 'Employment' },
+            { key: 'compensation', label: 'Compensation' },
+            { key: 'allowances', label: 'Allowances' },
+            { key: 'salary-history', label: 'Salary History' },
+            { key: 'documents', label: 'Documents' },
+        ];
+
+        if (can?.employeeRelationsView) {
+            items.push({ key: 'relations', label: 'Notes & Incidents' });
+        }
+
+        return items;
+    }, [can?.employeeRelationsView]);
 
     const uploadForm = useForm({
         type: '',
@@ -299,48 +323,47 @@ export default function Show({
                 </div>
 
                 <div className="bg-white border border-gray-200 rounded-lg">
-                    <div className="border-b border-gray-200 px-6">
-                        <nav className="flex gap-6">
-                            <button
-                                type="button"
-                                onClick={() => setActiveTab('details')}
-                                className={`py-3 text-sm font-medium border-b-2 ${
-                                    activeTab === 'details'
-                                        ? 'border-amber-500 text-gray-900'
-                                        : 'border-transparent text-gray-600 hover:text-gray-900'
-                                }`}
-                            >
-                                Details
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setActiveTab('documents')}
-                                className={`py-3 text-sm font-medium border-b-2 ${
-                                    activeTab === 'documents'
-                                        ? 'border-amber-500 text-gray-900'
-                                        : 'border-transparent text-gray-600 hover:text-gray-900'
-                                }`}
-                            >
-                                Documents
-                            </button>
-
-                            {can?.employeeRelationsView && (
-                                <button
-                                    type="button"
-                                    onClick={() => setActiveTab('relations')}
-                                    className={`py-3 text-sm font-medium border-b-2 ${
-                                        activeTab === 'relations'
-                                            ? 'border-amber-500 text-gray-900'
-                                            : 'border-transparent text-gray-600 hover:text-gray-900'
-                                    }`}
-                                >
-                                    Notes &amp; Incidents
-                                </button>
-                            )}
-                        </nav>
+                    <div className="px-6">
+                        <Tabs tabs={employeeTabs} value={activeTab} onChange={setActiveTab} />
                     </div>
 
-                    {activeTab === 'details' && (
+                    {activeTab === 'profile' && (
+                        <div className="p-6">
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                                <div>
+                                    <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Employee Code</div>
+                                    <div className="mt-1 text-sm font-medium text-gray-900">{employee?.employee_code ?? '-'}</div>
+                                </div>
+                                <div>
+                                    <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Email</div>
+                                    <div className="mt-1 text-sm font-medium text-gray-900">{employee?.email ?? '-'}</div>
+                                </div>
+                                <div>
+                                    <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Mobile Number</div>
+                                    <div className="mt-1 text-sm font-medium text-gray-900">{employee?.mobile_number ?? '-'}</div>
+                                </div>
+                                <div>
+                                    <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">First Name</div>
+                                    <div className="mt-1 text-sm font-medium text-gray-900">{employee?.first_name ?? '-'}</div>
+                                </div>
+                                <div>
+                                    <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Middle Name</div>
+                                    <div className="mt-1 text-sm font-medium text-gray-900">{employee?.middle_name ?? '-'}</div>
+                                </div>
+                                <div>
+                                    <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Last Name</div>
+                                    <div className="mt-1 text-sm font-medium text-gray-900">{employee?.last_name ?? '-'}</div>
+                                </div>
+                            </div>
+
+                            <div className="mt-6">
+                                <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Notes</div>
+                                <div className="mt-2 whitespace-pre-wrap text-sm text-gray-900">{employee?.notes ?? '-'}</div>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'employment' && (
                         <div className="p-6">
                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                                 <div>
@@ -356,18 +379,6 @@ export default function Show({
                                     <div className="mt-1 text-sm font-medium text-gray-900">{employee?.employment_type ?? '-'}</div>
                                 </div>
                                 <div>
-                                    <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Monthly Rate</div>
-                                    <div className="mt-1 text-sm font-medium text-gray-900">{employee?.monthly_rate ?? '0.00'}</div>
-                                </div>
-                                <div>
-                                    <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Email</div>
-                                    <div className="mt-1 text-sm font-medium text-gray-900">{employee?.email ?? '-'}</div>
-                                </div>
-                                <div>
-                                    <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Mobile Number</div>
-                                    <div className="mt-1 text-sm font-medium text-gray-900">{employee?.mobile_number ?? '-'}</div>
-                                </div>
-                                <div>
                                     <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Position Title</div>
                                     <div className="mt-1 text-sm font-medium text-gray-900">{employee?.position_title ?? '-'}</div>
                                 </div>
@@ -379,12 +390,29 @@ export default function Show({
                                     <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Regularization Date</div>
                                     <div className="mt-1 text-sm font-medium text-gray-900">{employee?.regularization_date ?? '-'}</div>
                                 </div>
+                                <div>
+                                    <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Legacy Monthly Rate</div>
+                                    <div className="mt-1 text-sm font-medium text-gray-900">{employee?.monthly_rate ?? '0.00'}</div>
+                                </div>
                             </div>
+                        </div>
+                    )}
 
-                            <div className="mt-6">
-                                <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Notes</div>
-                                <div className="mt-2 whitespace-pre-wrap text-sm text-gray-900">{employee?.notes ?? '-'}</div>
-                            </div>
+                    {activeTab === 'compensation' && (
+                        <div className="p-6">
+                            <CompensationPanel employeeId={employee.employee_id} compensation={compensation} />
+                        </div>
+                    )}
+
+                    {activeTab === 'allowances' && (
+                        <div className="p-6">
+                            <AllowancePanel employeeId={employee.employee_id} allowances={allowances} />
+                        </div>
+                    )}
+
+                    {activeTab === 'salary-history' && (
+                        <div className="p-6">
+                            <SalaryHistoryPanel items={salaryHistory} />
                         </div>
                     )}
 

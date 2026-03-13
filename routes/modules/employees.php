@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\DepartmentController;
+use App\Http\Controllers\EmployeeAllowanceController;
+use App\Http\Controllers\EmployeeCompensationController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeDocumentController;
 use App\Http\Controllers\EmployeeDocumentScanController;
@@ -8,6 +10,7 @@ use App\Http\Controllers\EmployeeIncidentController;
 use App\Http\Controllers\EmployeeNoteController;
 use App\Http\Controllers\EmployeePhotoController;
 use App\Http\Controllers\EmployeeRelationAttachmentController;
+use App\Http\Controllers\EmployeeSalaryHistoryController;
 use App\Http\Controllers\EmployeesProbationController;
 use App\Http\Controllers\ExpiringDocumentsController;
 use App\Http\Controllers\MemoController;
@@ -33,6 +36,32 @@ Route::middleware(['auth', 'ensure.company', 'can:access-employees'])->group(fun
     Route::get('/employees/{employee}/photo', [EmployeePhotoController::class, 'show'])->whereNumber('employee')->name('employees.photo');
     Route::post('/employees/{employee}/photo', [EmployeePhotoController::class, 'update'])->whereNumber('employee')->name('employees.photo.update');
     Route::delete('/employees/{employee}/photo', [EmployeePhotoController::class, 'destroy'])->whereNumber('employee')->name('employees.photo.destroy');
+
+    Route::get('/employees/{employee}/compensation', [EmployeeCompensationController::class, 'show'])
+        ->whereNumber('employee')
+        ->name('employees.compensation.show');
+    Route::post('/employees/{employee}/compensation', [EmployeeCompensationController::class, 'store'])
+        ->whereNumber('employee')
+        ->name('employees.compensation.store');
+    Route::patch('/employees/{employee}/compensation', [EmployeeCompensationController::class, 'update'])
+        ->whereNumber('employee')
+        ->name('employees.compensation.update');
+
+    Route::get('/employees/{employee}/salary-history', [EmployeeSalaryHistoryController::class, 'index'])
+        ->whereNumber('employee')
+        ->name('employees.salary-history.index');
+
+    Route::post('/employees/{employee}/allowances', [EmployeeAllowanceController::class, 'store'])
+        ->whereNumber('employee')
+        ->name('employees.allowances.store');
+    Route::patch('/employees/{employee}/allowances/{allowance}', [EmployeeAllowanceController::class, 'update'])
+        ->whereNumber('employee')
+        ->whereNumber('allowance')
+        ->name('employees.allowances.update');
+    Route::delete('/employees/{employee}/allowances/{allowance}', [EmployeeAllowanceController::class, 'destroy'])
+        ->whereNumber('employee')
+        ->whereNumber('allowance')
+        ->name('employees.allowances.destroy');
 
     Route::post('/employees/{employee}/documents', [EmployeeDocumentController::class, 'store'])->whereNumber('employee')
         ->middleware('can:employees-documents-upload')

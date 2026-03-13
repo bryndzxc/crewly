@@ -3,10 +3,14 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToCompany;
+use App\Models\EmployeeAllowance;
+use App\Models\EmployeeCompensation;
+use App\Models\EmployeeSalaryHistory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Employee extends Model
 {
@@ -225,6 +229,21 @@ class Employee extends Model
     public function cashAdvances(): HasMany
     {
         return $this->hasMany(CashAdvance::class, 'employee_id', 'employee_id');
+    }
+
+    public function compensation(): HasOne
+    {
+        return $this->hasOne(EmployeeCompensation::class, 'employee_id', 'employee_id');
+    }
+
+    public function allowances(): HasMany
+    {
+        return $this->hasMany(EmployeeAllowance::class, 'employee_id', 'employee_id');
+    }
+
+    public function salaryHistories(): HasMany
+    {
+        return $this->hasMany(EmployeeSalaryHistory::class, 'employee_id', 'employee_id');
     }
 
     /**

@@ -22,18 +22,21 @@ class EmployeeService extends Service
     private ActivityLogService $activityLogService;
     private EmployeeDocumentService $employeeDocumentService;
     private EmployeePhotoService $employeePhotoService;
+    private EmployeePayrollService $employeePayrollService;
     
     public function __construct(
         private readonly EmployeeRepository $employeeRepository,
         private readonly EmployeePortalUserService $employeePortalUserService,
         ActivityLogService $activityLogService,
         EmployeeDocumentService $employeeDocumentService,
-        EmployeePhotoService $employeePhotoService
+        EmployeePhotoService $employeePhotoService,
+        EmployeePayrollService $employeePayrollService
     )
     {
         $this->activityLogService = $activityLogService;
         $this->employeeDocumentService = $employeeDocumentService;
         $this->employeePhotoService = $employeePhotoService;
+        $this->employeePayrollService = $employeePayrollService;
     }
 
     public function index(Request $request): array
@@ -88,6 +91,8 @@ class EmployeeService extends Service
     {
         $employeeData = EmployeeData::fromArray($validated);
         $employee = $this->processEmployeeCreation($employeeData);
+
+        $this->initializeCompensationFromMonthlyRate($employee, $validated, Auth::id());
 
         $linked = $this->employeePortalUserService->ensureLinkedWithPassword($employee);
         $portalCreatedNew = (bool) ($linked['created_new'] ?? false);
@@ -186,9 +191,39 @@ class EmployeeService extends Service
             return $this->processEmployeeUpdate($employee, $employeeData);
         });
 
+        $this->initializeCompensationFromMonthlyRate($updated, $payload, Auth::id());
+
         $this->handlePhotoOnUpdateIfAny($updated, $data);
 
         return $updated;
+    }
+
+    private function initializeCompensationFromMonthlyRate(Employee $employee, array $attributes, ?int $approvedByUserId): void
+    {
+        $monthlyRate = (float) ($attributes['monthly_rate'] ?? 0);
+
+        if ($monthlyRate <= 0) {
+            return;
+        }
+
+        if ($employee->compensation()->exists()) {
+            return;
+        }
+
+        $effectiveDate = $attributes['date_hired'] ?? $employee->date_hired?->format('Y-m-d') ?? now()->toDateString();
+
+        $this->employeePayrollService->createCompensation(
+            $employee,
+            [
+                'salary_type' => 'monthly',
+                'base_salary' => $monthlyRate,
+                'pay_frequency' => 'monthly',
+                'effective_date' => $effectiveDate,
+                'notes' => null,
+                'change_reason' => 'Initialized from employee monthly rate.',
+            ],
+            $approvedByUserId
+        );
     }
 
     private function handlePhotoOnUpdateIfAny(Employee $employee, array $validated): void
