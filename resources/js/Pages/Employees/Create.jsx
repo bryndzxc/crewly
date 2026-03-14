@@ -46,6 +46,10 @@ export default function Create({ auth, departments = [], inModal = false, onCanc
         regularization_date: '',
         employment_type: 'Full-Time',
         monthly_rate: 0,
+        sss_number: '',
+        philhealth_number: '',
+        pagibig_number: '',
+        tin_number: '',
         notes: '',
 
         document_type: '',
@@ -461,6 +465,63 @@ export default function Create({ auth, departments = [], inModal = false, onCanc
                                         onChange={(e) => setData('monthly_rate', e.target.value)}
                                     />
                                     <InputError message={errors.monthly_rate} className="mt-2" />
+                                </div>
+
+                                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+                                    <div className="text-sm font-semibold text-gray-900">Government Information (optional)</div>
+                                    <p className="mt-1 text-sm text-gray-700">Future-ready for payroll computation.</p>
+                                </div>
+
+                                <div className="grid grid-cols-1 gap-6 lg:gap-8 sm:grid-cols-2">
+                                    <div>
+                                        <InputLabel htmlFor="sss_number" value="SSS Number (optional)" />
+                                        <TextInput
+                                            id="sss_number"
+                                            name="sss_number"
+                                            value={data.sss_number}
+                                            className="mt-1 block w-full"
+                                            onChange={(e) => setData('sss_number', e.target.value)}
+                                        />
+                                        <InputError message={errors.sss_number} className="mt-2" />
+                                    </div>
+
+                                    <div>
+                                        <InputLabel htmlFor="philhealth_number" value="PhilHealth Number (optional)" />
+                                        <TextInput
+                                            id="philhealth_number"
+                                            name="philhealth_number"
+                                            value={data.philhealth_number}
+                                            className="mt-1 block w-full"
+                                            onChange={(e) => setData('philhealth_number', e.target.value)}
+                                        />
+                                        <InputError message={errors.philhealth_number} className="mt-2" />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 gap-6 lg:gap-8 sm:grid-cols-2">
+                                    <div>
+                                        <InputLabel htmlFor="pagibig_number" value="Pag-IBIG Number (optional)" />
+                                        <TextInput
+                                            id="pagibig_number"
+                                            name="pagibig_number"
+                                            value={data.pagibig_number}
+                                            className="mt-1 block w-full"
+                                            onChange={(e) => setData('pagibig_number', e.target.value)}
+                                        />
+                                        <InputError message={errors.pagibig_number} className="mt-2" />
+                                    </div>
+
+                                    <div>
+                                        <InputLabel htmlFor="tin_number" value="TIN (optional)" />
+                                        <TextInput
+                                            id="tin_number"
+                                            name="tin_number"
+                                            value={data.tin_number}
+                                            className="mt-1 block w-full"
+                                            onChange={(e) => setData('tin_number', e.target.value)}
+                                        />
+                                        <InputError message={errors.tin_number} className="mt-2" />
+                                    </div>
                                 </div>
 
                                 <div className="grid grid-cols-1 gap-6 lg:gap-8 sm:grid-cols-2">

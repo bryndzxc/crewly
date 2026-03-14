@@ -34,10 +34,16 @@ export default function PayrollSummaryIndex({
         );
     };
 
-    const exportHref = useMemo(() => {
+    const exportCsvHref = useMemo(() => {
         if (!canExport) return null;
         if (!from || !to) return null;
         return route('payroll.summary.export', { from, to, format: 'csv' });
+    }, [canExport, from, to]);
+
+    const exportExcelHref = useMemo(() => {
+        if (!canExport) return null;
+        if (!from || !to) return null;
+        return route('payroll.summary.export', { from, to, format: 'xlsx' });
     }, [canExport, from, to]);
 
     const items = Array.isArray(rows) ? rows : [];
@@ -82,12 +88,21 @@ export default function PayrollSummaryIndex({
                                 Generate
                             </PrimaryButton>
 
-                            {canExport && exportHref && (
+                            {canExport && exportCsvHref && (
                                 <a
-                                    href={exportHref}
+                                    href={exportCsvHref}
                                     className="inline-flex items-center rounded-md border border-amber-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-widest text-amber-900 shadow-sm hover:bg-amber-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40 focus-visible:ring-offset-2"
                                 >
                                     Export CSV
+                                </a>
+                            )}
+
+                            {canExport && exportExcelHref && (
+                                <a
+                                    href={exportExcelHref}
+                                    className="inline-flex items-center rounded-md border border-amber-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-widest text-amber-900 shadow-sm hover:bg-amber-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40 focus-visible:ring-offset-2"
+                                >
+                                    Export Excel
                                 </a>
                             )}
                         </div>
@@ -128,12 +143,13 @@ export default function PayrollSummaryIndex({
                                     <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Undertime</th>
                                     <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Overtime</th>
                                     <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Cash Advance</th>
+                                    <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Payslip</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-200 bg-white">
                                 {items.length === 0 && (
                                     <tr>
-                                        <td className="px-4 py-10" colSpan={11}>
+                                        <td className="px-4 py-10" colSpan={12}>
                                             <div className="mx-auto max-w-xl rounded-2xl border border-amber-200/60 bg-amber-50/40 p-6">
                                                 <div className="text-sm font-semibold text-slate-900">No data</div>
                                                 <div className="mt-1 text-sm text-slate-600">Generate a report to see results.</div>
@@ -155,6 +171,20 @@ export default function PayrollSummaryIndex({
                                         <td className="px-4 py-3 text-sm text-right text-slate-700 tabular-nums">{r.undertime_minutes}</td>
                                         <td className="px-4 py-3 text-sm text-right text-slate-700 tabular-nums">{r.overtime_minutes}</td>
                                         <td className="px-4 py-3 text-sm text-right text-slate-700 tabular-nums">{Number(r.cash_advance_deductions || 0).toFixed(2)}</td>
+                                        <td className="px-4 py-3 text-sm text-right whitespace-nowrap">
+                                            {from && to ? (
+                                                <a
+                                                    href={route('payroll.payslip.show', { employee: r.employee_id, period: `${from}_${to}` })}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="inline-flex items-center rounded-md border border-amber-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-widest text-amber-900 shadow-sm hover:bg-amber-50"
+                                                >
+                                                    Generate Payslip
+                                                </a>
+                                            ) : (
+                                                <span className="text-xs text-slate-400">—</span>
+                                            )}
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>

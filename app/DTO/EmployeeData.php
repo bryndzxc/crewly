@@ -20,6 +20,10 @@ class EmployeeData
         public readonly ?string $regularization_date,
         public readonly string $employment_type,
         public readonly float $monthly_rate,
+        public readonly ?string $sss_number,
+        public readonly ?string $philhealth_number,
+        public readonly ?string $pagibig_number,
+        public readonly ?string $tin_number,
         public readonly ?string $notes,
     ) {}
 
@@ -41,6 +45,10 @@ class EmployeeData
             regularization_date: $data['regularization_date'] ?? null,
             employment_type: $data['employment_type'] ?? 'Full-Time',
             monthly_rate: array_key_exists('monthly_rate', $data) ? (float) $data['monthly_rate'] : 0.0,
+            sss_number: $data['sss_number'] ?? null,
+            philhealth_number: $data['philhealth_number'] ?? null,
+            pagibig_number: $data['pagibig_number'] ?? null,
+            tin_number: $data['tin_number'] ?? null,
             notes: $data['notes'] ?? null
         );
     }
@@ -63,6 +71,10 @@ class EmployeeData
             'regularization_date' => $this->regularization_date,
             'employment_type' => $this->employment_type,
             'monthly_rate' => $this->monthly_rate,
+            'sss_number' => $this->sss_number,
+            'philhealth_number' => $this->philhealth_number,
+            'pagibig_number' => $this->pagibig_number,
+            'tin_number' => $this->tin_number,
             'notes' => $this->notes,
         ];
     }

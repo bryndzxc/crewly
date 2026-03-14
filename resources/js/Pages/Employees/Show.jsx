@@ -360,6 +360,28 @@ export default function Show({
                                 <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Notes</div>
                                 <div className="mt-2 whitespace-pre-wrap text-sm text-gray-900">{employee?.notes ?? '-'}</div>
                             </div>
+
+                            <div className="mt-6">
+                                <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Government Information</div>
+                                <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                                    <div>
+                                        <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">SSS</div>
+                                        <div className="mt-1 text-sm font-medium text-gray-900">{employee?.sss_number ?? '-'}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">PhilHealth</div>
+                                        <div className="mt-1 text-sm font-medium text-gray-900">{employee?.philhealth_number ?? '-'}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Pag-IBIG</div>
+                                        <div className="mt-1 text-sm font-medium text-gray-900">{employee?.pagibig_number ?? '-'}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">TIN</div>
+                                        <div className="mt-1 text-sm font-medium text-gray-900">{employee?.tin_number ?? '-'}</div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     )}
 

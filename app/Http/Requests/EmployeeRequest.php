@@ -48,6 +48,21 @@ class EmployeeRequest extends FormRequest
                 $this->merge(['monthly_rate' => 0]);
             }
         }
+
+        foreach (['sss_number', 'philhealth_number', 'pagibig_number', 'tin_number'] as $f) {
+            if (!$this->exists($f)) {
+                continue;
+            }
+
+            $v = $this->input($f);
+            if ($v === null) {
+                $this->merge([$f => null]);
+                continue;
+            }
+
+            $v = trim((string) $v);
+            $this->merge([$f => $v === '' ? null : $v]);
+        }
     }
 
     /**
@@ -170,6 +185,11 @@ class EmployeeRequest extends FormRequest
                 'numeric',
                 'min:0',
             ],
+
+            'sss_number' => ['nullable', 'string', 'max:50', 'regex:/^[0-9A-Za-z\-\s\.]+$/'],
+            'philhealth_number' => ['nullable', 'string', 'max:50', 'regex:/^[0-9A-Za-z\-\s\.]+$/'],
+            'pagibig_number' => ['nullable', 'string', 'max:50', 'regex:/^[0-9A-Za-z\-\s\.]+$/'],
+            'tin_number' => ['nullable', 'string', 'max:50', 'regex:/^[0-9A-Za-z\-\s\.]+$/'],
             // Allow larger uploads; image is optimized before encryption anyway.
             'photo' => [$isCreate ? 'nullable' : 'sometimes', 'nullable', 'file', 'max:10240', 'mimes:jpg,jpeg,png'],
             // Client-side hint: used to detect when a selected photo fails to reach the server
@@ -235,6 +255,11 @@ class EmployeeRequest extends FormRequest
             'document_items.*.issue_date' => 'Document Issue Date',
             'document_items.*.expiry_date' => 'Document Expiry Date',
             'monthly_rate' => 'Monthly Rate',
+
+            'sss_number' => 'SSS Number',
+            'philhealth_number' => 'PhilHealth Number',
+            'pagibig_number' => 'Pag-IBIG Number',
+            'tin_number' => 'TIN',
         ];
     }
 

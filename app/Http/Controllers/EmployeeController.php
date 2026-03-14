@@ -359,6 +359,10 @@ class EmployeeController extends Controller
             'position_title',
             'employment_type',
             'monthly_rate',
+            'sss_number',
+            'philhealth_number',
+            'pagibig_number',
+            'tin_number',
             'notes',
         ]);
 

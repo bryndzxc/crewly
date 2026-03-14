@@ -4,6 +4,7 @@ use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\EmployeeAllowanceController;
 use App\Http\Controllers\EmployeeCompensationController;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\EmployeeGovernmentController;
 use App\Http\Controllers\EmployeeDocumentController;
 use App\Http\Controllers\EmployeeDocumentScanController;
 use App\Http\Controllers\EmployeeIncidentController;
@@ -46,6 +47,10 @@ Route::middleware(['auth', 'ensure.company', 'can:access-employees'])->group(fun
     Route::patch('/employees/{employee}/compensation', [EmployeeCompensationController::class, 'update'])
         ->whereNumber('employee')
         ->name('employees.compensation.update');
+
+    Route::patch('/employees/{employee}/government-info', [EmployeeGovernmentController::class, 'update'])
+        ->whereNumber('employee')
+        ->name('employees.government-info.update');
 
     Route::get('/employees/{employee}/salary-history', [EmployeeSalaryHistoryController::class, 'index'])
         ->whereNumber('employee')

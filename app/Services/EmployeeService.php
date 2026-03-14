@@ -412,6 +412,10 @@ class EmployeeService extends Service
             'regularization_date',
             'employment_type',
             'monthly_rate',
+            'sss_number',
+            'philhealth_number',
+            'pagibig_number',
+            'tin_number',
             'notes',
         ]);
 
