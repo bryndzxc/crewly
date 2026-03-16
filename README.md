@@ -155,6 +155,75 @@ APP_DEVELOPER_BYPASS=false
 APP_DEVELOPER_EMAILS=you@example.com,other@example.com
 ```
 
+## Government Contribution Update Monitor
+
+Crewly includes a **semi-automatic** monitor that checks configured sources (SSS / PhilHealth / Pag-IBIG), detects changes via hashing, creates **DRAFT** updates, and requires an admin to **approve** before applying anything.
+
+- Admin UI: `/admin/government-updates`
+- Command: `php artisan government:check-contributions` (or `--source=sss|philhealth|pagibig`)
+
+### Configure Sources
+
+Set these in `.env`:
+
+```env
+GOV_MONITOR_SSS_URL=
+GOV_MONITOR_PHILHEALTH_URL=
+GOV_MONITOR_PAGIBIG_URL=
+```
+
+For best results, use deterministic JSON or CSV sources.
+
+Official sources (examples):
+
+- SSS: https://www.sss.gov.ph/sss-contribution-table/
+- PhilHealth: https://www.philhealth.gov.ph/news/2024/premium_contri.php
+- Pag-IBIG: https://www.pagibigfund.gov.ph/employers_employees.html
+
+Note: Some official sites may be protected by browser/JS challenges (e.g., Cloudflare). In that case, the monitor will mark the source as failed ("blocked_by_challenge") and you’ll need to configure a direct, publicly fetchable PDF/JSON/CSV URL (or an internal mirror) for reliable server-side monitoring.
+
+### PDF Circulars (Poppler / `pdftotext`)
+
+If the source (or a linked circular) is a PDF, Crewly extracts text using `pdftotext` (Poppler).
+
+- If `pdftotext` is on your PATH, no extra config is needed.
+- On Windows, it’s common to set an explicit path:
+
+```env
+GOV_MONITOR_PDFTOTEXT_PATH=C:\\path\\to\\pdftotext.exe
+```
+
+If `pdftotext` is missing, the monitor will mark the source as failed and include an error message in the admin monitor UI.
+
+### Local End-to-End Test (Sample Sources)
+
+This repo includes sample JSON/CSV files you can point to locally:
+
+- `public/government-monitor-samples/sss.json`
+- `public/government-monitor-samples/philhealth.json`
+- `public/government-monitor-samples/pagibig.json`
+
+Steps:
+
+1) Start the app: `php artisan serve`
+2) Set URLs like:
+
+```env
+GOV_MONITOR_SSS_URL=http://localhost:8000/government-monitor-samples/sss.json
+GOV_MONITOR_PHILHEALTH_URL=http://localhost:8000/government-monitor-samples/philhealth.json
+GOV_MONITOR_PAGIBIG_URL=http://localhost:8000/government-monitor-samples/pagibig.json
+```
+
+3) Run once to establish the baseline hash:
+
+```bash
+php artisan government:check-contributions
+```
+
+4) Edit one of the sample files (change a number), then run the command again to create a draft.
+
+5) Review/approve in `/admin/government-updates`.
+
 ## Frontend Notes
 
 - The sidebar and various UI elements rely on a globally shared Inertia prop named `can` (permission map). Avoid using `can` as a page prop; use a different name (for example: `actions`) to prevent collisions.

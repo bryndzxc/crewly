@@ -4,7 +4,9 @@ import PageHeader from '@/Components/UI/PageHeader';
 import StatCard from '@/Components/UI/StatCard';
 import Badge from '@/Components/UI/Badge';
 import OnboardingChecklistCard from '@/Components/OnboardingChecklistCard';
-import { Head, Link } from '@inertiajs/react';
+import CrewlyTour from '@/Components/Tutorial/CrewlyTour';
+import { Head, Link, usePage } from '@inertiajs/react';
+import { useMemo } from 'react';
 
 function fullName(employee) {
     const parts = [employee?.first_name, employee?.middle_name, employee?.last_name, employee?.suffix]
@@ -35,6 +37,12 @@ export default function Dashboard({
     attendance_unmarked_today_top5 = [],
     onboarding_checklist = null,
 }) {
+    const { url } = usePage();
+    const forceRunTour = useMemo(() => {
+        const qs = String(url || '').split('?')[1] || '';
+        return new URLSearchParams(qs).get('tour') === '1';
+    }, [url]);
+
     const isDemo = Boolean(auth?.company?.is_demo);
     const demoCompanyName = String(auth?.company?.name || '').trim();
 
@@ -163,6 +171,8 @@ export default function Dashboard({
         <AuthenticatedLayout user={auth.user} header="Dashboard" contentClassName="max-w-none">
             <Head title="Dashboard" />
 
+            <CrewlyTour forceRun={forceRunTour} />
+
             {isDemo && (
                 <div className="mb-6">
                     <Card className="p-6 border-amber-200/60 bg-amber-50/40">
@@ -177,9 +187,13 @@ export default function Dashboard({
                 </div>
             )}
 
-            <PageHeader title="Dashboard" subtitle="Your people operations snapshot." />
+            <div data-tour="dashboard">
+                <PageHeader title="Dashboard" subtitle="Your people operations snapshot." />
+            </div>
 
-            <OnboardingChecklistCard auth={auth} checklist={onboarding_checklist} />
+            <div data-tour="checklist">
+                <OnboardingChecklistCard auth={auth} checklist={onboarding_checklist} />
+            </div>
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
                 {stats.map((stat) => (

@@ -123,6 +123,11 @@ class EnsureSharedDemoCompanyCommand extends Command
         if ((bool) $this->option('seed')) {
             app(DeveloperLeadService::class)->seedDemoCompanyData($company, $user);
             $this->info('Seeded demo company data (if empty).');
+
+            $exit = (int) $this->call('crewly:seed-government-contributions');
+            if ($exit !== self::SUCCESS) {
+                $this->warn('Government contributions seeding returned a non-success exit code.');
+            }
         }
 
         return self::SUCCESS;

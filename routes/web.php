@@ -35,3 +35,4 @@ Route::group([], base_path('routes/modules/settings.php'));
 Route::group([], base_path('routes/modules/memos.php'));
 Route::group([], base_path('routes/modules/developer.php'));
 Route::group([], base_path('routes/modules/admin_billing.php'));
+Route::group([], base_path('routes/modules/admin_government_updates.php'));

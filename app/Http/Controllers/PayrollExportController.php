@@ -44,7 +44,12 @@ class PayrollExportController extends Controller
                 'Base Salary',
                 'Allowances',
                 'Cash Advance',
+                'SSS (Employee)',
+                'PhilHealth (Employee)',
+                'Pag-IBIG (Employee)',
+                'Government Contributions (Employee Total)',
                 'Estimated Gross',
+                'Estimated Net',
             ]);
 
             foreach ($rows as $r) {
@@ -53,7 +58,12 @@ class PayrollExportController extends Controller
                     number_format((float) ($r['base_salary'] ?? 0), 2, '.', ''),
                     number_format((float) ($r['allowances'] ?? 0), 2, '.', ''),
                     number_format((float) ($r['cash_advance'] ?? 0), 2, '.', ''),
+                    number_format((float) ($r['sss_employee'] ?? 0), 2, '.', ''),
+                    number_format((float) ($r['philhealth_employee'] ?? 0), 2, '.', ''),
+                    number_format((float) ($r['pagibig_employee'] ?? 0), 2, '.', ''),
+                    number_format((float) ($r['government_contributions_employee_total'] ?? 0), 2, '.', ''),
                     number_format((float) ($r['estimated_gross'] ?? 0), 2, '.', ''),
+                    number_format((float) ($r['estimated_net'] ?? 0), 2, '.', ''),
                 ]);
             }
 

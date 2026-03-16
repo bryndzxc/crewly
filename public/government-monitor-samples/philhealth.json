@@ -1,0 +1,10 @@
+{
+  "effective_from": "2026-01-01",
+  "effective_to": null,
+  "premium_rate": 0.051,
+  "salary_floor": 10000,
+  "salary_ceiling": 100000,
+  "employee_share_percent": 0.5,
+  "employer_share_percent": 0.5,
+  "notes": "Sample payload (replace with official PhilHealth circular values)"
+}

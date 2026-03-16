@@ -197,6 +197,14 @@ class AuthServiceProvider extends ServiceProvider
             User::ROLE_HR,
         ], true));
 
+        // Government Contributions (PH payroll)
+        Gate::define('manage-government-contributions', fn (User $user) => $user->isDeveloper() || $user->role() === User::ROLE_ADMIN);
+        Gate::define('manage-government-updates', fn (User $user) => $user->role() === User::ROLE_ADMIN);
+        Gate::define('override-payroll-contributions', fn (User $user) => in_array($user->role(), [
+            User::ROLE_ADMIN,
+            User::ROLE_HR,
+        ], true));
+
         // Audit Logs
         Gate::define('view-audit-logs', fn (User $user) => $user->isDeveloper());
     }

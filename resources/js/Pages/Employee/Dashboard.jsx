@@ -3,10 +3,17 @@ import Card from '@/Components/UI/Card';
 import PageHeader from '@/Components/UI/PageHeader';
 import PrimaryButton from '@/Components/PrimaryButton';
 import DatePicker from '@/Components/DatePicker';
-import { Head } from '@inertiajs/react';
+import CrewlyTour from '@/Components/Tutorial/CrewlyTour';
+import { Head, usePage } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
 
 export default function EmployeeDashboard({ auth, employee, leaveSummary, attendanceHistory, compensation, allowances, allowancesTotal, defaults }) {
+    const { url } = usePage();
+    const forceRunTour = useMemo(() => {
+        const qs = String(url || '').split('?')[1] || '';
+        return new URLSearchParams(qs).get('tour') === '1';
+    }, [url]);
+
     const [from, setFrom] = useState(defaults?.from || '');
     const [to, setTo] = useState(defaults?.to || '');
 
@@ -33,7 +40,11 @@ export default function EmployeeDashboard({ auth, employee, leaveSummary, attend
         <AuthenticatedLayout user={auth.user} header="Employee Dashboard" contentClassName="max-w-none">
             <Head title="Employee Dashboard" />
 
-            <PageHeader title="Employee Dashboard" subtitle="Your leave, attendance, and payroll-ready information." />
+            <CrewlyTour forceRun={forceRunTour} />
+
+            <div data-tour="dashboard">
+                <PageHeader title="Employee Dashboard" subtitle="Your leave, attendance, and payroll-ready information." />
+            </div>
 
             <div className="w-full space-y-4">
                 <Card className="p-6">
@@ -165,7 +176,7 @@ export default function EmployeeDashboard({ auth, employee, leaveSummary, attend
                     </Card>
                 </div>
 
-                <Card className="p-6">
+                <Card className="p-6" data-tour="payslips">
                     <div className="text-sm font-semibold text-slate-900">Payslip Downloads</div>
                     <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

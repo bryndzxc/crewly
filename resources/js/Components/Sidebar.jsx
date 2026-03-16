@@ -257,6 +257,30 @@ export default function Sidebar({ chatUnreadCount: chatUnreadCountProp = null })
     const coreItems = visibleNavigation.filter((i) => i.type === 'link' || (i.type === 'group' && i.section === 'core'));
     const settingsGroups = visibleNavigation.filter((i) => i.type === 'group' && i.section !== 'core');
 
+    const dataTourForRoute = (routeName) => {
+        switch (routeName) {
+            case 'employees.index':
+                return 'employees';
+            case 'payroll.summary.index':
+                return 'payroll';
+            case 'chat.index':
+                return 'support';
+            case 'my.leave.index':
+                return 'leave';
+            case 'my.cash_advances.index':
+                return 'cash-advance';
+            default:
+                return null;
+        }
+    };
+
+    const dataTourForGroup = (label) => {
+        const l = String(label || '').toLowerCase();
+        if (l === 'leave') return 'leave';
+        if (l === 'attendance') return 'attendance';
+        return null;
+    };
+
     return (
         <div className="px-3 py-5">
             <nav className="space-y-4">
@@ -274,6 +298,7 @@ export default function Sidebar({ chatUnreadCount: chatUnreadCountProp = null })
                                             <button
                                                 type="button"
                                                 onClick={() => setOpenGroups((prev) => ({ ...prev, [item.label]: !open }))}
+                                                data-tour={dataTourForGroup(item.label) || undefined}
                                                 className={
                                                     'w-full flex items-center justify-between gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition ' +
                                                     (groupActive
@@ -349,6 +374,7 @@ export default function Sidebar({ chatUnreadCount: chatUnreadCountProp = null })
                                     <Link
                                         key={item.routeName}
                                         href={route(item.routeName)}
+                                        data-tour={dataTourForRoute(item.routeName) || undefined}
                                         className={
                                             'group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition ' +
                                             (active

@@ -6,6 +6,7 @@ import { useForm } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
 import InputError from '@/Components/InputError';
 import PrimaryButton from '@/Components/PrimaryButton';
+import SecondaryButton from '@/Components/SecondaryButton';
 import Card from '@/Components/UI/Card';
 import PageHeader from '@/Components/UI/PageHeader';
 
@@ -106,6 +107,16 @@ export default function Edit({ auth, mustVerifyEmail, status }) {
                                             </div>
                                         </div>
                                     </form>
+                                </div>
+                            </Card>
+
+                            <Card className="p-6">
+                                <div className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Tutorial</div>
+                                <p className="mt-1 text-sm text-slate-600">Replay the guided walkthrough anytime.</p>
+                                <div className="mt-3">
+                                    <a href={route('dashboard', { tour: 1 })}>
+                                        <SecondaryButton type="button">Replay Tutorial</SecondaryButton>
+                                    </a>
                                 </div>
                             </Card>
 

@@ -70,6 +70,12 @@ export default function PayrollSummaryIndex({
                     <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800">{flash.error}</div>
                 )}
 
+                {Array.isArray(meta?.warnings) && meta.warnings.length > 0 && (
+                    <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800">
+                        {meta.warnings.join(' ')}
+                    </div>
+                )}
+
                 <Card className="relative p-6">
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -129,7 +135,7 @@ export default function PayrollSummaryIndex({
                     </div>
 
                     <div className="mt-4 overflow-x-auto">
-                        <table className="min-w-[1100px] w-full divide-y divide-slate-200">
+                        <table className="min-w-[1500px] w-full divide-y divide-slate-200">
                             <thead className="bg-slate-50 sticky top-0">
                                 <tr>
                                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Code</th>
@@ -143,13 +149,17 @@ export default function PayrollSummaryIndex({
                                     <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Undertime</th>
                                     <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Overtime</th>
                                     <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Cash Advance</th>
+                                    <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">SSS</th>
+                                    <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">PhilHealth</th>
+                                    <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Pag-IBIG</th>
+                                    <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Govt Total</th>
                                     <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Payslip</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-200 bg-white">
                                 {items.length === 0 && (
                                     <tr>
-                                        <td className="px-4 py-10" colSpan={12}>
+                                        <td className="px-4 py-10" colSpan={16}>
                                             <div className="mx-auto max-w-xl rounded-2xl border border-amber-200/60 bg-amber-50/40 p-6">
                                                 <div className="text-sm font-semibold text-slate-900">No data</div>
                                                 <div className="mt-1 text-sm text-slate-600">Generate a report to see results.</div>
@@ -171,6 +181,10 @@ export default function PayrollSummaryIndex({
                                         <td className="px-4 py-3 text-sm text-right text-slate-700 tabular-nums">{r.undertime_minutes}</td>
                                         <td className="px-4 py-3 text-sm text-right text-slate-700 tabular-nums">{r.overtime_minutes}</td>
                                         <td className="px-4 py-3 text-sm text-right text-slate-700 tabular-nums">{Number(r.cash_advance_deductions || 0).toFixed(2)}</td>
+                                        <td className="px-4 py-3 text-sm text-right text-slate-700 tabular-nums">{Number(r.sss_employee || 0).toFixed(2)}</td>
+                                        <td className="px-4 py-3 text-sm text-right text-slate-700 tabular-nums">{Number(r.philhealth_employee || 0).toFixed(2)}</td>
+                                        <td className="px-4 py-3 text-sm text-right text-slate-700 tabular-nums">{Number(r.pagibig_employee || 0).toFixed(2)}</td>
+                                        <td className="px-4 py-3 text-sm text-right text-slate-700 tabular-nums">{Number(r.government_contributions_employee_total || 0).toFixed(2)}</td>
                                         <td className="px-4 py-3 text-sm text-right whitespace-nowrap">
                                             {from && to ? (
                                                 <a

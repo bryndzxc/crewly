@@ -462,6 +462,14 @@ class DeveloperLeadService extends Service
 
         $existingEmployees = (int) Employee::withoutCompanyScope()->where('company_id', $companyId)->count();
         if ($existingEmployees > 0) {
+            // If demo employees already exist from a prior seed run, ensure they have a usable monthly rate
+            // for payroll-related reports. Only touch seeded rows (created_by = null).
+            Employee::withoutCompanyScope()
+                ->where('company_id', $companyId)
+                ->whereNull('created_by')
+                ->where('monthly_rate', '=', 0)
+                ->update(['monthly_rate' => 18000.00]);
+
             return;
         }
 
@@ -759,6 +767,17 @@ class DeveloperLeadService extends Service
 
                 $status = in_array($i, $inactiveIndexes, true) ? 'Inactive' : 'Active';
 
+                $baseMonthlyRate = match ((string) $group['position']) {
+                    'Driver' => 24000.00,
+                    'Helper' => 17000.00,
+                    'Warehouse Staff' => 20000.00,
+                    'Admin Assistant' => 21000.00,
+                    default => 18000.00,
+                };
+
+                // Small variance so the seeded dataset isn't uniform.
+                $monthlyRate = $baseMonthlyRate + (($i % 5) * 500.00);
+
                 $employees[] = Employee::withoutCompanyScope()->create([
                     'company_id' => $companyId,
                     'department_id' => (int) $departmentId,
@@ -774,6 +793,7 @@ class DeveloperLeadService extends Service
                     'date_hired' => now()->subDays(30 + $i)->toDateString(),
                     'regularization_date' => now()->addDays(60)->toDateString(),
                     'employment_type' => 'Full-Time',
+                    'monthly_rate' => $monthlyRate,
                     'notes' => null,
                     // Seeded demo data should not count as a user-completed onboarding action.
                     'created_by' => null,

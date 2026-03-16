@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\GovernmentContributionConfigMissingException;
 use App\Models\CashAdvanceDeduction;
 use App\Models\Company;
 use App\Models\Employee;
@@ -13,13 +14,17 @@ use Illuminate\Support\Collection;
 
 class PayslipService extends Service
 {
+    public function __construct(
+        private readonly PayrollRunContributionService $payrollRunContributionService,
+    ) {}
+
     /**
      * @return array{
      *   company: array{name: string},
      *   employee: array{employee_id: int, name: string, position_title: string},
      *   period: array{from: string, to: string},
      *   earnings: array{base_salary: float, allowances_total: float, allowances: array<int, array{name: string, amount: float, frequency: string}>, other_earnings: float},
-     *   deductions: array{cash_advances: float, other_deductions: float},
+        *   deductions: array{sss: float, philhealth: float, pagibig: float, government_total: float, cash_advances: float, other_deductions: float},
      *   totals: array{gross_pay: float, total_earnings: float, total_deductions: float}
      * }
      */
@@ -73,11 +78,34 @@ class PayslipService extends Service
             ->whereBetween('cash_advance_deductions.deducted_at', [$fromDate, $toDate])
             ->sum('cash_advance_deductions.amount');
 
+        $sssEmployee = 0.0;
+        $philhealthEmployee = 0.0;
+        $pagibigEmployee = 0.0;
+
+        try {
+            $contribMap = $this->payrollRunContributionService->upsertForPeriod(
+                employeeIds: [$employeeId],
+                periodStart: $from,
+                periodEnd: $to,
+                baseSalaryByEmployeeId: [$employeeId => $baseSalary],
+                actorUserId: (int) ($requestedBy?->id ?? 0) ?: null,
+            );
+
+            $contrib = $contribMap->get($employeeId);
+            $sssEmployee = $contrib ? (float) ($contrib->sss_employee ?? 0) : 0.0;
+            $philhealthEmployee = $contrib ? (float) ($contrib->philhealth_employee ?? 0) : 0.0;
+            $pagibigEmployee = $contrib ? (float) ($contrib->pagibig_employee ?? 0) : 0.0;
+        } catch (GovernmentContributionConfigMissingException) {
+            // Keep payslip usable; show zero contributions until settings are configured.
+        }
+
+        $governmentEmployeeTotal = $sssEmployee + $philhealthEmployee + $pagibigEmployee;
+
         $otherEarnings = 0.0;
         $otherDeductions = 0.0;
 
         $totalEarnings = $baseSalary + $allowancesTotal + $otherEarnings;
-        $totalDeductions = $cashAdvanceDeductions + $otherDeductions;
+        $totalDeductions = $governmentEmployeeTotal + $cashAdvanceDeductions + $otherDeductions;
         $grossPay = $totalEarnings - $totalDeductions;
 
         return [
@@ -100,6 +128,10 @@ class PayslipService extends Service
                 'other_earnings' => $otherEarnings,
             ],
             'deductions' => [
+                'sss' => $sssEmployee,
+                'philhealth' => $philhealthEmployee,
+                'pagibig' => $pagibigEmployee,
+                'government_total' => $governmentEmployeeTotal,
                 'cash_advances' => $cashAdvanceDeductions,
                 'other_deductions' => $otherDeductions,
             ],
@@ -158,6 +190,27 @@ class PayslipService extends Service
             ->get()
             ->mapWithKeys(fn ($row) => [(int) $row->employee_id => (float) ($row->total_amount ?? 0)]);
 
+        $baseSalaryByEmployeeId = [];
+        foreach ($employees as $employee) {
+            $employeeId = (int) $employee->employee_id;
+            $comp = $compMap->get($employeeId);
+            $baseSalaryByEmployeeId[$employeeId] = $comp
+                ? (float) ($comp->base_salary ?? 0)
+                : (float) ($employee->monthly_rate ?? 0);
+        }
+
+        try {
+            $contribMap = $this->payrollRunContributionService->upsertForPeriod(
+                employeeIds: $employeeIds,
+                periodStart: $from,
+                periodEnd: $to,
+                baseSalaryByEmployeeId: $baseSalaryByEmployeeId,
+                actorUserId: (int) ($user->id ?? 0) ?: null,
+            );
+        } catch (GovernmentContributionConfigMissingException) {
+            $contribMap = collect();
+        }
+
         $rows = [];
 
         foreach ($employees as $employee) {
@@ -175,7 +228,14 @@ class PayslipService extends Service
             $allowances = (float) ($allowanceSumMap[$employeeId] ?? 0);
             $cashAdvance = (float) ($cashDeductionMap[$employeeId] ?? 0);
 
+            $contrib = $contribMap->get($employeeId);
+            $sssEmployee = $contrib ? (float) ($contrib->sss_employee ?? 0) : 0.0;
+            $philhealthEmployee = $contrib ? (float) ($contrib->philhealth_employee ?? 0) : 0.0;
+            $pagibigEmployee = $contrib ? (float) ($contrib->pagibig_employee ?? 0) : 0.0;
+            $governmentEmployeeTotal = $sssEmployee + $philhealthEmployee + $pagibigEmployee;
+
             $estimatedGross = ($baseSalary + $allowances) - $cashAdvance;
+            $estimatedNet = $estimatedGross - $governmentEmployeeTotal;
 
             $rows[] = [
                 'employee_id' => $employeeId,
@@ -183,7 +243,12 @@ class PayslipService extends Service
                 'base_salary' => $baseSalary,
                 'allowances' => $allowances,
                 'cash_advance' => $cashAdvance,
+                'sss_employee' => $sssEmployee,
+                'philhealth_employee' => $philhealthEmployee,
+                'pagibig_employee' => $pagibigEmployee,
+                'government_contributions_employee_total' => $governmentEmployeeTotal,
                 'estimated_gross' => $estimatedGross,
+                'estimated_net' => $estimatedNet,
             ];
         }
 

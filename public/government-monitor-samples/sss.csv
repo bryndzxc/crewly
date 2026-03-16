@@ -1,0 +1,3 @@
+effective_from,effective_to,range_from,range_to,monthly_salary_credit,employee_share,employer_share,ec_share,notes
+2026-01-01,,0.00,4249.99,4000.00,180.00,360.00,10.00,Sample row (replace with official SSS table)
+2026-01-01,,4250.00,4749.99,4500.00,202.50,405.00,10.00,Sample row

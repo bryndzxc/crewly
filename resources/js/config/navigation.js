@@ -212,6 +212,27 @@ export const navigation = [
         iconKey: 'settings',
         children: [
             {
+                label: 'SSS Contributions',
+                routeName: 'settings.government_contributions.sss.index',
+                iconKey: 'payroll',
+                activePatterns: ['/settings/government-contributions/sss'],
+                ability: 'manageGovernmentContributions',
+            },
+            {
+                label: 'PhilHealth Contributions',
+                routeName: 'settings.government_contributions.philhealth.index',
+                iconKey: 'payroll',
+                activePatterns: ['/settings/government-contributions/philhealth'],
+                ability: 'manageGovernmentContributions',
+            },
+            {
+                label: 'Pag-IBIG Contributions',
+                routeName: 'settings.government_contributions.pagibig.index',
+                iconKey: 'payroll',
+                activePatterns: ['/settings/government-contributions/pagibig'],
+                ability: 'manageGovernmentContributions',
+            },
+            {
                 label: 'Memo Templates',
                 routeName: 'settings.memo_templates.index',
                 iconKey: 'memo',

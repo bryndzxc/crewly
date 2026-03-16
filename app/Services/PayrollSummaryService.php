@@ -2,10 +2,12 @@
 
 namespace App\Services;
 
+use App\Exceptions\GovernmentContributionConfigMissingException;
 use App\Models\AttendanceRecord;
 use App\Models\CashAdvanceDeduction;
 use App\Models\Company;
 use App\Models\Employee;
+use App\Models\EmployeeCompensation;
 use App\Models\LeaveRequest;
 use App\Models\User;
 use Illuminate\Support\Carbon;
@@ -13,6 +15,10 @@ use Illuminate\Support\Collection;
 
 class PayrollSummaryService extends Service
 {
+    public function __construct(
+        private readonly PayrollRunContributionService $payrollRunContributionService,
+    ) {}
+
     /**
      * @return array{rows: array<int, array<string, mixed>>, meta: array<string, mixed>, totals: array<string, mixed>}
      */
@@ -25,6 +31,37 @@ class PayrollSummaryService extends Service
 
         $employees = $this->employeesForUser($user);
         $employeeIds = $employees->pluck('employee_id')->map(fn ($v) => (int) $v)->values()->all();
+
+        $compMap = EmployeeCompensation::query()
+            ->whereIn('employee_id', $employeeIds)
+            ->get(['employee_id', 'base_salary'])
+            ->keyBy('employee_id');
+
+        $baseSalaryByEmployeeId = [];
+        foreach ($employees as $employee) {
+            $employeeId = (int) $employee->employee_id;
+
+            $comp = $compMap->get($employeeId);
+            $baseSalaryByEmployeeId[$employeeId] = $comp
+                ? (float) ($comp->base_salary ?? 0)
+                : (float) ($employee->monthly_rate ?? 0);
+        }
+
+        $contribMap = collect();
+        $warnings = [];
+
+        try {
+            $contribMap = $this->payrollRunContributionService->upsertForPeriod(
+                employeeIds: $employeeIds,
+                periodStart: $from,
+                periodEnd: $to,
+                baseSalaryByEmployeeId: $baseSalaryByEmployeeId,
+                actorUserId: (int) ($user->id ?? 0) ?: null,
+            );
+        } catch (GovernmentContributionConfigMissingException $e) {
+            // Keep the report usable; show zero contributions until settings are configured.
+            $warnings[] = $e->getMessage();
+        }
 
         $attendance = $this->attendanceRecords($employeeIds, $fromDate, $toDate);
         $leaves = $this->approvedLeaveDaysMap($employeeIds, $fromDate, $toDate);
@@ -41,6 +78,10 @@ class PayrollSummaryService extends Service
             'undertime_minutes' => 0,
             'overtime_minutes' => 0,
             'cash_advance_deductions' => 0,
+            'sss_employee' => 0,
+            'philhealth_employee' => 0,
+            'pagibig_employee' => 0,
+            'government_contributions_employee_total' => 0,
         ];
 
         foreach ($employees as $employee) {
@@ -104,6 +145,12 @@ class PayrollSummaryService extends Service
 
             $cashAdvanceDeducted = (float) ($cashAdvanceDeductions[$employeeId] ?? 0);
 
+            $contrib = $contribMap->get($employeeId);
+            $sssEmployee = $contrib ? (float) ($contrib->sss_employee ?? 0) : 0.0;
+            $philhealthEmployee = $contrib ? (float) ($contrib->philhealth_employee ?? 0) : 0.0;
+            $pagibigEmployee = $contrib ? (float) ($contrib->pagibig_employee ?? 0) : 0.0;
+            $govtEmployeeTotal = $sssEmployee + $philhealthEmployee + $pagibigEmployee;
+
             $rows[] = [
                 'employee_id' => $employeeId,
                 'employee_code' => $employee->employee_code,
@@ -118,6 +165,10 @@ class PayrollSummaryService extends Service
                 'undertime_minutes' => $undertimeMinutes,
                 'overtime_minutes' => $overtimeMinutes,
                 'cash_advance_deductions' => $cashAdvanceDeducted,
+                'sss_employee' => $sssEmployee,
+                'philhealth_employee' => $philhealthEmployee,
+                'pagibig_employee' => $pagibigEmployee,
+                'government_contributions_employee_total' => $govtEmployeeTotal,
             ];
 
             $totals['employees']++;
@@ -129,6 +180,10 @@ class PayrollSummaryService extends Service
             $totals['undertime_minutes'] += $undertimeMinutes;
             $totals['overtime_minutes'] += $overtimeMinutes;
             $totals['cash_advance_deductions'] += $cashAdvanceDeducted;
+            $totals['sss_employee'] += $sssEmployee;
+            $totals['philhealth_employee'] += $philhealthEmployee;
+            $totals['pagibig_employee'] += $pagibigEmployee;
+            $totals['government_contributions_employee_total'] += $govtEmployeeTotal;
         }
 
         $totals['worked_hours'] = round(((int) $totals['worked_minutes']) / 60, 2);
@@ -140,6 +195,7 @@ class PayrollSummaryService extends Service
                 'from' => $fromDate,
                 'to' => $toDate,
                 'generated_at' => Carbon::now()->format('Y-m-d H:i:s'),
+                'warnings' => $warnings,
             ],
         ];
     }
@@ -160,6 +216,7 @@ class PayrollSummaryService extends Service
                 'employees.last_name',
                 'employees.suffix',
                 'employees.department_id',
+                'employees.monthly_rate',
                 'departments.name as department_name',
             ])
             ->orderBy('employees.employee_code', 'asc')

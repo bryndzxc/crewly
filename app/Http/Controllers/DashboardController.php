@@ -18,7 +18,7 @@ class DashboardController extends Controller
     public function __invoke(Request $request): Response|RedirectResponse
     {
         if ($request->user()?->hasRole(User::ROLE_EMPLOYEE)) {
-            return to_route('my.profile')->setStatusCode(303);
+            return to_route('employee.dashboard', $request->query())->setStatusCode(303);
         }
 
         return Inertia::render('Dashboard', $this->dashboardService->data($request));

@@ -115,6 +115,7 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'must_change_password' => 'boolean',
         'chat_sound_enabled' => 'boolean',
+        'tutorial_completed_at' => 'datetime',
         'company_id' => 'integer',
     ];
 

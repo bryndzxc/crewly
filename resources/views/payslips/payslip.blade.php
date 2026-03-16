@@ -31,6 +31,11 @@
     $allowancesTotal = (float) data_get($payslip, 'earnings.allowances_total', 0);
     $otherEarnings = (float) data_get($payslip, 'earnings.other_earnings', 0);
 
+    $sss = (float) data_get($payslip, 'deductions.sss', 0);
+    $philhealth = (float) data_get($payslip, 'deductions.philhealth', 0);
+    $pagibig = (float) data_get($payslip, 'deductions.pagibig', 0);
+    $governmentTotal = (float) data_get($payslip, 'deductions.government_total', 0);
+
     $cashAdvances = (float) data_get($payslip, 'deductions.cash_advances', 0);
     $otherDeductions = (float) data_get($payslip, 'deductions.other_deductions', 0);
 
@@ -96,6 +101,22 @@
             </tr>
         </thead>
         <tbody>
+            <tr>
+                <td>SSS (Employee)</td>
+                <td class="num">{{ number_format($sss, 2, '.', ',') }}</td>
+            </tr>
+            <tr>
+                <td>PhilHealth (Employee)</td>
+                <td class="num">{{ number_format($philhealth, 2, '.', ',') }}</td>
+            </tr>
+            <tr>
+                <td>Pag-IBIG (Employee)</td>
+                <td class="num">{{ number_format($pagibig, 2, '.', ',') }}</td>
+            </tr>
+            <tr class="total-row">
+                <td>Government Contributions (Employee total)</td>
+                <td class="num">{{ number_format($governmentTotal, 2, '.', ',') }}</td>
+            </tr>
             <tr>
                 <td>Cash Advances</td>
                 <td class="num">{{ number_format($cashAdvances, 2, '.', ',') }}</td>

@@ -1,0 +1,2 @@
+effective_from,effective_to,employee_rate_below_threshold,employee_rate_above_threshold,employer_rate,salary_threshold,monthly_cap,notes
+2026-01-01,,0.0100,0.0200,0.0200,1500.00,100.00,Sample payload (replace with official Pag-IBIG HDMF values)

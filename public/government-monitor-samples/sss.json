@@ -1,0 +1,24 @@
+[
+  {
+    "effective_from": "2026-01-01",
+    "effective_to": null,
+    "range_from": 0,
+    "range_to": 4249.99,
+    "monthly_salary_credit": 4000,
+    "employee_share": 180,
+    "employer_share": 360,
+    "ec_share": 10,
+    "notes": "Sample row (replace with official SSS table)"
+  },
+  {
+    "effective_from": "2026-01-01",
+    "effective_to": null,
+    "range_from": 4250,
+    "range_to": 4749.99,
+    "monthly_salary_credit": 4500,
+    "employee_share": 202.5,
+    "employer_share": 405,
+    "ec_share": 10,
+    "notes": "Sample row"
+  }
+]

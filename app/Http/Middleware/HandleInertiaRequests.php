@@ -70,7 +70,7 @@ class HandleInertiaRequests extends Middleware
             ],
             'auth' => [
                 'user' => fn () => $user
-                    ? $this->safeOnlyAttributes($user, ['id', 'name', 'email', 'role', 'company_id'])
+                    ? $this->safeOnlyAttributes($user, ['id', 'name', 'email', 'role', 'company_id', 'tutorial_completed_at'])
                     : null,
                 'is_shared_demo_user' => fn () => $isSharedDemoUser,
                 'company' => fn () => $user && $user->company_id
@@ -184,6 +184,9 @@ class HandleInertiaRequests extends Middleware
                 'manageAttendance' => $user ? Gate::forUser($user)->check('manage-attendance') : false,
                 'accessPayrollSummary' => $user ? Gate::forUser($user)->check('access-payroll-summary') : false,
                 'exportPayrollSummary' => $user ? Gate::forUser($user)->check('export-payroll-summary') : false,
+                'manageGovernmentContributions' => $user ? Gate::forUser($user)->check('manage-government-contributions') : false,
+                'manageGovernmentUpdates' => $user ? Gate::forUser($user)->check('manage-government-updates') : false,
+                'overridePayrollContributions' => $user ? Gate::forUser($user)->check('override-payroll-contributions') : false,
                 'accessCashAdvances' => $user ? Gate::forUser($user)->check('access-cash-advances') : false,
                 'manageCashAdvances' => $user ? Gate::forUser($user)->check('manage-cash-advances') : false,
                 'viewAuditLogs' => $user ? Gate::forUser($user)->check('view-audit-logs') : false,

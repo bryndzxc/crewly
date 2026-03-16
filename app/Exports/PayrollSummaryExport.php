@@ -21,7 +21,12 @@ class PayrollSummaryExport implements FromArray, WithHeadings
             'Base Salary',
             'Allowances',
             'Cash Advance',
+            'SSS (Employee)',
+            'PhilHealth (Employee)',
+            'Pag-IBIG (Employee)',
+            'Government Contributions (Employee Total)',
             'Estimated Gross',
+            'Estimated Net',
         ];
     }
 
@@ -33,7 +38,12 @@ class PayrollSummaryExport implements FromArray, WithHeadings
                 (float) ($r['base_salary'] ?? 0),
                 (float) ($r['allowances'] ?? 0),
                 (float) ($r['cash_advance'] ?? 0),
+                (float) ($r['sss_employee'] ?? 0),
+                (float) ($r['philhealth_employee'] ?? 0),
+                (float) ($r['pagibig_employee'] ?? 0),
+                (float) ($r['government_contributions_employee_total'] ?? 0),
                 (float) ($r['estimated_gross'] ?? 0),
+                (float) ($r['estimated_net'] ?? 0),
             ];
         }, $this->rows);
     }

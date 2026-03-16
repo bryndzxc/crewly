@@ -1,0 +1,10 @@
+{
+  "effective_from": "2026-01-01",
+  "effective_to": null,
+  "salary_threshold": 1500,
+  "employee_rate_below_threshold": 0.01,
+  "employee_rate_above_threshold": 0.02,
+  "employer_rate": 0.02,
+  "monthly_cap": 100,
+  "notes": "Sample payload (replace with official Pag-IBIG HDMF values)"
+}
