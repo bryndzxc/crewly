@@ -25,10 +25,11 @@ class PricingController extends Controller
                     'Attendance & Leave tracking',
                     'Incident Management',
                     'Cash Advance tracking',
-                    'Payroll-ready data',
+                    'Payroll processing & payslips',
+                    'Government contributions (SSS, PhilHealth, Pag-IBIG)',
                 ],
                 'plans' => $this->founderAccessPlans(),
-                'note' => 'Payroll expansion coming soon. Founder partners retain discounted pricing.',
+                'note' => 'Founder partners retain discounted pricing as the product grows.',
                 'faq' => $this->pricingFaq(),
             ],
         ]);
@@ -55,6 +56,7 @@ class PricingController extends Controller
                 'employees_up_to' => 20,
                 'price_monthly' => 1200,
                 'cta_label' => 'Request Founder Access',
+                'tagline' => 'Best for small teams',
             ],
             [
                 'id' => 'growth',
@@ -62,6 +64,7 @@ class PricingController extends Controller
                 'employees_up_to' => 50,
                 'price_monthly' => 2000,
                 'cta_label' => 'Request Founder Access',
+                'tagline' => 'Best for growing teams',
             ],
             [
                 'id' => 'pro',
@@ -69,6 +72,7 @@ class PricingController extends Controller
                 'employees_up_to' => 100,
                 'price_monthly' => 3500,
                 'cta_label' => 'Request Founder Access',
+                'tagline' => 'Best for scaling teams',
             ],
         ];
     }
@@ -83,7 +87,7 @@ class PricingController extends Controller
         return [
             [
                 'question' => 'Is payroll included?',
-                'answer' => 'Not yet. Crewly is payroll-ready (attendance, leave, and incident data). Payroll expansion is coming soon for founder partners.',
+                'answer' => 'Yes. Crewly includes payroll summary, government contributions (SSS, PhilHealth, Pag-IBIG), and payslip generation. Additional payroll enhancements will continue to be released for founder partners.',
             ],
             [
                 'question' => 'Is there a contract?',

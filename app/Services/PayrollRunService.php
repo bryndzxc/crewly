@@ -9,6 +9,7 @@ use App\Models\EmployeeCompensation;
 use App\Models\PayrollRun;
 use App\Models\PayrollRunItem;
 use App\Models\User;
+use App\Services\Payroll\WithholdingTaxCalculator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +19,7 @@ class PayrollRunService extends Service
 {
     public function __construct(
         private readonly PayrollRunContributionService $payrollRunContributionService,
+        private readonly WithholdingTaxCalculator $withholdingTaxCalculator,
     ) {}
 
     public function inferPayFrequency(Carbon $from, Carbon $to): string
@@ -178,7 +180,18 @@ class PayrollRunService extends Service
             $row = $existing->get($employeeId);
 
             $taxOverridden = (bool) ($row?->tax_overridden ?? false);
-            $taxDeduction = $taxOverridden ? (float) ($row?->tax_deduction ?? 0) : 0.0;
+
+            if ($taxOverridden) {
+                $taxDeduction = (float) ($row?->tax_deduction ?? 0);
+            } else {
+                $taxableIncome = max(0.0, $grossPay - $sssEmployee - $philhealthEmployee - $pagibigEmployee);
+                $taxResult = $this->withholdingTaxCalculator->calculate(
+                    $taxableIncome,
+                    (string) $run->pay_frequency,
+                    $to,
+                );
+                $taxDeduction = $taxResult['tax'];
+            }
 
             $otherDeductions = (float) ($row?->other_deductions ?? 0);
             $deductionNotes = $row?->deduction_notes;

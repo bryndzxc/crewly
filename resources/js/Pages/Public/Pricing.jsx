@@ -1,7 +1,4 @@
 import Badge from '@/Components/UI/Badge';
-import Card from '@/Components/UI/Card';
-import PrimaryButton from '@/Components/PrimaryButton';
-import SecondaryButton from '@/Components/SecondaryButton';
 import PublicLayout from '@/Layouts/PublicLayout';
 import { router, usePage } from '@inertiajs/react';
 import { useMemo } from 'react';
@@ -19,6 +16,7 @@ import { useMemo } from 'react';
  * @property {number} employees_up_to
  * @property {number} price_monthly
  * @property {string} cta_label
+ * @property {string=} tagline
  */
 
 /**
@@ -43,55 +41,82 @@ function formatPhp(amount) {
     }
 }
 
-function PricingPlanCard({ plan, features, isRecommended, ctaHref, trialDays }) {
+function CheckIcon() {
     return (
-        <Card
+        <svg className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+        </svg>
+    );
+}
+
+function PricingPlanCard({ plan, isRecommended, ctaHref, trialDays }) {
+    return (
+        <div
             className={
-                'p-6 h-full flex flex-col ' +
-                (isRecommended ? 'ring-2 ring-amber-400/70 border-amber-200/70' : '')
+                'relative flex h-full flex-col rounded-2xl border bg-white p-8 ' +
+                (isRecommended
+                    ? 'border-amber-300 shadow-xl shadow-amber-100/80 ring-2 ring-amber-400/40'
+                    : 'border-slate-200 shadow-sm shadow-slate-900/5')
             }
         >
-            <div className="flex items-start justify-between gap-3">
-                <div>
-                    <div className="text-sm font-semibold text-slate-900">{plan.name} Plan</div>
-                    <div className="mt-1 text-sm text-slate-600">Up to {plan.employees_up_to} employees</div>
+            {isRecommended && (
+                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 whitespace-nowrap">
+                    <span className="inline-flex items-center rounded-full bg-amber-500 px-4 py-1 text-xs font-semibold text-white shadow-sm">
+                        Best for Growing Teams
+                    </span>
                 </div>
-                {isRecommended ? <Badge tone="amber">Recommended</Badge> : null}
-            </div>
+            )}
 
-            <div className="mt-6">
-                <div className="flex items-end gap-2">
-                    <div className="text-3xl font-semibold tracking-tight text-slate-900">{formatPhp(plan.price_monthly)}</div>
-                    <div className="pb-1 text-sm text-slate-600">/ month</div>
+            {/* Plan header */}
+            <div>
+                <div className="text-xs font-semibold uppercase tracking-widest text-slate-400">{plan.name} Plan</div>
+                {plan.tagline && (
+                    <div className="mt-1 text-xs text-slate-500">{plan.tagline}</div>
+                )}
+                <div className="mt-4 text-sm text-slate-600">
+                    Up to <span className="font-semibold text-slate-900">{plan.employees_up_to}</span> employees
                 </div>
-                <div className="mt-1 text-xs text-slate-500">Manual billing (invoice-based)</div>
-                <div className="mt-1 text-xs text-slate-500">Includes a free {trialDays}-day trial after approval</div>
+
+                <div className="mt-5 flex items-end gap-1.5">
+                    <div className="text-4xl font-bold tracking-tight text-slate-900">{formatPhp(plan.price_monthly)}</div>
+                    <div className="mb-2 text-sm text-slate-500">/ month</div>
+                </div>
+                <div className="mt-1.5 text-xs text-slate-500">Manual billing · invoice-based</div>
+                <div className="mt-1 text-xs text-slate-500">
+                    Free <span className="font-medium text-slate-700">{trialDays}-day trial</span> after approval
+                </div>
             </div>
 
-            <div className="mt-6">
-                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Includes</div>
-                <ul className="mt-3 space-y-2 text-sm text-slate-700">
-                    {features.map((item) => (
-                        <li key={item} className="flex gap-2">
-                            <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-amber-500/70 flex-none" />
-                            <span>{item}</span>
-                        </li>
-                    ))}
-                </ul>
+            {/* Divider */}
+            <div className="my-6 border-t border-slate-100" />
+
+            {/* Access line */}
+            <div className="flex-1">
+                <div className="flex items-center gap-2.5 text-sm font-medium text-slate-800">
+                    <CheckIcon />
+                    Full access to all features
+                </div>
+                <p className="mt-2 text-xs text-slate-500 leading-relaxed">
+                    Everything in the "All plans include" list. No feature restrictions across tiers.
+                </p>
             </div>
 
-            <div className="mt-8 flex flex-col gap-3">
-                <PrimaryButton
+            {/* CTA */}
+            <div className="mt-8">
+                <button
                     type="button"
-                    onClick={() => {
-                        router.visit(ctaHref);
-                    }}
-                    className="w-full"
+                    onClick={() => router.visit(ctaHref)}
+                    className={
+                        'w-full rounded-xl px-5 py-3 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 ' +
+                        (isRecommended
+                            ? 'bg-amber-600 text-white shadow-md shadow-amber-600/20 hover:bg-amber-700'
+                            : 'border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50')
+                    }
                 >
                     {plan.cta_label}
-                </PrimaryButton>
+                </button>
             </div>
-        </Card>
+        </div>
     );
 }
 
@@ -114,7 +139,6 @@ export default function PricingPage() {
                 message: "Hi! I'd like to request Founder Access pricing for Crewly.",
             });
         }
-
         return null;
     }, [auth.user]);
 
@@ -129,74 +153,140 @@ export default function PricingPage() {
             description="Founder Access pricing for early partners. Simple employee-tier plans with manual billing."
             image="/storage-images/product_preview.PNG"
         >
-            <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6">
-                <div className="mx-auto max-w-3xl text-center">
+            {/* ─── Header ───────────────────────────────────────────── */}
+            <div className="relative overflow-hidden border-b border-slate-200 bg-white">
+                <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+                    <div className="absolute -top-24 -right-24 h-72 w-72 rounded-full bg-amber-50 opacity-70 blur-3xl" />
+                </div>
+
+                <div className="relative mx-auto max-w-3xl px-4 py-16 sm:px-6 text-center">
                     <Badge tone="amber">{pricing?.badge || 'Founder Pricing – Limited Slots'}</Badge>
-                    <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">Founder Access</h1>
-                    <p className="mt-3 text-sm text-slate-600">
-                        {pricing?.label || 'Founder Access (Limited Early Partners)'}
+
+                    <h1 className="mt-5 text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">Founder Access</h1>
+
+                    <p className="mx-auto mt-4 max-w-xl text-base text-slate-600 leading-relaxed">
+                        Everything you need to manage employees and run payroll — in one system.
                     </p>
-                    <p className="mt-2 text-sm text-slate-600">
-                        Includes a free <span className="font-semibold text-slate-900">{trialDays}-day trial</span> after approval.
+                    <p className="mt-2 text-sm text-slate-500">
+                        Includes a free <span className="font-semibold text-slate-700">{trialDays}-day trial</span> after approval.
                     </p>
 
                     <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                        <PrimaryButton
+                        <button
                             type="button"
                             onClick={() => {
                                 if (ctaHrefForPlan) {
                                     router.visit(ctaHrefForPlan);
                                     return;
                                 }
-
                                 router.visit(route('register', { plan: recommendedId || 'growth' }));
                             }}
+                            className="inline-flex items-center justify-center rounded-xl bg-amber-600 px-7 py-3 text-sm font-semibold text-white shadow-md shadow-amber-600/20 transition hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
                         >
                             Request Founder Access
-                        </PrimaryButton>
-                        <SecondaryButton
+                        </button>
+                        <button
                             type="button"
-                            onClick={() => {
-                                router.visit(route('public.demo'));
-                            }}
+                            onClick={() => router.visit(route('public.demo'))}
+                            className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-7 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
                         >
-                            Request a demo
-                        </SecondaryButton>
+                            Try Demo
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
+                {/* ─── All Plans Include ────────────────────────────── */}
+                {features.length > 0 && (
+                    <div className="mx-auto mb-10 max-w-5xl rounded-2xl border border-slate-200 bg-slate-50/80 px-6 py-5">
+                        <div className="text-xs font-semibold uppercase tracking-widest text-slate-500">All plans include</div>
+                        <ul className="mt-4 grid grid-cols-1 gap-x-8 gap-y-2.5 sm:grid-cols-2 lg:grid-cols-3">
+                            {features.map((item) => (
+                                <li key={item} className="flex items-center gap-2.5 text-sm text-slate-700">
+                                    <svg className="h-4 w-4 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                    </svg>
+                                    <span>{item}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+
+                {/* ─── Plan Cards ───────────────────────────────────── */}
+                <div className="mx-auto max-w-5xl">
+                    <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+                        {plans.map((plan) => (
+                            <PricingPlanCard
+                                key={plan.id}
+                                plan={plan}
+                                isRecommended={String(plan.id) === recommendedId}
+                                ctaHref={ctaHrefForPlan ?? route('register', { plan: String(plan.id || '') })}
+                                trialDays={trialDays}
+                            />
+                        ))}
                     </div>
                 </div>
 
-                <div className="mt-12 grid grid-cols-1 gap-6 lg:grid-cols-3">
-                    {plans.map((plan) => (
-                        <PricingPlanCard
-                            key={plan.id}
-                            plan={plan}
-                            features={features}
-                            isRecommended={String(plan.id) === recommendedId}
-                            ctaHref={ctaHrefForPlan ?? route('register', { plan: String(plan.id || '') })}
-                            trialDays={trialDays}
-                        />
-                    ))}
-                </div>
-
-                <div className="mt-10 mx-auto max-w-4xl">
-                    <div className="rounded-2xl border border-slate-200/70 bg-white/70 backdrop-blur px-5 py-4 text-sm text-slate-700">
-                        <span className="font-semibold text-slate-900">Note:</span> {pricing?.note}
+                {/* ─── Note ─────────────────────────────────────────── */}
+                <div className="mx-auto mt-10 max-w-4xl">
+                    <div className="flex gap-3 rounded-2xl border border-amber-200/70 bg-amber-50/60 px-5 py-4 text-sm text-slate-700">
+                        <svg className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                        </svg>
+                        <p>
+                            <span className="font-semibold text-slate-900">Note: </span>
+                            {pricing?.note}
+                        </p>
                     </div>
                 </div>
 
-                <div className="mt-14 mx-auto max-w-4xl">
+                {/* ─── FAQ ──────────────────────────────────────────── */}
+                <div className="mx-auto mt-16 max-w-3xl">
                     <div className="text-center">
-                        <h2 className="text-xl font-semibold tracking-tight text-slate-900">FAQ</h2>
+                        <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Frequently Asked Questions</h2>
                         <p className="mt-2 text-sm text-slate-600">Quick answers for founder partners.</p>
                     </div>
 
-                    <div className="mt-8 grid grid-cols-1 gap-4">
+                    <div className="mt-8 overflow-hidden rounded-2xl border border-slate-200 bg-white divide-y divide-slate-100">
                         {faq.map((item) => (
-                            <Card key={item.question} className="p-6">
+                            <div key={item.question} className="px-6 py-5">
                                 <div className="text-sm font-semibold text-slate-900">{item.question}</div>
-                                <div className="mt-2 text-sm text-slate-600">{item.answer}</div>
-                            </Card>
+                                <div className="mt-2 text-sm text-slate-600 leading-relaxed">{item.answer}</div>
+                            </div>
                         ))}
+                    </div>
+                </div>
+
+                {/* ─── Bottom CTA ───────────────────────────────────── */}
+                <div className="mx-auto mt-16 max-w-3xl overflow-hidden rounded-2xl bg-slate-900">
+                    <div className="px-8 py-10 text-center">
+                        <div className="text-xs font-semibold uppercase tracking-widest text-amber-400">Limited availability</div>
+                        <h2 className="mt-3 text-xl font-semibold text-white">Ready to get started?</h2>
+                        <p className="mt-2 text-sm text-slate-400">Founder slots are limited. Lock in your pricing now.</p>
+                        <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    if (ctaHrefForPlan) {
+                                        router.visit(ctaHrefForPlan);
+                                        return;
+                                    }
+                                    router.visit(route('register', { plan: recommendedId || 'growth' }));
+                                }}
+                                className="inline-flex items-center justify-center rounded-xl bg-amber-500 px-7 py-3 text-sm font-semibold text-white transition hover:bg-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 focus:ring-offset-slate-900"
+                            >
+                                Request Founder Access
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => router.visit(route('public.demo'))}
+                                className="inline-flex items-center justify-center rounded-xl border border-slate-600 bg-transparent px-7 py-3 text-sm font-semibold text-slate-300 transition hover:border-slate-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-900"
+                            >
+                                Try Demo
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
