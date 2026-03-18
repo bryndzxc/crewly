@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Employee;
+use App\Models\PayrollRun;
 use App\Services\PayslipService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -18,6 +19,8 @@ class PayslipController extends Controller
     {
         $user = $request->user();
 
+        $isEmployee = (bool) ($user?->isEmployee() ?? false);
+
         // HR/Admin can generate any employee payslip; employee portal users can only view their own.
         $canGenerateAll = $user?->can('access-payroll-summary') ?? false;
         if (!$canGenerateAll && (int) ($employee->user_id ?? 0) !== (int) ($user?->id ?? 0)) {
@@ -25,6 +28,20 @@ class PayslipController extends Controller
         }
 
         [$from, $to] = $this->parsePeriodString($period);
+
+        // Employees can only view/download their payslip after payroll is Released.
+        if ($isEmployee) {
+            $releasedRun = PayrollRun::query()
+                ->where('company_id', (int) ($employee->company_id ?? 0))
+                ->whereDate('period_start', $from->toDateString())
+                ->whereDate('period_end', $to->toDateString())
+                ->where('status', PayrollRun::STATUS_RELEASED)
+                ->first(['id']);
+
+            if (!$releasedRun) {
+                abort(403);
+            }
+        }
 
         $payslip = $this->payslipService->build($employee, $from, $to, $user);
 

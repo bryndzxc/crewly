@@ -19,11 +19,11 @@ class Kernel extends ConsoleKernel
             $schedule->command('demo:ensure-shared')->daily()->withoutOverlapping();
         }
 
-        $schedule->command('demo:cleanup')->daily()->withoutOverlapping();
+        // $schedule->command('demo:cleanup')->daily()->withoutOverlapping();
 
-        if (config('crewly.demo.purge_enabled', false)) {
-            $schedule->command('demo:cleanup --purge --force')->daily()->withoutOverlapping();
-        }
+        // if (config('crewly.demo.purge_enabled', false)) {
+        //     $schedule->command('demo:cleanup --purge --force')->daily()->withoutOverlapping();
+        // }
     }
 
     /**

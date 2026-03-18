@@ -37,9 +37,12 @@
     $governmentTotal = (float) data_get($payslip, 'deductions.government_total', 0);
 
     $cashAdvances = (float) data_get($payslip, 'deductions.cash_advances', 0);
+    $tax = (float) data_get($payslip, 'deductions.tax', 0);
     $otherDeductions = (float) data_get($payslip, 'deductions.other_deductions', 0);
 
     $grossPay = (float) data_get($payslip, 'totals.gross_pay', 0);
+    $totalDeductions = (float) data_get($payslip, 'totals.total_deductions', 0);
+    $netPay = (float) data_get($payslip, 'totals.net_pay', 0);
 @endphp
 
 <div class="box">
@@ -122,6 +125,10 @@
                 <td class="num">{{ number_format($cashAdvances, 2, '.', ',') }}</td>
             </tr>
             <tr>
+                <td>Tax</td>
+                <td class="num">{{ number_format($tax, 2, '.', ',') }}</td>
+            </tr>
+            <tr>
                 <td>Other deductions</td>
                 <td class="num">{{ number_format($otherDeductions, 2, '.', ',') }}</td>
             </tr>
@@ -137,9 +144,17 @@
                 <td>Gross Pay</td>
                 <td class="num">{{ number_format($grossPay, 2, '.', ',') }}</td>
             </tr>
+            <tr class="total-row">
+                <td>Total Deductions</td>
+                <td class="num">{{ number_format($totalDeductions, 2, '.', ',') }}</td>
+            </tr>
+            <tr class="total-row">
+                <td>Net Pay</td>
+                <td class="num">{{ number_format($netPay, 2, '.', ',') }}</td>
+            </tr>
         </tbody>
     </table>
-    <p class="muted" style="margin: 8px 0 0;">Future-ready: Gross Pay = Base Salary + Allowances - Deductions</p>
+    <p class="muted" style="margin: 8px 0 0;">Gross Pay = Earnings total. Net Pay = Gross Pay - Total Deductions.</p>
 </div>
 
 </body>

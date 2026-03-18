@@ -185,6 +185,32 @@ class AuthServiceProvider extends ServiceProvider
             User::ROLE_HR,
         ], true));
 
+        // Payroll Runs (production payroll workflow)
+        Gate::define('generate-payroll', fn (User $user) => in_array($user->role(), [
+            User::ROLE_ADMIN,
+            User::ROLE_HR,
+        ], true));
+
+        Gate::define('edit-payroll-deductions', fn (User $user) => in_array($user->role(), [
+            User::ROLE_ADMIN,
+            User::ROLE_HR,
+        ], true));
+
+        Gate::define('review-payroll', fn (User $user) => in_array($user->role(), [
+            User::ROLE_ADMIN,
+            User::ROLE_HR,
+        ], true));
+
+        Gate::define('finalize-payroll', fn (User $user) => in_array($user->role(), [
+            User::ROLE_ADMIN,
+            User::ROLE_HR,
+        ], true));
+
+        Gate::define('release-payroll', fn (User $user) => in_array($user->role(), [
+            User::ROLE_ADMIN,
+            User::ROLE_HR,
+        ], true));
+
         // Cash Advances (Authorization to Deduct)
         Gate::define('access-cash-advances', fn (User $user) => in_array($user->role(), [
             User::ROLE_ADMIN,

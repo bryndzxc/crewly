@@ -8,6 +8,7 @@ use App\Models\Company;
 use App\Models\Employee;
 use App\Models\EmployeeAllowance;
 use App\Models\EmployeeCompensation;
+use App\Models\PayrollRunItem;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -24,8 +25,8 @@ class PayslipService extends Service
      *   employee: array{employee_id: int, name: string, position_title: string},
      *   period: array{from: string, to: string},
      *   earnings: array{base_salary: float, allowances_total: float, allowances: array<int, array{name: string, amount: float, frequency: string}>, other_earnings: float},
-        *   deductions: array{sss: float, philhealth: float, pagibig: float, government_total: float, cash_advances: float, other_deductions: float},
-     *   totals: array{gross_pay: float, total_earnings: float, total_deductions: float}
+      *   deductions: array{sss: float, philhealth: float, pagibig: float, government_total: float, cash_advances: float, tax: float, other_deductions: float},
+      *   totals: array{gross_pay: float, net_pay: float, total_earnings: float, total_deductions: float}
      * }
      */
     public function build(Employee $employee, Carbon $from, Carbon $to, ?User $requestedBy = null): array
@@ -70,43 +71,77 @@ class PayslipService extends Service
         $fromDate = $from->copy()->startOfDay()->toDateString();
         $toDate = $to->copy()->startOfDay()->toDateString();
 
-        $cashAdvanceDeductions = (float) CashAdvanceDeduction::query()
-            ->from('cash_advance_deductions')
-            ->join('cash_advances', 'cash_advances.id', '=', 'cash_advance_deductions.cash_advance_id')
-            ->whereColumn('cash_advances.company_id', 'cash_advance_deductions.company_id')
-            ->where('cash_advances.employee_id', $employeeId)
-            ->whereBetween('cash_advance_deductions.deducted_at', [$fromDate, $toDate])
-            ->sum('cash_advance_deductions.amount');
+        /** @var PayrollRunItem|null $runItem */
+        $runItem = PayrollRunItem::query()
+            ->join('payroll_runs', 'payroll_runs.id', '=', 'payroll_run_items.payroll_run_id')
+            ->where('payroll_run_items.employee_id', $employeeId)
+            ->where('payroll_runs.company_id', (int) ($employee->company_id ?? 0))
+            ->whereDate('payroll_runs.period_start', $fromDate)
+            ->whereDate('payroll_runs.period_end', $toDate)
+            ->orderByDesc('payroll_runs.id')
+            ->first(['payroll_run_items.*']);
 
-        $sssEmployee = 0.0;
-        $philhealthEmployee = 0.0;
-        $pagibigEmployee = 0.0;
+        // Prefer stored payroll run items for correctness/locking.
+        if ($runItem) {
+            $baseSalary = (float) ($runItem->basic_pay ?? $baseSalary);
+            $allowancesTotal = (float) ($runItem->allowances_total ?? $allowancesTotal);
 
-        try {
-            $contribMap = $this->payrollRunContributionService->upsertForPeriod(
-                employeeIds: [$employeeId],
-                periodStart: $from,
-                periodEnd: $to,
-                baseSalaryByEmployeeId: [$employeeId => $baseSalary],
-                actorUserId: (int) ($requestedBy?->id ?? 0) ?: null,
-            );
+            $otherEarnings = (float) ($runItem->other_earnings ?? 0);
+            $grossPay = (float) ($runItem->gross_pay ?? ($baseSalary + $allowancesTotal + $otherEarnings));
 
-            $contrib = $contribMap->get($employeeId);
-            $sssEmployee = $contrib ? (float) ($contrib->sss_employee ?? 0) : 0.0;
-            $philhealthEmployee = $contrib ? (float) ($contrib->philhealth_employee ?? 0) : 0.0;
-            $pagibigEmployee = $contrib ? (float) ($contrib->pagibig_employee ?? 0) : 0.0;
-        } catch (GovernmentContributionConfigMissingException) {
-            // Keep payslip usable; show zero contributions until settings are configured.
+            $sssEmployee = (float) ($runItem->sss_employee ?? 0);
+            $philhealthEmployee = (float) ($runItem->philhealth_employee ?? 0);
+            $pagibigEmployee = (float) ($runItem->pagibig_employee ?? 0);
+            $governmentEmployeeTotal = $sssEmployee + $philhealthEmployee + $pagibigEmployee;
+
+            $cashAdvanceDeductions = (float) ($runItem->cash_advance_deduction ?? 0);
+            $taxDeduction = (float) ($runItem->tax_deduction ?? 0);
+            $otherDeductions = (float) ($runItem->other_deductions ?? 0);
+
+            $totalEarnings = $grossPay;
+            $totalDeductions = (float) ($runItem->total_deductions ?? ($governmentEmployeeTotal + $cashAdvanceDeductions + $taxDeduction + $otherDeductions));
+            $netPay = (float) ($runItem->net_pay ?? ($grossPay - $totalDeductions));
+        } else {
+            $cashAdvanceDeductions = (float) CashAdvanceDeduction::query()
+                ->from('cash_advance_deductions')
+                ->join('cash_advances', 'cash_advances.id', '=', 'cash_advance_deductions.cash_advance_id')
+                ->whereColumn('cash_advances.company_id', 'cash_advance_deductions.company_id')
+                ->where('cash_advances.employee_id', $employeeId)
+                ->whereBetween('cash_advance_deductions.deducted_at', [$fromDate, $toDate])
+                ->sum('cash_advance_deductions.amount');
+
+            $sssEmployee = 0.0;
+            $philhealthEmployee = 0.0;
+            $pagibigEmployee = 0.0;
+
+            try {
+                $contribMap = $this->payrollRunContributionService->upsertForPeriod(
+                    employeeIds: [$employeeId],
+                    periodStart: $from,
+                    periodEnd: $to,
+                    baseSalaryByEmployeeId: [$employeeId => $baseSalary],
+                    actorUserId: (int) ($requestedBy?->id ?? 0) ?: null,
+                );
+
+                $contrib = $contribMap->get($employeeId);
+                $sssEmployee = $contrib ? (float) ($contrib->sss_employee ?? 0) : 0.0;
+                $philhealthEmployee = $contrib ? (float) ($contrib->philhealth_employee ?? 0) : 0.0;
+                $pagibigEmployee = $contrib ? (float) ($contrib->pagibig_employee ?? 0) : 0.0;
+            } catch (GovernmentContributionConfigMissingException) {
+                // Keep payslip usable; show zero contributions until settings are configured.
+            }
+
+            $governmentEmployeeTotal = $sssEmployee + $philhealthEmployee + $pagibigEmployee;
+
+            $otherEarnings = 0.0;
+            $taxDeduction = 0.0;
+            $otherDeductions = 0.0;
+
+            $grossPay = $baseSalary + $allowancesTotal + $otherEarnings;
+            $totalEarnings = $grossPay;
+            $totalDeductions = $governmentEmployeeTotal + $cashAdvanceDeductions + $taxDeduction + $otherDeductions;
+            $netPay = $grossPay - $totalDeductions;
         }
-
-        $governmentEmployeeTotal = $sssEmployee + $philhealthEmployee + $pagibigEmployee;
-
-        $otherEarnings = 0.0;
-        $otherDeductions = 0.0;
-
-        $totalEarnings = $baseSalary + $allowancesTotal + $otherEarnings;
-        $totalDeductions = $governmentEmployeeTotal + $cashAdvanceDeductions + $otherDeductions;
-        $grossPay = $totalEarnings - $totalDeductions;
 
         return [
             'company' => [
@@ -133,12 +168,14 @@ class PayslipService extends Service
                 'pagibig' => $pagibigEmployee,
                 'government_total' => $governmentEmployeeTotal,
                 'cash_advances' => $cashAdvanceDeductions,
+                'tax' => $taxDeduction,
                 'other_deductions' => $otherDeductions,
             ],
             'totals' => [
                 'gross_pay' => $grossPay,
                 'total_earnings' => $totalEarnings,
                 'total_deductions' => $totalDeductions,
+                'net_pay' => $netPay,
             ],
         ];
     }
