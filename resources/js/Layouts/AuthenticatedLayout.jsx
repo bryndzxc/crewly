@@ -332,6 +332,17 @@ export default function Authenticated({ user, header, children, contentClassName
                                     Profile
                                 </Dropdown.Link>
                                 <Dropdown.Link
+                                    href={
+                                        String(user?.role || '').toLowerCase() === 'employee'
+                                            ? route('employee.dashboard', { tour: 1 })
+                                            : route('dashboard', { tour: 1 })
+                                    }
+                                    className="text-slate-700 hover:bg-amber-50 focus:bg-amber-50"
+                                >
+                                    Replay Tutorial
+                                </Dropdown.Link>
+                                <div className="my-2 h-px bg-slate-200" />
+                                <Dropdown.Link
                                     href={route('logout')}
                                     method="post"
                                     as="button"

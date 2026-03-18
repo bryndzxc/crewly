@@ -4,7 +4,7 @@ import PageHeader from '@/Components/UI/PageHeader';
 import PrimaryButton from '@/Components/PrimaryButton';
 import DatePicker from '@/Components/DatePicker';
 import CrewlyTour from '@/Components/Tutorial/CrewlyTour';
-import { Head, usePage } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
 
 export default function EmployeeDashboard({ auth, employee, leaveSummary, attendanceHistory, compensation, allowances, allowancesTotal, defaults }) {
@@ -45,6 +45,22 @@ export default function EmployeeDashboard({ auth, employee, leaveSummary, attend
             <div data-tour="dashboard">
                 <PageHeader title="Employee Dashboard" subtitle="Your leave, attendance, and payroll-ready information." />
             </div>
+
+            {auth?.user?.tutorial_completed_at && (
+                <div className="mb-6">
+                    <Card className="p-4 border-amber-200/60 bg-amber-50/40">
+                        <div className="flex items-center justify-between gap-4">
+                            <div className="text-sm text-slate-700">Need a refresher on the features?</div>
+                            <Link
+                                href={route('employee.dashboard', { tour: 1 })}
+                                className="shrink-0 text-sm font-semibold text-amber-800 hover:text-amber-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40 focus-visible:ring-offset-2 rounded"
+                            >
+                                Replay Tour
+                            </Link>
+                        </div>
+                    </Card>
+                </div>
+            )}
 
             <div className="w-full space-y-4">
                 <Card className="p-6">
