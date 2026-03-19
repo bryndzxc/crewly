@@ -80,7 +80,39 @@ class GenerateEmployeesCommand extends Command
         $createdEmployees = 0;
         $createdUsers = 0;
 
-        $faker = fake();
+        $faker = class_exists(\Faker\Factory::class)
+            ? \Faker\Factory::create(config('app.faker_locale') ?? 'en_US')
+            : new class {
+                private array $firstNames = ['Alex', 'Jamie', 'Taylor', 'Jordan', 'Casey', 'Morgan', 'Riley', 'Avery', 'Sam', 'Cameron'];
+                private array $lastNames = ['Santos', 'Reyes', 'Cruz', 'Garcia', 'Dela Cruz', 'Bautista', 'Mendoza', 'Torres', 'Navarro', 'Flores'];
+
+                public function firstName(): string
+                {
+                    return $this->randomElement($this->firstNames);
+                }
+
+                public function lastName(): string
+                {
+                    return $this->randomElement($this->lastNames);
+                }
+
+                public function boolean(int $chanceOfGettingTrue = 50): bool
+                {
+                    $chanceOfGettingTrue = max(0, min(100, $chanceOfGettingTrue));
+                    return random_int(1, 100) <= $chanceOfGettingTrue;
+                }
+
+                public function numberBetween(int $min, int $max): int
+                {
+                    return random_int($min, $max);
+                }
+
+                /** @param array<int, mixed> $array */
+                public function randomElement(array $array): mixed
+                {
+                    return $array[array_rand($array)];
+                }
+            };
 
         try {
             DB::transaction(function () use ($company, $department, $count, $withUsers, $plainPassword, $dryRun, $faker, &$createdEmployees, &$createdUsers) {
